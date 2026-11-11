@@ -1,0 +1,244 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><title>LIHL Hockey</title>
+<style>
+html,body{margin:0;height:100%;background:#0a1620;color:#fff;font-family:system-ui,Segoe UI,sans-serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;position:fixed;inset:0;width:100%;height:100%}
+#menu,#end{position:fixed;inset:0;background:#0a1620f2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:9;padding:14px;text-align:center}
+#end{display:none}
+h1{margin:0;font-size:30px;letter-spacing:2px}h1 span{color:#4fd1c5}
+select,button{font-size:17px;padding:10px 14px;border-radius:10px;border:0;background:#1d3a52;color:#fff}
+button.go{background:#4fd1c5;color:#032;font-weight:700;font-size:20px;padding:12px 30px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+small{opacity:.7;max-width:520px;line-height:1.4}
+#hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:center;pointer-events:none;z-index:2}
+#sb{display:flex;align-items:center;gap:10px;background:#0a1620cc;border-radius:0 0 14px 14px;padding:6px 14px;font-weight:700}
+#sb img{height:26px;width:26px;object-fit:contain}#sb .sc{font-size:26px;min-width:24px;text-align:center}
+#sb .ck{font-size:18px;text-align:center;min-width:92px}#sb small{display:block;font-weight:400;font-size:11px}
+.side{position:fixed;top:44px;font-size:12px;background:#0a1620aa;border-radius:8px;padding:4px 8px;z-index:2;pointer-events:none;line-height:1.35}
+#sl{left:6px}#sr{right:6px;text-align:right}.pp{color:#7CFC00;font-weight:700}.pk{color:#ff7b7b;font-weight:700}
+#banner{position:fixed;left:50%;top:26%;transform:translateX(-50%);background:#0a1620ee;border:2px solid #4fd1c5;border-radius:16px;padding:10px 22px;z-index:4;display:none;align-items:center;gap:14px;font-size:20px;font-weight:700;pointer-events:none}
+#banner img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid #fff}#banner small{display:block;font-weight:400;font-size:14px}
+#ctl{position:fixed;inset:0;z-index:3;pointer-events:none}
+#jz{position:absolute;left:0;top:30%;bottom:0;width:50%;pointer-events:auto}
+#jb,#jk{position:absolute;border-radius:50%;display:none}
+#jb{width:110px;height:110px;border:3px solid #fff6;margin:-55px 0 0 -55px}#jk{width:52px;height:52px;background:#fffa;margin:-26px 0 0 -26px}
+.btn{position:absolute;border-radius:50%;pointer-events:auto;display:flex;align-items:center;justify-content:center;font-weight:700;background:#4fd1c5cc;color:#032;border:3px solid #fff8}
+#bs{right:22px;bottom:26px;width:104px;height:104px;font-size:20px}#bp{right:140px;bottom:26px;width:76px;height:76px;font-size:15px;background:#ffd166cc}
+#bt{right:14px;top:96px;width:auto;height:auto;border-radius:8px;padding:5px 9px;font-size:11px;background:#1d3a52cc;color:#fff;border:0;font-weight:400}
+</style></head><body>
+<canvas id="c"></canvas>
+<div id="hud"><div id="sb"><img id="ia"><b id="na"></b><span class="sc" id="sa">0</span><div class="ck"><span id="ck">3:00</span><small id="pd">1st</small></div><span class="sc" id="sh">0</span><b id="nh"></b><img id="ih"></div></div>
+<div class="side" id="sl"></div><div class="side" id="sr"></div>
+<div id="banner"><img id="bi"><div><span id="bt1"></span><small id="bt2"></small></div></div>
+<div id="ctl"><div id="jz"><div id="jb"></div><div id="jk"></div></div>
+<div class="btn" id="bs">SHOOT</div><div class="btn" id="bp">PASS</div><div class="btn" id="bt">test PP</div></div>
+<div id="menu"><h1>LIHL <span>HOCKEY</span></h1>
+<small>Real Fall 2026 Long Island Hockey rosters. Ratings and photos from lihockey.org (rated players only). Auto line changes, power play and penalty kill units.</small>
+<div class="row"><select id="mh"></select><b>vs</b><select id="ma"></select></div>
+<div class="row"><select id="mc"><option value="h">You: first team</option><option value="a">You: second team</option><option value="n">Watch (CPU vs CPU)</option></select>
+<select id="ml"><option value="120">Period 2:00</option><option value="180" selected>Period 3:00</option><option value="300">Period 5:00</option></select></div>
+<button class="go" id="go">START</button>
+<small>Phone: hold landscape. Left thumb = skate, SHOOT = shoot (when you have no puck: burst/check), PASS = pass (no puck: switch player). Keyboard: WASD/arrows, Space shoot, E pass.</small></div>
+<div id="end"><h1 id="et"></h1><div id="es" style="font-size:22px"></div><button class="go" id="again">PLAY AGAIN</button></div>
+<script>
+const ROSTER={"teams":{"198":{"abbr":"D5","name":"District 5","div":"Premier - Tier 2","icon":"photos/team198.png"},"176":{"abbr":"MBH","name":"Meatball Heroes","div":"Weeknight D","icon":"photos/team176.png"},"196":{"abbr":"PPC","name":"Paddy\u2019s Pub Crawlers","div":"Weeknight D","icon":"photos/team196.png"},"183":{"abbr":"PIMP","name":"Big Pimps","div":"Weeknight D","icon":"photos/team183.png"},"181":{"abbr":"WOOL","name":"Wooly Bullies","div":"Weeknight D","icon":"photos/team181.png"},"178":{"abbr":"HTV","name":"Hometown Villains","div":"Weeknight D","icon":"photos/team178.png"},"171":{"abbr":"BAB","name":"Band-aid Brigade","div":"Weekend E / D","icon":"photos/team171.png"},"182":{"abbr":"GG","name":"Golden Goons","div":"Weeknight D","icon":"photos/team182.png"},"168":{"abbr":"KCO","name":"Kraken Cold Ones","div":"Weekend E / D","icon":"photos/team168.png"},"170":{"abbr":"AJ","name":"Average Joes","div":"Weekend E / D","icon":"photos/team170.png"},"169":{"abbr":"SP","name":"Slashing Pumpkins","div":"Weekend E / D","icon":"photos/team169.png"}},"players":[{"id":509,"name":"Thomas O'Neill","rating":60,"band":"C","photo":"photos/p509.jpg","teams":[198]},{"id":449,"name":"Meir Haltovsky","rating":47,"band":"C","photo":"photos/p449.jpg","teams":[198]},{"id":124,"name":"Chris Micallef","rating":47,"band":"C","photo":null,"teams":[198]},{"id":133,"name":"Nick Micallef","rating":43,"band":"C","photo":"photos/p133.jpg","teams":[198]},{"id":956,"name":"Joseph Cerina","rating":42,"band":"C","photo":"photos/p956.jpg","teams":[198,176]},{"id":1013,"name":"Andrew Gindea","rating":42,"band":"C","photo":"photos/p1013.jpg","teams":[196]},{"id":596,"name":"Zachary Wood","rating":42,"band":"C","photo":"photos/p596.jpg","teams":[183,198]},{"id":348,"name":"Stephen Baum","rating":41,"band":"C","photo":"photos/p348.jpg","teams":[181]},{"id":837,"name":"Tyler Pennec","rating":41,"band":"C","photo":"photos/p837.jpg","teams":[198,178]},{"id":1118,"name":"Nicholas Galdemis","rating":40,"band":"D","photo":"photos/p1118.jpg","teams":[183]},{"id":97,"name":"Frank Semar","rating":40,"band":"D","photo":"photos/p97.jpg","teams":[181]},{"id":1229,"name":"Richard Calma","rating":39,"band":"D","photo":null,"teams":[183,181]},{"id":68,"name":"James Ellerby","rating":37,"band":"D","photo":"photos/p68.jpg","teams":[171,176]},{"id":538,"name":"Ronald Kemly","rating":37,"band":"D","photo":null,"teams":[182]},{"id":65,"name":"CW Schwalbe","rating":37,"band":"D","photo":"photos/p65.jpg","teams":[171,178]},{"id":1089,"name":"Theodore Zikos","rating":37,"band":"D","photo":"photos/p1089.jpg","teams":[168]},{"id":697,"name":"Ryan Kelly","rating":36,"band":"D","photo":"photos/p697.jpg","teams":[171]},{"id":89,"name":"Michelle Reis","rating":36,"band":"D","photo":"photos/p89.jpg","teams":[170,196]},{"id":690,"name":"Anthony Spina","rating":36,"band":"D","photo":"photos/p690.jpg","teams":[176]},{"id":1215,"name":"Kimberly Apolinar","rating":35,"band":"D","photo":"photos/p1215.jpg","teams":[170]},{"id":191,"name":"Jon Baer","rating":35,"band":"D","photo":"photos/p191.jpg","teams":[169]},{"id":520,"name":"Michael Cashman","rating":35,"band":"D","photo":"photos/p520.jpg","teams":[171,181]},{"id":423,"name":"Scott Coleman","rating":35,"band":"D","photo":null,"teams":[183,169]},{"id":127,"name":"James Darmiento","rating":35,"band":"D","photo":"photos/p127.jpg","teams":[168]},{"id":10,"name":"Joe Faithfull","rating":35,"band":"D","photo":"photos/p10.jpg","teams":[170]},{"id":34,"name":"Amanda Funaro","rating":35,"band":"D","photo":"photos/p34.jpg","teams":[178,169]},{"id":978,"name":"Antoine Munfakh","rating":35,"band":"D","photo":null,"teams":[183]},{"id":2,"name":"Daniel Reis","rating":35,"band":"D","photo":"photos/p2.jpg","teams":[170,196]},{"id":211,"name":"Stephen Seedorf","rating":35,"band":"D","photo":"photos/p211.jpg","teams":[170]},{"id":752,"name":"Dominic Shaw","rating":35,"band":"D","photo":"photos/p752.jpg","teams":[181]},{"id":706,"name":"Aidan Feulner","rating":34,"band":"D","photo":"photos/p706.jpg","teams":[176]},{"id":638,"name":"Marisa Haszto","rating":34,"band":"D","photo":"photos/p638.jpg","teams":[171,181]},{"id":1238,"name":"Liam Rogers","rating":34,"band":"D","photo":"photos/p1238.jpg","teams":[196]},{"id":52,"name":"James Romanelli","rating":34,"band":"D","photo":"photos/p52.jpg","teams":[176]},{"id":1169,"name":"Angela Ruffini","rating":34,"band":"D","photo":"photos/p1169.jpg","teams":[168]},{"id":93,"name":"Brian Raeihle","rating":33,"band":"D","photo":"photos/p93.jpg","teams":[171]},{"id":645,"name":"Matthew Ring","rating":33,"band":"D","photo":"photos/p645.jpg","teams":[182,168]},{"id":514,"name":"Brandon Basile","rating":32,"band":"D","photo":"photos/p514.jpg","teams":[198]},{"id":849,"name":"Garrison Donaghy","rating":32,"band":"D","photo":null,"teams":[183,196]},{"id":130,"name":"Joe Lupo","rating":32,"band":"D","photo":"photos/p130.jpg","teams":[183]},{"id":947,"name":"Chris Murphy","rating":32,"band":"D","photo":"photos/p947.jpg","teams":[178,168]},{"id":446,"name":"Dan Decarolis","rating":31,"band":"D","photo":"photos/p446.jpg","teams":[183]},{"id":1116,"name":"Michael Giarretto","rating":31,"band":"D","photo":"photos/p1116.jpg","teams":[182]},{"id":669,"name":"Rob Reznik","rating":31,"band":"D","photo":"photos/p669.jpg","teams":[178]},{"id":1156,"name":"Connor DeKenipp","rating":30,"band":"D","photo":"photos/p1156.jpg","teams":[178]},{"id":111,"name":"Jason Karpinski","rating":30,"band":"D","photo":"photos/p111.jpg","teams":[182]},{"id":90,"name":"Raffi Minassian","rating":30,"band":"D","photo":"photos/p90.jpg","teams":[183,168]},{"id":532,"name":"Sal Riccio","rating":30,"band":"D","photo":"photos/p532.jpg","teams":[183]},{"id":862,"name":"William Carr","rating":29,"band":"D","photo":"photos/p862.jpg","teams":[170]},{"id":183,"name":"Anthony DeRiso","rating":29,"band":"D","photo":"photos/p183.jpg","teams":[182]},{"id":990,"name":"Ewan Dossin","rating":29,"band":"D","photo":"photos/p990.jpg","teams":[183]},{"id":134,"name":"Paul Post","rating":29,"band":"D","photo":"photos/p134.jpg","teams":[170]},{"id":241,"name":"Justin Stapleton","rating":29,"band":"D","photo":"photos/p241.jpg","teams":[178]},{"id":762,"name":"Tyler Adwar","rating":28,"band":"D","photo":"photos/p762.jpg","teams":[169]},{"id":20,"name":"Alex Cesare","rating":28,"band":"D","photo":"photos/p20.jpg","teams":[196]},{"id":70,"name":"Jim McArdle","rating":28,"band":"D","photo":"photos/p70.jpg","teams":[182]},{"id":1208,"name":"Anthony Silvera","rating":28,"band":"D","photo":null,"teams":[168]},{"id":722,"name":"Michael Vanadia","rating":28,"band":"D","photo":null,"teams":[168]},{"id":62,"name":"Wesley Yee","rating":28,"band":"D","photo":"photos/p62.jpg","teams":[182]},{"id":556,"name":"Ben Anteck","rating":27,"band":"D","photo":"photos/p556.jpg","teams":[171]},{"id":221,"name":"Austin Basile","rating":27,"band":"D","photo":"photos/p221.jpg","teams":[198,196]},{"id":174,"name":"Matt Funaro","rating":27,"band":"D","photo":"photos/p174.jpg","teams":[178,169]},{"id":1066,"name":"Robert Incantalupo","rating":27,"band":"D","photo":"photos/p1066.jpg","teams":[178]},{"id":975,"name":"Randall Krauss","rating":27,"band":"D","photo":"photos/p975.jpg","teams":[169]},{"id":209,"name":"Nick LoCascio","rating":27,"band":"D","photo":"photos/p209.jpg","teams":[182]},{"id":1008,"name":"Eric Maccabi","rating":27,"band":"D","photo":"photos/p1008.jpg","teams":[196]},{"id":512,"name":"CJ Pasqueralli","rating":27,"band":"D","photo":"photos/p512.jpg","teams":[196]},{"id":117,"name":"Rick Pisciotta","rating":27,"band":"D","photo":"photos/p117.jpg","teams":[176,169]},{"id":466,"name":"Nisar Ahmed","rating":26,"band":"D","photo":"photos/p466.jpg","teams":[171,183]},{"id":714,"name":"Bobby Becker","rating":26,"band":"D","photo":null,"teams":[196]},{"id":431,"name":"AJ DeVito","rating":26,"band":"D","photo":"photos/p431.jpg","teams":[168]},{"id":1067,"name":"Paul Jorge","rating":26,"band":"D","photo":"photos/p1067.jpg","teams":[196]},{"id":1,"name":"Robby Lucia","rating":26,"band":"D","photo":"photos/p1.jpg","teams":[183,169]},{"id":49,"name":"Chris Lupis","rating":26,"band":"D","photo":"photos/p49.jpg","teams":[183,168]},{"id":9,"name":"James O'Donnell","rating":26,"band":"D","photo":"photos/p9.jpg","teams":[170,176]},{"id":17,"name":"Rory O\u2019Hara","rating":26,"band":"D","photo":"photos/p17.jpg","teams":[181]},{"id":751,"name":"Matthew Pospishil","rating":26,"band":"D","photo":null,"teams":[176]},{"id":667,"name":"Alex Reznik","rating":26,"band":"D","photo":"photos/p667.jpg","teams":[178]},{"id":129,"name":"Jason Safuto","rating":26,"band":"D","photo":"photos/p129.jpg","teams":[178]},{"id":123,"name":"Aaron Yu","rating":26,"band":"D","photo":"photos/p123.jpg","teams":[178]},{"id":408,"name":"Randy Yung","rating":26,"band":"D","photo":"photos/p408.jpg","teams":[181]},{"id":165,"name":"Mike Levy","rating":25,"band":"D","photo":"photos/p165.jpg","teams":[171,176]},{"id":1029,"name":"Anthony Tarantino","rating":25,"band":"D","photo":"photos/p1029.jpg","teams":[182,168]},{"id":59,"name":"Mike Torregrossa","rating":25,"band":"D","photo":"photos/p59.jpg","teams":[178]},{"id":28,"name":"Peter Urso","rating":25,"band":"D","photo":"photos/p28.jpg","teams":[181]},{"id":517,"name":"Joe Ciurleo","rating":24,"band":"D","photo":null,"teams":[182]},{"id":801,"name":"Connor Crichton","rating":24,"band":"D","photo":"photos/p801.jpg","teams":[176]},{"id":58,"name":"Lydia Holmberg","rating":24,"band":"D","photo":"photos/p58.jpg","teams":[181]},{"id":375,"name":"Nicholas Lilli","rating":24,"band":"D","photo":"photos/p375.jpg","teams":[178,169]},{"id":114,"name":"Matt Pisciotta","rating":24,"band":"D","photo":"photos/p114.jpg","teams":[176]},{"id":98,"name":"Garrett Vella","rating":24,"band":"D","photo":null,"teams":[182]},{"id":652,"name":"Glen Yelenovic","rating":24,"band":"D","photo":"photos/p652.jpg","teams":[183]},{"id":248,"name":"Andrew Zych","rating":24,"band":"D","photo":null,"teams":[181]},{"id":662,"name":"Fran Brzyski","rating":23,"band":"D","photo":"photos/p662.jpg","teams":[182]},{"id":473,"name":"Jonah Green","rating":23,"band":"D","photo":"photos/p473.jpg","teams":[176]},{"id":983,"name":"Vincent Marano","rating":23,"band":"D","photo":null,"teams":[183]},{"id":545,"name":"Kevin Saban","rating":23,"band":"D","photo":"photos/p545.jpg","teams":[178]},{"id":1079,"name":"Brad Bieselin","rating":22,"band":"D","photo":"photos/p1079.jpg","teams":[176]},{"id":12,"name":"Justin Colonna","rating":22,"band":"D","photo":"photos/p12.jpg","teams":[170]},{"id":46,"name":"Sarah Conway","rating":22,"band":"D","photo":"photos/p46.jpg","teams":[196]},{"id":6,"name":"Darren Scandariato","rating":22,"band":"D","photo":"photos/p6.jpg","teams":[181]},{"id":499,"name":"Gareth Tseng","rating":22,"band":"D","photo":"photos/p499.jpg","teams":[171]},{"id":1231,"name":"Thomas Breaton","rating":21,"band":"D","photo":"photos/p1231.jpg","teams":[178]},{"id":47,"name":"Will Campbell","rating":21,"band":"D","photo":"photos/p47.jpg","teams":[176]},{"id":650,"name":"Jack Casey","rating":21,"band":"D","photo":"photos/p650.jpg","teams":[181]},{"id":677,"name":"Glenn Forbes","rating":21,"band":"D","photo":"photos/p677.jpg","teams":[183]},{"id":805,"name":"James Funaro","rating":21,"band":"D","photo":"photos/p805.jpg","teams":[169]},{"id":18,"name":"Sandra Guarin","rating":21,"band":"D","photo":"photos/p18.jpg","teams":[170,196]},{"id":1014,"name":"Arye Kremer","rating":21,"band":"D","photo":"photos/p1014.jpg","teams":[196]},{"id":22,"name":"Denise McIntyre","rating":21,"band":"D","photo":"photos/p22.jpg","teams":[183,168]}]};//ROSTER
+const SL=['C','LW','RW','LD','RD'],W=200,H=85,GX=11,NY=[37.5,47.5],MY=42.5;
+const rnd=(a,b)=>a+Math.random()*(b-a),clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),hyp=Math.hypot,$=i=>document.getElementById(i);
+const qs=new URLSearchParams(location.search),SPEED=+qs.get('speed')||1;
+const hash=s=>{let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))|0;return Math.abs(h)};
+const cv=$('c'),cx=cv.getContext('2d');let S=5,VW=120,VH=60;
+function resize(){const d=devicePixelRatio||1;cv.width=innerWidth*d;cv.height=innerHeight*d;VW=innerWidth>innerHeight?150:80;S=cv.width/VW;VH=cv.height/S}
+addEventListener('resize',resize);resize();
+const imgs={};function img(src){if(!src)return null;if(!imgs[src]){const i=new Image();i.src=src;imgs[src]=i}const i=imgs[src];return i.complete&&i.naturalWidth?i:null}
+// ---------- data ----------
+const TEAMS=Object.entries(ROSTER.teams).map(([id,t])=>({id:+id,...t,players:ROSTER.players.filter(p=>p.teams.includes(+id))})).sort((a,b)=>a.name.localeCompare(b.name));
+for(const sel of [$('mh'),$('ma')])TEAMS.forEach((t,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${t.name} (${t.players.length})`;sel.appendChild(o)});
+$('ma').value=1;
+function attrs(p){const r=clamp((p.rating-20)/45,0,1),j=k=>((hash(p.id+k)%100)/100-.5)*.3;
+return{r,spd:clamp(.35+.55*r+j('a'),0,1),shot:clamp(r+j('b'),.05,1),pass:clamp(r+j('c'),.05,1),chk:clamp(r+j('d'),.05,1),def:clamp(r+j('e'),.05,1)}}
+const initials=n=>n.split(' ').map(w=>w[0]).join('').slice(0,2);
+// ---------- state ----------
+let G,H1,A1,puck,input={x:0,y:0,shoot:0,pass:0},keys={};
+function mkTeam(def,side,color,human){
+ const t={def,side,dir:side,ownGX:side>0?GX:W-GX,oppGX:side>0?W-GX:GX,color,abbr:def.abbr,name:def.name,icon:def.icon,human,pen:[],shiftT:0,ppT:0,key:'',label:'',seats:{},needUnit:true};
+ t.roster=def.players.map(p=>({...p,...attrs(p),x:W/2,y:-9,vx:0,vy:0,fa:0,on:false,box:false,slot:null,stun:0,burst:0,aiT:0,team:t,img:p.photo}));
+ const sc=p=>(p.shot+p.spd)-(p.def+p.chk),by=t.roster.slice().sort((a,b)=>sc(a)-sc(b)),nD=Math.max(4,Math.round(t.roster.length*.4/2)*2);
+ t.Ds=by.slice(0,nD).sort((a,b)=>b.rating-a.rating);t.Fs=t.roster.filter(p=>!t.Ds.includes(p)).sort((a,b)=>b.rating-a.rating);
+ const ch=(a,n)=>{const o=[];for(let i=0;i<a.length;i+=n){const l=a.slice(i,i+n);let k=0;while(l.length<n)l.push(a[k++%a.length]);o.push(l)}return o};
+ t.F=ch(t.Fs,3);t.D=ch(t.Ds,2);t.seqF=[0,1,0,2].filter(i=>i<t.F.length);t.seqD=[0,1,0,2].filter(i=>i<t.D.length);
+ const avg=t.roster.reduce((s,p)=>s+p.r,0)/t.roster.length;
+ t.goalie={x:t.ownGX+side*3.5,y:MY,gl:.45+.4*avg,team:t,name:t.abbr+' Goalie'};
+ return t}
+function newGame(){
+ const hi=+$('mh').value,ai=+$('ma').value,mode=$('mc').value;
+ const hue=h=>`hsl(${h},68%,46%)`;let h1=hash(TEAMS[hi].abbr)%360,h2=hash(TEAMS[ai].abbr)%360;if(Math.abs(h1-h2)<50)h2=(h1+170)%360;
+ H1=mkTeam(TEAMS[hi],1,hue(h1),mode==='h');A1=mkTeam(TEAMS[ai],-1,hue(h2),mode==='a');H1.opp=A1;A1.opp=H1;
+ puck={x:W/2,y:MY,vx:0,vy:0,owner:null,target:null,last:null,cool:0,shot:null};
+ G={period:1,plen:+$('ml').value,clock:+$('ml').value,score:[0,0],pause:0.01,over:false,ctlT:0,ot:false,hum:mode==='h'?H1:mode==='a'?A1:null,goals:[]};
+ $('na').textContent=A1.abbr;$('nh').textContent=H1.abbr;$('ia').src=A1.icon||'';$('ih').src=H1.icon||'';
+ $('menu').style.display='none';$('end').style.display='none';$('ctl').style.display=G.hum?'block':'none';
+ H1.needUnit=A1.needUnit=true;faceoff(true)}
+// ---------- units ----------
+const act=t=>{const k=Math.min(2,t.pen.length);return SL.filter(s=>!(k>=1&&s==='RW')&&!(k>=2&&s==='LW'))};
+function fill(l,n,...pools){l=[...new Set(l)];for(const pl of pools)for(const p of pl){if(l.length>=n)break;if(!l.includes(p))l.push(p)}return l.slice(0,n)}
+function curKey(t){const pen=t.pen.length,op=t.opp.pen.length;if(pen>op)return'PK';if(op>pen)return'PP'+(Math.floor(t.ppT/60)%2);const n=Math.floor(t.shiftT/40);return'ES'+t.seqF[n%t.seqF.length]+'-'+t.seqD[n%t.seqD.length]}
+function unitFor(t,key){const av=new Set(t.roster.filter(p=>!p.box)),f=a=>a.filter(p=>av.has(p)),Fa=f(t.Fs),Da=f(t.Ds);let F,D,label;
+ if(key[0]==='E'){const[a,b]=key.slice(2).split('-').map(Number);F=f(t.F[a]);D=f(t.D[b]);label=`F${a+1} D${b+1}`}
+ else if(key==='PK'){F=Fa.slice().sort((a,b)=>(b.def+b.spd)-(a.def+a.spd)).slice(0,3);D=Da.slice().sort((a,b)=>b.def-a.def).slice(0,2);label='PK'}
+ else{const k=+key[2],fs=Fa.slice().sort((a,b)=>(b.shot+b.pass)-(a.shot+a.pass)),ds=Da.slice().sort((a,b)=>b.pass-a.pass);F=fs.slice(k*3,k*3+3);D=ds.slice(k*2,k*2+2);label='PP'+(k+1)}
+ F=fill(F,3,Fa,Da);D=fill(D,2,Da,Fa.filter(p=>!F.includes(p)),Fa);return{nw:{C:F[0],LW:F[1],RW:F[2],LD:D[0],RD:D[1]},label}}
+function applyUnit(t,nw,label){const ac=act(t),old=t.seats,pos=new Map();
+ for(const s of SL)if(old[s])pos.set(old[s],{x:old[s].x,y:old[s].y,vx:old[s].vx,vy:old[s].vy});
+ const ns={};for(const s of SL)ns[s]=ac.includes(s)?nw[s]:null;const inNew=new Set(Object.values(ns));
+ for(const s of SL){const p=ns[s];if(!p||pos.has(p))continue;const o=old[s],src=o&&pos.get(o);if(src)Object.assign(p,src);else{p.x=W/2;p.y=1;p.vx=p.vy=0}}
+ for(const s of SL){const o=old[s];if(o&&!inNew.has(o)){o.on=false;if(puck.owner===o){puck.owner=null}}}
+ for(const s of SL)if(ns[s]){ns[s].on=true;ns[s].slot=s}
+ t.seats=ns;t.label=label}
+function updateUnit(t){const key=curKey(t);if(key===t.key&&!t.needUnit)return;
+ if(t.key&&key[0]==='E'&&t.key[0]==='E'&&puck.owner&&puck.owner.team===t&&t.shiftT%40<9&&!t.needUnit)return;
+ const u=unitFor(t,key);applyUnit(t,u.nw,u.label);t.key=key;t.needUnit=false;
+ if(!G.quiet&&t.shiftT>1)note(t,'LINE CHANGE '+u.label)}
+let noteT=0,noteTxt='';function note(t,s){noteTxt=`${t.abbr}: ${s}`;noteT=2}
+const onIce=t=>SL.map(s=>t.seats[s]).filter(Boolean);
+function callPenalty(t,p,why){if(t.pen.length>=2||!p||p.box)return;p.box=true;p.on=false;if(puck.owner===p)puck.owner=null;t.pen.push({p,t:120,why});t.needUnit=true;showBanner(p.img,`PENALTY ${t.abbr}`,`${p.name} - ${why} - 2:00`,1.6)}
+// ---------- faceoff ----------
+function faceoff(first){puck.x=W/2;puck.y=MY;puck.vx=puck.vy=0;puck.owner=null;puck.shot=null;puck.target=null;
+ for(const t of [H1,A1]){t.needUnit=true;updateUnit(t);const d=t.dir;const P={C:[-6,MY],LW:[-20,20],RW:[-20,65],LD:[-45,30],RD:[-45,55]};
+  for(const s of SL){const p=t.seats[s];if(!p)continue;p.x=W/2+d*P[s][0]*-1*-1;p.x=W/2-d*Math.abs(P[s][0])*(1);p.y=P[s][1];p.vx=p.vy=0;p.stun=0;p.burst=0}
+  t.goalie.y=MY;t.goalie.x=t.ownGX+t.dir*3.5}
+ G.pause=0}
+// ---------- banner ----------
+let banT=0;function showBanner(im,a,b,secs){const e=$('banner');$('bi').src=im||'';$('bi').style.display=im?'block':'none';$('bt1').textContent=a;$('bt2').textContent=b;e.style.display='flex';banT=secs}
+// ---------- actions ----------
+const goalPos=t=>[t.oppGX,MY];
+function shoot(p,ix,iy,hum){const t=p.team,dg=hyp(t.oppGX-p.x,MY-p.y);let ang;
+ const toG=Math.atan2(MY-p.y,t.oppGX-p.x),im=hyp(ix,iy);
+ if(hum&&im>.4&&(ix*t.dir)<-.3)ang=Math.atan2(iy,ix);else{const ay=hum&&im>.3?MY+clamp(iy,-1,1)*4.5:MY+rnd(-4,4);ang=Math.atan2(ay-p.y,t.oppGX-p.x)}
+ ang+=(Math.random()-.5)*((1-p.shot)*.5+dg/260);const sp=80+70*p.shot;
+ puck.owner=null;puck.vx=Math.cos(ang)*sp;puck.vy=Math.sin(ang)*sp;puck.x=p.x+Math.cos(ang)*4.2;puck.y=p.y+Math.sin(ang)*4.2;puck.shot=p;puck.last=p;puck.cool=.35;p.aiT=.5}
+function pass(p,ix,iy){const t=p.team,im=hyp(ix,iy),ax=im>.3?ix/im:t.dir,ay=im>.3?iy/im:0;let best=null,bs=-9;
+ for(const m of onIce(t)){if(m===p)continue;const dx=m.x-p.x,dy=m.y-p.y,d=hyp(dx,dy)||1,dot=(dx*ax+dy*ay)/d;if(dot<.3)continue;const s=dot-d/170;if(s>bs){bs=s;best=m}}
+ if(!best)return false;const lx=best.x+best.vx*.3,ly=best.y+best.vy*.3,d=hyp(lx-p.x,ly-p.y)||1,sp=Math.min(100,48+d*1.1)*(.85+.25*p.pass);let a=Math.atan2(ly-p.y,lx-p.x)+(Math.random()-.5)*(1-p.pass)*.25;
+ puck.owner=null;puck.vx=Math.cos(a)*sp;puck.vy=Math.sin(a)*sp;puck.x=p.x+Math.cos(a)*4.2;puck.y=p.y+Math.sin(a)*4.2;puck.target=best;puck.targetT=1.4;puck.last=p;puck.cool=.3;puck.shot=null;return true}
+// ---------- AI ----------
+function go(p,tx,ty,k=1){const dx=tx-p.x,dy=ty-p.y,d=hyp(dx,dy);if(d<1.5){p.dvx=p.dvy=0;return}const m=Math.min(1,d/6)*k;p.dvx=dx/d*m;p.dvy=dy/d*m}
+function formation(p,mode){const t=p.team,d=t.dir,s=p.slot,oy=(puck.y-MY),r=((p.id%7)-3)*.6;let ax,ay;
+ const nearNet=d*(puck.x-t.oppGX)>-48;
+ if(mode==='off'){
+  if(nearNet){const m={C:[-12,MY+r],LW:[-26,22],RW:[-26,63],LD:[-46,31],RD:[-46,54]}[s];ax=t.oppGX+d*m[0]*-1*-1;ax=t.oppGX+d*m[0];ay=m[1]}
+  else{const o={C:14,LW:22,RW:22,LD:-14,RD:-14}[s];ax=clamp(puck.x+d*o,28,172);ay={C:MY+oy*.3,LW:20+oy*.2,RW:65+oy*.2,LD:30,RD:55}[s]}}
+ else{const f={C:.5,LW:.45,RW:.45,LD:.3,RD:.3}[s],dist=Math.abs(puck.x-t.ownGX);ax=t.ownGX+d*clamp(dist*f,13,62);ay={C:MY+oy*.5,LW:24+oy*.4,RW:61+oy*.4,LD:32+oy*.35,RD:53+oy*.35}[s]}
+ go(p,ax+r,ay,.9)}
+function carry(p,dt){const t=p.team,d=t.dir,gx=t.oppGX,dg=hyp(gx-p.x,MY-p.y);let press=99,pp=null;
+ for(const o of onIce(t.opp)){const q=hyp(o.x-p.x,o.y-p.y);if(q<press){press=q;pp=o}}
+ p.aiT-=dt;if(p.aiT<=0&&G.hum!==t||p.aiT<=0&&p!==ctl){p.aiT=rnd(.25,.6);
+  const inz=d*(p.x-gx)>-62;if(dg<46&&(Math.random()<.45+.5*(1-dg/46)||(press<6&&Math.random()<.5))){shoot(p,0,0,false);return}
+  if(press<13&&Math.random()<.65){let best=null,bs=-9;for(const m of onIce(t)){if(m===p)continue;const gm=hyp(gx-m.x,MY-m.y);if(gm>dg+4&&press>7)continue;let ok=true;for(const o of onIce(t.opp)){const sx=m.x-p.x,sy=m.y-p.y,l=hyp(sx,sy)||1,tt=clamp(((o.x-p.x)*sx+(o.y-p.y)*sy)/(l*l),0,1);if(hyp(p.x+sx*tt-o.x,p.y+sy*tt-o.y)<4.5){ok=false;break}}if(!ok)continue;const s=(dg-gm)/30-hyp(m.x-p.x,m.y-p.y)/120+Math.random()*.3;if(s>bs){bs=s;best=m}}
+   if(best&&pass(p,(best.x-p.x),(best.y-p.y)))return}
+  if(Math.random()<.04&&dg>60){shoot(p,0,0,false);return}}
+ let tx=dg<32?gx-d*13:gx-d*22,ty=dg<32?MY+(p.y>MY?9:-9):clamp(p.y,24,61)*.8+MY*.2;
+ let ex=0,ey=0;if(pp&&press<9){ex=(p.x-pp.x)/press*(9-press)/9;ey=(p.y-pp.y)/press*(9-press)/9}
+ go(p,tx,ty,.95);p.dvx+=ex*.9;p.dvy+=ey*.9}
+let ctl=null;
+function aiPlayer(p,dt){const t=p.team,o=t.opp,own=puck.owner;
+ if(own===p){carry(p,dt);return}
+ const rk=t.rank.get(p);
+ if(!own){if(rk<=1||puck.target===p)go(p,puck.x+puck.vx*.3,puck.y+puck.vy*.3,1);else formation(p,puck.last&&puck.last.team===t?'off':'def')}
+ else if(own.team===o){if(rk===0)go(p,own.x+own.vx*.25,own.y+own.vy*.25,1);else if(rk===1&&hyp(own.x-p.x,own.y-p.y)<32)go(p,own.x-(own.x-t.ownGX)*.0+t.dir*0,own.y,.9);else formation(p,'def')}
+ else{formation(p,'off')}}
+// ---------- update ----------
+function endPeriod(){if(G.ot){G.over=true;return finish()}
+ if(G.period>=3){if(G.score[0]===G.score[1]){G.ot=true;G.period=4;G.clock=Math.min(120,G.plen);showBanner(null,'OVERTIME','Sudden death',2);faceoff();return}return finish()}
+ G.period++;G.clock=G.plen;showBanner(null,`END OF PERIOD ${G.period-1}`,'',1.6);faceoff()}
+function finish(){G.over=true;const[a,b]=G.score;$('et').textContent=a===b?'TIE':(a>b?A1:H1).abbr===(a>b?H1:A1).abbr?'':'FINAL';
+ $('et').textContent=a===b?'FINAL (TIE)':'FINAL';$('es').textContent=`${H1.abbr} ${b>=0?G.score[0]:0} - ${G.score[1]} ${A1.abbr}`;$('end').style.display='flex'}
+function goal(t,shooter){if(G.over)return;const idx=t===H1?0:1;G.score[idx]++;const sc=t.opp;if(sc.pen.length){const e=sc.pen.shift();e.p.box=false;sc.needUnit=true}
+ showBanner(shooter&&shooter.img,`GOAL ${t.abbr}!`,shooter?`${shooter.name} (${shooter.rating})`:'',2.6);G.pause=2.6;G.pendingFace=true;puck.owner=null;puck.vx=puck.vy=0;
+ if(G.ot){G.over=true;setTimeout(finish,1800)}}
+function step(dt){
+ if(G.over)return;
+ if(G.pause>0){G.pause-=dt;if(G.pause<=0)faceoff();return}
+ G.clock-=dt;if(G.clock<=0){G.clock=0;endPeriod();return}
+ for(const t of [H1,A1]){for(const e of t.pen.slice()){e.t-=dt;if(e.t<=0){t.pen.splice(t.pen.indexOf(e),1);e.p.box=false;t.needUnit=true}}
+  t.shiftT+=dt;if(t.pen.length||t.opp.pen.length)t.ppT+=dt;else t.ppT=0;updateUnit(t);
+  const L=onIce(t);L.sort((a,b)=>hyp(a.x-puck.x,a.y-puck.y)-hyp(b.x-puck.x,b.y-puck.y));t.rank=new Map(L.map((p,i)=>[p,i]))}
+ // human control selection
+ const ht=G.hum;ctl=null;if(ht){G.ctlT-=dt;const L=onIce(ht);
+  if(puck.owner&&puck.owner.team===ht)ctl=puck.owner;else{ctl=G.sel&&G.sel.on&&G.ctlT>0?G.sel:L.slice().sort((a,b)=>hyp(a.x-puck.x,a.y-puck.y)-hyp(b.x-puck.x,b.y-puck.y))[0];if(ctl!==G.sel){G.sel=ctl;G.ctlT=.4}}
+  if(puck.owner&&puck.owner.team===ht)G.sel=ctl}
+ const ix=input.x+(keys.d||keys.ArrowRight?1:0)-(keys.a||keys.ArrowLeft?1:0),iy=input.y+(keys.s||keys.ArrowDown?1:0)-(keys.w||keys.ArrowUp?1:0),im=hyp(ix,iy),nx=im>1?ix/im:ix,ny=im>1?iy/im:iy;
+ const sh=input.shoot||keys[' '],ps=input.pass||keys.e;input.shoot=0;input.pass=0;keys[' ']=false;keys.e=false;
+ for(const t of [H1,A1])for(const p of onIce(t)){
+  if(p===ctl){p.dvx=nx;p.dvy=ny;
+   if(sh){if(puck.owner===p)shoot(p,nx,ny,true);else{p.burst=.45}}
+   if(ps){if(puck.owner===p)pass(p,nx,ny);else{const L=onIce(ht).filter(q=>q!==p).sort((a,b)=>hyp(a.x-puck.x,a.y-puck.y)-hyp(b.x-puck.x,b.y-puck.y));G.sel=L[0];G.ctlT=1.2}}}
+  else aiPlayer(p,dt);
+  const mx=(26+15*p.spd)*(puck.owner===p?.93:1)*(p.burst>0?1.35:1)*(p.stun>0?.25:1);p.stun=Math.max(0,p.stun-dt);p.burst=Math.max(0,p.burst-dt);
+  const k=Math.min(1,dt*3.6);p.vx+=((p.dvx||0)*mx-p.vx)*k;p.vy+=((p.dvy||0)*mx-p.vy)*k;p.x=clamp(p.x+p.vx*dt,7,W-7);p.y=clamp(p.y+p.vy*dt,2.5,H-2.5);
+  if(hyp(p.vx,p.vy)>3)p.fa=Math.atan2(p.vy,p.vx)}
+ // separation
+ const all=[...onIce(H1),...onIce(A1)];for(let i=0;i<all.length;i++)for(let j=i+1;j<all.length;j++){const a=all[i],b=all[j],dx=b.x-a.x,dy=b.y-a.y,d=hyp(dx,dy);if(d<4.4&&d>.01){const m=(4.4-d)/2,ux=dx/d,uy=dy/d;a.x-=ux*m;a.y-=uy*m;b.x+=ux*m;b.y+=uy*m}}
+ // puck
+ if(puck.cool>0)puck.cool-=dt;if(puck.targetT>0){puck.targetT-=dt;if(puck.targetT<=0)puck.target=null}
+ if(puck.owner){const o=puck.owner;puck.x=o.x+Math.cos(o.fa)*4;puck.y=o.y+Math.sin(o.fa)*4;puck.vx=o.vx;puck.vy=o.vy;puck.last=o}
+ else{const px=puck.x;puck.x+=puck.vx*dt;puck.y+=puck.vy*dt;const f=Math.exp(-.45*dt);puck.vx*=f;puck.vy*=f;
+  if(puck.y<1){puck.y=1;puck.vy=Math.abs(puck.vy)*.7}if(puck.y>H-1){puck.y=H-1;puck.vy=-Math.abs(puck.vy)*.7}
+  for(const t of [H1,A1]){const gx=t.ownGX,inside=t.dir>0?(px>=gx&&puck.x<gx):(px<=gx&&puck.x>gx);
+   if(inside&&puck.y>NY[0]&&puck.y<NY[1]&&puck.shot||inside&&puck.y>NY[0]&&puck.y<NY[1]&&hyp(puck.vx,puck.vy)>40){const g=t.goalie,dy=Math.abs(puck.y-g.y),reach=2.4+3.2*g.gl,sp=puck.shot?puck.shot:puck.last;
+    const ps=dy<reach?clamp(.5+.38*g.gl-.38*((sp?sp.shot:.5)-.5),.3,.93):0;
+    if(Math.random()<ps){const a=(t.dir>0?0:Math.PI)+rnd(-1.0,1.0);puck.x=gx+t.dir*4;const s=rnd(12,34);puck.vx=Math.cos(a)*s;puck.vy=Math.sin(a)*s;puck.shot=null;puck.cool=.5;noteT=1.2;noteTxt='SAVE '+g.name}
+    else{goal(t.opp,sp);return}}}
+  const L=t=>t.dir>0?puck.x<4:puck.x>W-4;if(puck.x<4){puck.x=4;puck.vx=Math.abs(puck.vx)*.6}if(puck.x>W-4){puck.x=W-4;puck.vx=-Math.abs(puck.vx)*.6}
+  if(puck.shot&&hyp(puck.vx,puck.vy)<30)puck.shot=null;
+  let bd=null,bm=9;if(hyp(puck.vx,puck.vy)<105)for(const p of all){if(puck.cool>0&&p===puck.last)continue;const d=hyp(p.x-puck.x,p.y-puck.y),r=4.2+(p===puck.target?3:0);if(d<r&&d<bm){bm=d;bd=p}}
+  if(bd){puck.owner=bd;puck.target=null;puck.shot=null;puck.last=bd}}
+ // checking / stick lifts
+ const c=puck.owner;if(c){for(const d of onIce(c.team.opp)){const q=hyp(d.x-c.x,d.y-c.y);if(q<4.8&&d.stun<=0){
+   const rate=1.25*(.3+d.chk)/(.3+(c.pass+c.spd)/2);if(Math.random()<rate*dt){puck.owner=d;puck.last=d;c.stun=.6;d.stun=.15;puck.cool=.2;break}
+   if(Math.random()<.011*dt*60/60*1.0*(1+d.chk*.3)){callPenalty(d.team,d,['Hooking','Tripping','Slashing','Holding','Interference'][hash(d.id+G.clock|0)%5]);break}}}}
+ // goalies
+ for(const t of [H1,A1]){const g=t.goalie,ty=clamp(puck.y,MY-9,MY+9);g.y+=clamp(ty-g.y,-1,1)*Math.min(Math.abs(ty-g.y),(30+16*g.gl)*dt)*1;g.x=t.ownGX+t.dir*clamp(3.2+(Math.abs(puck.x-t.ownGX)<40?1.5:0),3,5)}
+}
+// ---------- render ----------
+const cam={x:W/2,y:MY};
+function draw(dt){const w=cv.width,h=cv.height;cx.fillStyle='#0a1620';cx.fillRect(0,0,w,h);
+ const fx=puck.x+puck.vx*.25,fy=puck.y+puck.vy*.2;cam.x+=(clamp(fx,VW/2,W-VW/2)-cam.x)*Math.min(1,dt*4);cam.y+=(clamp(fy,Math.min(VH/2,MY),Math.max(H-VH/2,MY))-cam.y)*Math.min(1,dt*4);
+ cx.save();cx.scale(S,S);cx.translate(VW/2-cam.x,VH/2-cam.y);
+ cx.fillStyle='#e9f5fb';rr(0,0,W,H,16);cx.fill();cx.lineWidth=.9;cx.strokeStyle='#b9c8d3';rr(0,0,W,H,16);cx.stroke();
+ cx.lineWidth=.6;cx.strokeStyle='#d33';for(const x of [GX,W-GX,W/2]){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,H);cx.stroke()}
+ cx.strokeStyle='#2a6fd6';cx.lineWidth=1.3;for(const x of [75,125]){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,H);cx.stroke()}
+ cx.lineWidth=.5;cx.strokeStyle='#d33';for(const[x,y]of[[31,22],[31,63],[169,22],[169,63],[W/2,MY]]){cx.beginPath();cx.arc(x,y,15,0,7);cx.stroke()}
+ cx.fillStyle='#bfe3f5';for(const t of[H1,A1]){const d=t.dir;cx.beginPath();cx.arc(t.ownGX,MY,6,d>0?-Math.PI/2:Math.PI/2,d>0?Math.PI/2:Math.PI*1.5);cx.fill();cx.fillStyle='#c33';cx.fillRect(d>0?GX-4:W-GX,NY[0],4,NY[1]-NY[0]);cx.fillStyle='#bfe3f5'}
+ const draws=[];for(const t of [H1,A1]){draws.push(t.goalie);for(const p of onIce(t))draws.push(p)}draws.sort((a,b)=>a.y-b.y);
+ for(const p of draws){if(p.gl){circ(p.x,p.y,3.1,p.team.color,'#fff');cx.fillStyle='#fff';cx.font='2.6px sans-serif';cx.textAlign='center';cx.fillText('G',p.x,p.y+1);continue}
+  circ(p.x,p.y,2.8,p.team.color,p===ctl?'#ffd166':'#fff',p===ctl?.9:.5);const im=img(p.img);
+  if(im){cx.save();cx.beginPath();cx.arc(p.x,p.y,2.3,0,7);cx.clip();cx.drawImage(im,p.x-2.3,p.y-2.3,4.6,4.6);cx.restore()}else{cx.fillStyle='#fff';cx.font='bold 2.6px sans-serif';cx.textAlign='center';cx.fillText(initials(p.name),p.x,p.y+.9)}
+  cx.strokeStyle='#222';cx.lineWidth=.45;cx.beginPath();cx.moveTo(p.x,p.y);cx.lineTo(p.x+Math.cos(p.fa)*5,p.y+Math.sin(p.fa)*5);cx.stroke()}
+ for(const p of draws){if(p===ctl||p===puck.owner){cx.fillStyle='#000a';cx.font='bold 2.5px sans-serif';cx.textAlign='center';const s=p.name.split(' ').pop();cx.fillText(s,p.x,p.y-4)}}
+ cx.fillStyle='#111';cx.beginPath();cx.arc(puck.x,puck.y,1.1,0,7);cx.fill();cx.restore();
+ if(ctl){const o=document.getElementById('ctl');}}
+function rr(x,y,w,h,r){cx.beginPath();cx.moveTo(x+r,y);cx.arcTo(x+w,y,x+w,y+h,r);cx.arcTo(x+w,y+h,x,y+h,r);cx.arcTo(x,y+h,x,y,r);cx.arcTo(x,y,x+w,y,r);cx.closePath()}
+function circ(x,y,r,f,s,lw=.5){cx.beginPath();cx.arc(x,y,r,0,7);cx.fillStyle=f;cx.fill();cx.lineWidth=lw;cx.strokeStyle=s;cx.stroke()}
+const fm=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+function side(t){let s=`<b>${t.abbr}</b> ${t.label==='PK'?'<span class=pk>PK</span>':t.label.startsWith('PP')?'<span class=pp>'+t.label+'</span>':t.label}`;for(const e of t.pen)s+=`<br>BOX ${fm(e.t)} ${e.p.name.split(' ').pop()}`;
+ return s}
+function hud(){if(!G)return;$('ck').textContent=fm(G.clock);$('pd').textContent=G.ot?'OT':['','1st','2nd','3rd'][G.period];$('sh').textContent=G.score[0];$('sa').textContent=G.score[1];
+ let a=side(H1),b=side(A1);if(noteT>0)b+=`<br><i>${noteTxt}</i>`;$('sl').innerHTML=a;$('sr').innerHTML=b;
+ if(banT>0){banT-=hdt;if(banT<=0)$('banner').style.display='none'}if(noteT>0)noteT-=hdt}
+// ---------- input ----------
+let hdt=.016;const jz=$('jz');let jid=null,jo=null;
+jz.addEventListener('pointerdown',e=>{jid=e.pointerId;jo={x:e.clientX,y:e.clientY};jz.setPointerCapture(e.pointerId);$('jb').style.cssText=`display:block;left:${e.clientX}px;top:${e.clientY}px`;$('jk').style.cssText=`display:block;left:${e.clientX}px;top:${e.clientY}px`});
+jz.addEventListener('pointermove',e=>{if(e.pointerId!==jid)return;let dx=e.clientX-jo.x,dy=e.clientY-jo.y,d=hyp(dx,dy),m=55;if(d>m){dx*=m/d;dy*=m/d}input.x=dx/m;input.y=dy/m;$('jk').style.left=jo.x+dx+'px';$('jk').style.top=jo.y+dy+'px'});
+const jend=e=>{if(e.pointerId!==jid)return;jid=null;input.x=input.y=0;$('jb').style.display=$('jk').style.display='none'};jz.addEventListener('pointerup',jend);jz.addEventListener('pointercancel',jend);
+$('bs').addEventListener('pointerdown',e=>{e.preventDefault();input.shoot=1});$('bp').addEventListener('pointerdown',e=>{e.preventDefault();input.pass=1});
+$('bt').addEventListener('pointerdown',e=>{e.preventDefault();if(G&&!G.over){const t=G.hum?G.hum.opp:A1;callPenalty(t,onIce(t)[2]||onIce(t)[0],'Tripping (test)')}});
+addEventListener('keydown',e=>{keys[e.key.length===1?e.key.toLowerCase():e.key]=true;if(e.key===' ')e.preventDefault()});addEventListener('keyup',e=>{keys[e.key.length===1?e.key.toLowerCase():e.key]=false});
+$('go').onclick=newGame;$('again').onclick=()=>{$('end').style.display='none';$('menu').style.display='flex'};
+// ---------- loop ----------
+let last=performance.now();function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;hdt=dt;
+ if(G){const n=Math.max(1,Math.round(SPEED));for(let i=0;i<n;i++)step(dt*(SPEED<1?SPEED:1));draw(dt);hud()}requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+if(qs.get('auto')){$('mc').value='n';$('go').click()}
+window.__step=step;window.__dbg=()=>({G,H1,A1,puck});
+</script></body></html>
