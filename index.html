@@ -44,20 +44,26 @@ small{opacity:.7;max-width:520px;line-height:1.4}
 select,button{background:rgba(20,40,60,.85);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(8px)}
 select:focus,button:focus{outline:none;border-color:rgba(79,209,197,.5);box-shadow:0 0 0 3px rgba(79,209,197,.15)}
 button.go{border:none;background:linear-gradient(180deg,#5eead4,#2dd4bf)}
+
+/* NHL94-style layout: SHOOT big bottom-right, PASS left of it, HIT above PASS, CHANGE above SHOOT */
+#bs{right:22px;bottom:26px}
+#bp{right:145px;bottom:26px}
+#bh{right:150px;bottom:122px;width:70px;height:70px;font-size:15px}
+#bc{right:30px;bottom:150px;width:84px;height:84px;font-size:13px;letter-spacing:.3px;background:linear-gradient(160deg,#93c5fd,#3b82f6);color:#0b1b3a}
 </style></head><body>
 <canvas id="c"></canvas>
 <div id="hud"><div id="sb"><img id="ia"><b id="na"></b><span class="sc" id="sa">0</span><div class="ck"><span id="ck">3:00</span><small id="pd">1st</small></div><span class="sc" id="sh">0</span><b id="nh"></b><img id="ih"></div></div>
 <div class="side" id="sl"></div><div class="side" id="sr"></div>
 <div id="banner"><img id="bi"><div><span id="bt1"></span><small id="bt2"></small></div></div>
 <div id="ctl"><div id="jz"><div id="jb"></div><div id="jk"></div></div>
-<div class="btn" id="bs">SHOOT</div><div class="btn" id="bh">HIT</div><div class="btn" id="bp">PASS</div><div class="btn" id="bt">test PP</div></div>
+<div class="btn" id="bs">SHOOT</div><div class="btn" id="bh">HIT</div><div class="btn" id="bc">CHANGE</div><div class="btn" id="bp">PASS</div><div class="btn" id="bt">test PP</div></div>
 <div id="menu"><h1>LIHL <span>HOCKEY</span></h1>
 <small>Real Fall 2026 Long Island Hockey rosters. Ratings and photos from lihockey.org (rated players only). Auto line changes, power play and penalty kill units.</small>
 <div class="row"><select id="mh"></select><b>vs</b><select id="ma"></select></div>
 <div class="row"><select id="mc"><option value="h">You: first team</option><option value="a">You: second team</option><option value="n">Watch (CPU vs CPU)</option></select>
 <select id="ml"><option value="120">Period 2:00</option><option value="180" selected>Period 3:00</option><option value="300">Period 5:00</option></select></div>
 <button class="go" id="go">START</button>
-<small>Phone: hold landscape. Left thumb = skate, SHOOT = shoot (when you have no puck: burst/check), PASS = pass (no puck: switch player). Keyboard: WASD/arrows, hold Space to charge a shot (release to shoot), E pass, Q hit. HIT = body check.</small></div>
+<small>Phone: hold landscape. Left thumb = skate, SHOOT = shoot (when you have no puck: burst/check), PASS = pass (no puck: switch player). Keyboard: WASD/arrows, hold Space to charge a shot (release to shoot), E pass, Q hit, R or Tab = change player. CHANGE button = switch to the nearest teammate (when you have no puck).</small></div>
 <div id="end"><h1 id="et"></h1><div id="es" style="font-size:22px"></div><button class="go" id="again">PLAY AGAIN</button></div>
 <script src="three.min.js"></script>
 <script src="lib/CopyShader.js"></script><script src="lib/LuminosityHighPassShader.js"></script><script src="lib/EffectComposer.js"></script><script src="lib/RenderPass.js"></script><script src="lib/ShaderPass.js"></script><script src="lib/MaskPass.js"></script><script src="lib/UnrealBloomPass.js"></script>
@@ -193,11 +199,12 @@ function step(dt){
   if(puck.owner&&puck.owner.team===ht)ctl=puck.owner;else{ctl=G.sel&&G.sel.on&&G.ctlT>0?G.sel:L.slice().sort((a,b)=>hyp(a.x-puck.x,a.y-puck.y)-hyp(b.x-puck.x,b.y-puck.y))[0];if(ctl!==G.sel){G.sel=ctl;G.ctlT=.4}}
   if(puck.owner&&puck.owner.team===ht)G.sel=ctl}
  const ix=input.x+(keys.d||keys.ArrowRight?1:0)-(keys.a||keys.ArrowLeft?1:0),iy=input.y+(keys.s||keys.ArrowDown?1:0)-(keys.w||keys.ArrowUp?1:0),im=hyp(ix,iy),nx=im>1?ix/im:ix,ny=im>1?iy/im:iy;
- const sh=input.shoot,ps=input.pass||keys.e;input.shoot=0;input.pass=0;keys.e=false;const hitNow=input.hit||keys.q;input.hit=hitNow?1:0;keys.q=false;
+ const sh=input.shoot,ps=input.pass||keys.e;input.shoot=0;input.pass=0;keys.e=false;const hitNow=input.hit||keys.q;input.hit=hitNow?1:0;keys.q=false;const swNow=input.sw||keys.r;input.sw=0;keys.r=false;
  for(const t of [H1,A1])for(const p of onIce(t)){
   if(p===ctl){p.dvx=nx;p.dvy=ny;
    if(sh){if(puck.owner===p)shoot(p,nx,ny,true,input.pw||.5);else{p.burst=.45}}
    if(input.hit){p.burst=.5;p.hitT=.55}
+   if(swNow&&puck.owner!==p){const L=onIce(ht).filter(q=>q!==p).sort((a,b)=>hyp(a.x-puck.x,a.y-puck.y)-hyp(b.x-puck.x,b.y-puck.y));if(L[0]){G.sel=L[0];G.ctlT=1.2;noteT=.9;noteTxt='CONTROL: '+L[0].name.split(' ').pop()}}
    if(ps){if(puck.owner===p)pass(p,nx,ny);else{const L=onIce(ht).filter(q=>q!==p).sort((a,b)=>hyp(a.x-puck.x,a.y-puck.y)-hyp(b.x-puck.x,b.y-puck.y));G.sel=L[0];G.ctlT=1.2}}}
   else aiPlayer(p,dt);
   const mx=(26+15*p.spd)*(puck.owner===p?.93:1)*(p.burst>0?1.35:1)*(p.stun>0?.25:1);p.stun=Math.max(0,p.stun-dt);p.burst=Math.max(0,p.burst-dt);
@@ -260,9 +267,9 @@ let hdt=.016;const jz=$('jz');let jid=null,jo=null;
 jz.addEventListener('pointerdown',e=>{jid=e.pointerId;jo={x:e.clientX,y:e.clientY};jz.setPointerCapture(e.pointerId);$('jb').style.cssText=`display:block;left:${e.clientX}px;top:${e.clientY}px`;$('jk').style.cssText=`display:block;left:${e.clientX}px;top:${e.clientY}px`});
 jz.addEventListener('pointermove',e=>{if(e.pointerId!==jid)return;let dx=e.clientX-jo.x,dy=e.clientY-jo.y,d=hyp(dx,dy),m=55;if(d>m){dx*=m/d;dy*=m/d}input.x=dx/m;input.y=dy/m;$('jk').style.left=jo.x+dx+'px';$('jk').style.top=jo.y+dy+'px'});
 const jend=e=>{if(e.pointerId!==jid)return;jid=null;input.x=input.y=0;$('jb').style.display=$('jk').style.display='none'};jz.addEventListener('pointerup',jend);jz.addEventListener('pointercancel',jend);
-const rel=()=>{if(input.sd){input.pw=clamp((performance.now()-input.sd)/700,.25,1);input.sd=0;input.shoot=1;$('bs').style.transform=''}};$('bs').addEventListener('pointerdown',e=>{e.preventDefault();input.sd=performance.now()});['pointerup','pointercancel','pointerleave'].forEach(n=>$('bs').addEventListener(n,rel));$('bh').addEventListener('pointerdown',e=>{e.preventDefault();input.hit=1});$('bp').addEventListener('pointerdown',e=>{e.preventDefault();input.pass=1});
+const rel=()=>{if(input.sd){input.pw=clamp((performance.now()-input.sd)/700,.25,1);input.sd=0;input.shoot=1;$('bs').style.transform=''}};$('bs').addEventListener('pointerdown',e=>{e.preventDefault();input.sd=performance.now()});['pointerup','pointercancel','pointerleave'].forEach(n=>$('bs').addEventListener(n,rel));$('bh').addEventListener('pointerdown',e=>{e.preventDefault();input.hit=1});$('bc').addEventListener('pointerdown',e=>{e.preventDefault();input.sw=1});$('bp').addEventListener('pointerdown',e=>{e.preventDefault();input.pass=1});
 $('bt').addEventListener('pointerdown',e=>{e.preventDefault();if(G&&!G.over){const t=G.hum?G.hum.opp:A1;callPenalty(t,onIce(t)[2]||onIce(t)[0],'Tripping (test)')}});
-addEventListener('keydown',e=>{if(e.key===' '){e.preventDefault();if(!input.sd)input.sd=performance.now();return}keys[e.key.length===1?e.key.toLowerCase():e.key]=true});addEventListener('keyup',e=>{if(e.key===' '){rel();return}keys[e.key.length===1?e.key.toLowerCase():e.key]=false});
+addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();input.sw=1;return}if(e.key===' '){e.preventDefault();if(!input.sd)input.sd=performance.now();return}keys[e.key.length===1?e.key.toLowerCase():e.key]=true});addEventListener('keyup',e=>{if(e.key===' '){rel();return}keys[e.key.length===1?e.key.toLowerCase():e.key]=false});
 $('go').onclick=newGame;$('again').onclick=()=>{$('end').style.display='none';$('menu').style.display='flex'};
 // ---------- loop ----------
 let last=performance.now();function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;hdt=dt;
