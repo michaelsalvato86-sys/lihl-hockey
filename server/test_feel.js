@@ -20,10 +20,12 @@ const out = vm.runInContext(`(function(){
    for(let i=0;i<M;i++){p.x=gx-dir*(30+Math.random()*50);p.y=42.5+(Math.random()-.5)*30;puck.owner=p;shoot(p,0,0,true,pw);
     if(puck.vx*dir>0){const tt=(gx-puck.x)/puck.vx,y=puck.y+puck.vy*tt;if(y>37.5&&y<47.5)o2++}}
    if(pw===.5)tap=o2/M;else on=o2/M}
-  return {passFound:ok/N,passFail:miss/N,tapOnTarget:tap,hardOnTarget:on};
+  let back=0,BN=200;for(let i=0;i<BN;i++){p.x=gx-dir*(30+Math.random()*50);p.y=42.5+(Math.random()-.5)*30;puck.owner=p;const ang=Math.random()*6.28;shoot(p,Math.cos(ang),Math.sin(ang),true,.7);if(puck.vx*dir>0)back++}
+  return {shotsTowardNet:back/BN,passFound:ok/N,passFail:miss/N,tapOnTarget:tap,hardOnTarget:on};
 })()`, sim.ctx);
 console.log(JSON.stringify(out));
 if (process.argv.includes('--assert')) {
+  if (out.shotsTowardNet < 0.99) { console.error('FAIL: a human shot went away from the net with some stick direction', out.shotsTowardNet); process.exit(1); }
   if (out.passFail > 0.001) { console.error('FAIL: pass found no receiver'); process.exit(1); }
   if (out.tapOnTarget < 0.55 || out.tapOnTarget > 0.92) { console.error('FAIL: tap shots out of the 55-92% on-target band (misses must stay possible)', out.tapOnTarget); process.exit(1); }
   console.log('feel tests pass');

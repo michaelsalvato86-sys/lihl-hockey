@@ -58,7 +58,7 @@
     }
   }
   function startPing() { clearInterval(NET.pt); NET.pt = setInterval(() => { NET.send({ t: 'ping', ts: performance.now() }); if (NET.lastPong && performance.now() - NET.lastPong > 6000) pingUI(true); }, 2000); }
-  function pingUI(lag) { const d = $('netdot'), p = $('netping'); if (lag) { d.style.background = '#e05252'; p.textContent = 'LAG'; return; } d.style.background = NET.ping < 80 ? '#3ddc84' : NET.ping < 160 ? '#f2c744' : '#e05252'; p.textContent = NET.ping + ' ms'; }
+  function pingUI(lag) { const d = $('netdot'), p = $('netping'); if (lag) { d.style.background = '#e05252'; p.textContent = 'LAG'; return; } d.style.background = NET.ping < 80 ? '#3ddc84' : NET.ping < 160 ? '#f2c744' : '#e05252'; p.textContent = NET.ping + ' ms \u00b7 ' + Math.round(NET.fps || 0) + ' fps'; }
 
   // ---------------- lobby ----------------
   function link() { return location.origin + location.pathname + '?room=' + (NET.room ? NET.room.code : ''); }
@@ -105,6 +105,7 @@
   const lerp = (a, b, k) => a + (b - a) * k;
   function snap(m) {
     const now = performance.now(); NET.buf.push({ rt: now, s: m.s }); if (NET.buf.length > 40) NET.buf.shift();
+    if (NET.lastSnap) { const gp = now - NET.lastSnap; NET.gm = (NET.gm || 33) * .95 + gp * .05; NET.gd = (NET.gd || 5) * .95 + Math.abs(gp - NET.gm) * .05; NET.delay = Math.max(100, Math.min(230, 66 + 4 * NET.gd)); } NET.lastSnap = now;
     NET.evq = NET.evq || []; for (const e of m.ev) NET.evq.push({ at: now + NET.delay, e });
   }
   function ev(e) {
@@ -143,6 +144,7 @@
     NET.acc += dt;
     if (NET.acc >= 1 / 30) { NET.acc = 0; const I = readLocal(); NET.send({ t: 'in', x: +I.nx.toFixed(2), y: +I.ny.toFixed(2), sh: I.sh ? 1 : 0, pw: +(I.pw || .5).toFixed(2), ps: I.ps ? 1 : 0, hit: I.hit ? 1 : 0, sw: I.sw ? 1 : 0 }); }
     { const q = NET.evq; if (q && q.length) { const nowt = performance.now(); while (q.length && q[0].at <= nowt) ev(q.shift().e); } }
+    { const nw = performance.now(); if (NET.fT) NET.fps = (NET.fps || 60) * .92 + (1000 / Math.max(4, nw - NET.fT)) * .08; NET.fT = nw; }
     const buf = NET.buf; if (!buf.length) return; const rt = performance.now() - NET.delay;
     let a = buf[0], b = buf[buf.length - 1];
     for (let i = buf.length - 1; i > 0; i--) if (buf[i - 1].rt <= rt) { a = buf[i - 1]; b = buf[i]; break; }

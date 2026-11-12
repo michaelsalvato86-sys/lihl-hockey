@@ -362,7 +362,7 @@ function tickAct(p,dt){const c=p.act;if(!c)return;c.t-=dt;if(p.stun>.35||puck.ow
 function aiWind(p){if(startAct(p,'shot',.2,{nx:0,ny:0,hum:false,pw:.8,kind:'wrist'}))p.aiT=.5}
 function shoot(p,ix,iy,hum,pw){pw=pw||.8;AU.sfx('shot');if(G.shots)G.shots[p.team===H1?0:1]++;G.shs=G.shs||{};G.shs[p.slot]=(G.shs[p.slot]||0)+1;const t=p.team,dg=hyp(t.oppGX-p.x,MY-p.y);let ang;
  const toG=Math.atan2(MY-p.y,t.oppGX-p.x),im=hyp(ix,iy);
- if(hum&&im>.4&&(ix*t.dir)<-.3)ang=Math.atan2(iy,ix);else{const gk=t.opp.goalie,farY=clamp(MY-(gk.y-MY)*.7+((gk.y>=MY)?-1.6:1.6),MY-2.9,MY+2.9),ay=hum?(im>.3?.7*(MY+clamp(iy,-1,1)*4.2)+.3*farY:farY):MY+rnd(-4,4);ang=Math.atan2(ay-p.y,t.oppGX-p.x)}
+ {const gk=t.opp.goalie,farY=clamp(MY-(gk.y-MY)*.7+((gk.y>=MY)?-1.6:1.6),MY-2.9,MY+2.9),ay=hum?(im>.3&&(ix*t.dir)>-.3?.7*(MY+clamp(iy,-1,1)*4.2)+.3*farY:farY):MY+rnd(-4,4);ang=Math.atan2(ay-p.y,t.oppGX-p.x)}
  ang+=(Math.random()-.5)*((1-p.shot)*.5+dg/260)*(1.25-.5*(1-pw))*(hum?.42:dkf(p.team,'shot'))*(1+(1-(p.st===undefined?1:p.st))*.5);const sp=(80+70*p.shot)*(.62+.45*pw);AE(p,'shot',{kind:pw>.85?'slap':(p.recvAt!==undefined&&p.recvAt-G.clock>=0&&p.recvAt-G.clock<.7)?'onetimer':pw<.6?'snap':'wrist',a:ang});
  puck.owner=null;puck.vx=Math.cos(ang)*sp;puck.vy=Math.sin(ang)*sp;puck.x=p.x+Math.cos(ang)*4.2;puck.y=p.y+Math.sin(ang)*4.2;puck.shot=p;puck.last=p;puck.cool=.35;p.aiT=.5;puck.rel={team:t,x:p.x};puck.sd=dg;puck.sy=p.y;puck.ss=sp;puck.slap=pw>.85;puck.tip=false;
  {const dx=Math.cos(ang),dy=Math.sin(ang);let done=false;
