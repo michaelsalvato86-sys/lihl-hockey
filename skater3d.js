@@ -44,6 +44,9 @@ SK.init = function (g) {
   SK.stick = { L: 1.62, phi0: Math.atan2(0.8, 0.6) }; // metres; stick angle below horizontal at rest (rad)
   SK.buildRegions(body);
   SK.gear = {};
+  if (window.AR) AR.init();
+  if (window.ANIM) ANIM.init();
+  if (window.GOAL) GOAL.init();
 };
 
 /* ---------- clothing built from the body skin weights, merged into ONE geometry ---------- */
@@ -123,14 +126,7 @@ SK.buildGear = function (goalie) {
   }
   const b = SK.belt, bgeo = new THREE.CylinderGeometry(1, 1, 0.075, 22); bgeo.scale(b.rx, 1, b.rz); bgeo.translate(0, b.y, b.zc); add(bgeo, 'spine_01', 'belt');
   if (!goalie) {
-    // stick: thick shaft + L-shaped blade lying on the ice ahead of the tip + white tape
-    const hp = SK.restP.hand_r, S = SK.stick, d0 = F.clone().multiplyScalar(Math.cos(S.phi0)).addScaledVector(SK.U, -Math.sin(S.phi0)).normalize(), L = S.L;
-    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d0.clone().negate());
-    const sg = new THREE.BoxGeometry(0.05, L, 0.032); sg.applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(q)); sg.translate(hp.x + d0.x * L / 2, hp.y + d0.y * L / 2, hp.z + d0.z * L / 2); add(sg, 'hand_r', 'stick');
-    const tip = new THREE.Vector3(hp.x + d0.x * L, hp.y + d0.y * L, hp.z + d0.z * L);
-    const bl = new THREE.BoxGeometry(0.03, 0.115, 0.36); bl.rotateY(ang); bl.translate(tip.x + F.x * 0.15, tip.y + 0.058, tip.z + F.z * 0.15); add(bl, 'hand_r', 'stick');
-    const tp = new THREE.BoxGeometry(0.036, 0.03, 0.34); tp.rotateY(ang); tp.translate(tip.x + F.x * 0.15, tip.y + 0.11, tip.z + F.z * 0.15); add(tp, 'hand_r', 'tape');
-    const kn = new THREE.BoxGeometry(0.055, 0.1, 0.05); kn.applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(q)); kn.translate(hp.x - d0.x * 0.05, hp.y - d0.y * 0.05, hp.z - d0.z * 0.05); add(kn, 'hand_r', 'tape');
+    // (stick is a separate free object, see anim_rig.js)
   } else {
     for (const sd of ['l', 'r']) {
       const th = SK.restP['thigh_' + sd], ca = SK.restP['calf_' + sd], fo = SK.restP['foot_' + sd];
@@ -211,6 +207,7 @@ SK.make = function (p, opts) {
   const m = { real: true, fdec: dt, g: new THREE.Group(), root, body, bones: body.skeleton.bones, byName: {}, ph: Math.random() * 6 };
   m.bones.forEach(b => m.byName[b.name] = b);
   m.inner = new THREE.Group(); m.inner.scale.setScalar(SK.S); m.inner.add(root); m.g.add(m.inner);
+  m.goalie = !!opts.goalie; if (window.AR && AR.ready) AR.makeStick(m);
   root.traverse(o => { if (o.isMesh) o.frustumCulled = false; });
   return m;
 };
@@ -223,8 +220,12 @@ SK.setPose = function (m, pose) {
     const b = m.byName[name], pn = SK.parent[name], Wp = pn ? W[pn] : null; const t = pose[name];
     let wq = W[name] || (W[name] = new THREE.Quaternion());
     if (t) {
-      qa.setFromAxisAngle(SK.A, t.p || 0); qb.setFromAxisAngle(SK.F, t.r || 0);
-      if (t.o === 'rp') wq.copy(qa).multiply(qb).multiply(SK.restW[name]); else wq.copy(qb).multiply(qa).multiply(SK.restW[name]);
+      if (t.q) wq.copy(t.q);
+      else {
+        qa.setFromAxisAngle(SK.A, t.p || 0); qb.setFromAxisAngle(SK.F, t.r || 0);
+        if (t.o === 'rp') wq.copy(qa).multiply(qb).multiply(SK.restW[name]); else wq.copy(qb).multiply(qa).multiply(SK.restW[name]);
+        if (t.y) { qc.setFromAxisAngle(SK.U, t.y); wq.premultiply(qc); }
+      }
       if (Wp) { qc.copy(Wp).invert().multiply(wq); b.quaternion.copy(qc); } else b.quaternion.copy(wq);
     } else {
       const lq = SK.restW[name].clone(); if (pn) lq.premultiply(qc.copy(SK.restW[pn]).invert());
