@@ -56,7 +56,7 @@ function startGame(r, rejoinOnly) {
   if (!r.sim || !rejoinOnly) {
     r.sim = createSim();
     const [a, b] = r.players; r.sim.start({ home: a.team, away: b.team, plen: r.plen });
-    r.sim.human(0); r.sim.human(1); r.state = 'playing'; r.rematch = [false, false]; r.paused = false;
+    r.sim.human(0); r.sim.human(1); r.state = 'playing'; r.rematch = [false, false]; r.paused = false; r.t0 = Date.now(); track('game_start', { room: r.code, n: r.players.map(p => p && p.name).join(' vs '), teams: a.team + '-' + b.team, plen: r.plen });
   }
   r.players.forEach((p, i) => p && send(p, { t: 'start', home: r.players[0].team, away: r.players[1].team, plen: r.plen, side: i, rejoin: !!rejoinOnly, names: [r.players[0].name, r.players[1].name] }));
   pushRoom(r);
@@ -97,10 +97,40 @@ function tryMatch() {
   }
 }
 
+// ---------------- player tracking (no raw IPs stored; display names only) ----------------
+const STATS_DIR = process.env.STATS_DIR || '', ADMIN_KEY = process.env.ADMIN_KEY || '', SALT = process.env.STATS_SALT || 'lihl';
+const TR = { started: Date.now(), conns: 0, games: 0, finished: 0, days: new Map(), recent: [] };
+function ipOf(req) { const x = (req.headers['x-forwarded-for'] || '').split(',')[0].trim(); const a = req.socket.remoteAddress || ''; return (a === '127.0.0.1' || a === '::1' || a === '::ffff:127.0.0.1') && x ? x : a; }
+function pid(ip) { return crypto.createHash('sha256').update(SALT + ip).digest('hex').slice(0, 10); }
+function dayKey(t) { return new Date(t).toISOString().slice(0, 10); }
+function track(ev, o) {
+  const t = Date.now(), rec = Object.assign({ t, ev }, o); TR.recent.push(rec); if (TR.recent.length > 200) TR.recent.shift();
+  const dk = dayKey(t); let d = TR.days.get(dk); if (!d) { d = { visitors: new Set(), mobile: 0, desktop: 0, games: 0, finished: 0, names: new Set() }; TR.days.set(dk, d); }
+  if (ev === 'conn') { TR.conns++; d.visitors.add(o.p); if (o.m) d.mobile++; else d.desktop++; }
+  if (ev === 'name' && o.n) d.names.add(o.n);
+  if (ev === 'game_start') { TR.games++; d.games++; }
+  if (ev === 'game_end') { TR.finished++; d.finished++; }
+  if (STATS_DIR) { try { fs.mkdirSync(STATS_DIR, { recursive: true }); fs.appendFile(path.join(STATS_DIR, 'events.jsonl'), JSON.stringify(rec) + '\n', () => { }); } catch (e) { } }
+}
+function statsJson() {
+  const days = {}; for (const [k, d] of TR.days) days[k] = { visitors: d.visitors.size, mobile: d.mobile, desktop: d.desktop, gamesStarted: d.games, gamesFinished: d.finished, names: [...d.names].slice(0, 60) };
+  return { uptimeMin: Math.round((Date.now() - TR.started) / 60000), onlineNow: clients.size, inRooms: [...rooms.values()].reduce((n, r) => n + r.players.filter(p => p && p.conn).length, 0), roomsOpen: rooms.size, playing: [...rooms.values()].filter(r => r.state === 'playing').length, queued: queue.length, connectionsSinceStart: TR.conns, gamesSinceStart: TR.games, days, recent: TR.recent.slice(-40) };
+}
+function adminPage(res, u) {
+  const key = (u.searchParams.get('key') || '');
+  if (!ADMIN_KEY || key.length !== ADMIN_KEY.length || !crypto.timingSafeEqual(Buffer.from(key), Buffer.from(ADMIN_KEY))) { res.writeHead(404); return res.end(); }
+  const j = statsJson();
+  if (u.pathname === '/admin/stats') { res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); return res.end(JSON.stringify(j)); }
+  const rows = Object.keys(j.days).sort().reverse().map(k => { const d = j.days[k]; return '<tr><td>' + k + '</td><td>' + d.visitors + '</td><td>' + d.mobile + '/' + d.desktop + '</td><td>' + d.gamesStarted + '</td><td>' + d.gamesFinished + '</td></tr>'; }).join('');
+  const rec = j.recent.slice().reverse().map(r => '<div>' + new Date(r.t).toLocaleTimeString() + ' ' + r.ev + ' ' + (r.n || r.p || '') + (r.teams ? ' ' + r.teams : '') + (r.sc ? ' ' + r.sc : '') + '</div>').join('');
+  res.writeHead(200, { 'content-type': 'text/html', 'cache-control': 'no-store' });
+  res.end('<!doctype html><meta name=viewport content="width=device-width"><title>LIHL players</title><body style="font:15px system-ui;background:#0b1220;color:#e8eef8;padding:16px"><h2>LIHL players</h2><p><b>' + j.onlineNow + '</b> online now, <b>' + j.playing + '</b> games live, <b>' + j.queued + '</b> in queue, up ' + j.uptimeMin + ' min</p><table border=1 cellpadding=6 style="border-collapse:collapse"><tr><th>day (UTC)<th>visitors<th>mobile/desktop<th>games started<th>finished</tr>' + rows + '</table><h3>Recent</h3><div style="font:13px monospace">' + rec + '</div><script>setTimeout(()=>location.reload(),15000)</script>');
+}
 // ---------------- websocket ----------------
 const WEB = process.env.LIHL_WEB ? path.resolve(process.env.LIHL_WEB) : null;
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gltf': 'model/gltf+json', '.bin': 'application/octet-stream', '.json': 'application/json', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
 const server = http.createServer((req, res) => {
+  if (req.url.startsWith('/admin')) { let u; try { u = new URL(req.url, 'http://x'); } catch (e) { res.writeHead(400); return res.end(); } return adminPage(res, u); }
   if (WEB && req.url !== '/health') {
     let u = decodeURIComponent(req.url.split('?')[0]); if (u === '/') u = '/index.html';
     const f = path.join(WEB, u);
@@ -109,7 +139,8 @@ const server = http.createServer((req, res) => {
   if (req.url === '/health') { res.writeHead(200); res.end('ok'); } else { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('LIHL Hockey multiplayer server\n'); } });
 const wss = new WebSocketServer({ server, maxPayload: 2048, verifyClient: (info, cb) => { const o = info.origin || ''; if (ORIGINS.length && !ORIGINS.includes(o)) return cb(false, 403, 'origin not allowed'); cb(true); } });
 
-wss.on('connection', ws => {
+wss.on('connection', (ws, req) => {
+  { const ua = String((req && req.headers && req.headers['user-agent']) || ''); ws.__tr = { p: pid(ipOf(req)), m: /Mobi|Android|iPhone|iPad/i.test(ua) }; track('conn', ws.__tr); }
   const c = { id: rid(6), ws, name: 'Player', token: null, room: null, slot: 0, team: 0, ready: false, conn: true, msgs: 0, strikes: 0 };
   ws.on('message', data => {
     if (++c.msgs > 90) { /* per-second limiter below */ }
@@ -136,7 +167,7 @@ function handle(c, m) {
       if (r.state === 'playing') { r.paused = !(r.players[0] && r.players[0].conn && r.players[1] && r.players[1].conn); startGame(r, true); } else pushRoom(r);
       return;
     }
-    c.name = clean(m.name); c.token = rid(16); tokens.set(c.token, c); clients.set(c.id, c);
+    c.name = clean(m.name); c.token = rid(16); tokens.set(c.token, c); clients.set(c.id, c); c.p = c.ws && c.ws.__tr && c.ws.__tr.p; track('name', { p: c.p, n: c.name });
     return send(c, { t: 'welcome', id: c.id, token: c.token, name: c.name, teams: TEAMS.teams });
   }
   if (!c.token) return;
@@ -175,7 +206,7 @@ setInterval(() => {
       let out; try { out = r.sim.tick(); } catch (e) { console.error('sim error', r.code, e); r.state = 'ended'; continue; }
       const msg = '{"t":"s",' + out.slice(1);
       for (const p of r.players) if (p && p.ws && p.ws.readyState === 1) { try { p.ws.send(msg); } catch (e) { } }
-      if (r.sim.over()) { r.state = 'ended'; const sc = r.sim.score(); setTimeout(() => r.players.forEach(p => send(p, { t: 'end', ss: r.sim.stats(), sc: sc.sc, sh: sc.sh, home: r.players[0] && r.players[0].team, away: r.players[1] && r.players[1].team })), 900); r.players.forEach(p => p && (p.ready = false)); r.touch = Date.now(); }
+      if (r.sim.over()) { r.state = 'ended'; const sc = r.sim.score(); track('game_end', { room: r.code, n: r.players.map(p => p && p.name).join(' vs '), sc: JSON.stringify(sc.sc), min: Math.round((Date.now() - (r.t0 || Date.now())) / 60000) }); setTimeout(() => r.players.forEach(p => send(p, { t: 'end', ss: r.sim.stats(), sc: sc.sc, sh: sc.sh, home: r.players[0] && r.players[0].team, away: r.players[1] && r.players[1].team })), 900); r.players.forEach(p => p && (p.ready = false)); r.touch = Date.now(); }
     }
   }
 }, 8);

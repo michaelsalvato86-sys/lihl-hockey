@@ -5,3 +5,4 @@ deploy/game_index.html
 pub/
 *.log
 __pycache__/
+.admin_key_local
