@@ -26,8 +26,13 @@ Fix options (owner decision): add a card to the Fly account (this one small mach
 - Goalie pull: last 2:00 of the third, trailing by one or two, the goalie leaves and a sixth skater joins; empty net scores; returns on a tie or lead. Automated tested (6 of 6 pulls and returns, no duplicate skaters); network snapshot carries the pull flag; not visually verified.
 - Side camera zooms tighter near the nets (smoothed). Not visually verified.
 
+- Scorebug: team color chips, period dots (4 in overtime), PP and PK badges with remaining penalty time. Visually verified in a rendered frame.
+- Goalie: depth now eases with puck distance (3.2 to 4.9 ft out) instead of jumping, and he reacts to a shot after a delay set by his rating (0.03 to 0.12 s). Automated tested; goals per shot still about 0.15 to 0.21 over repeated 12-game runs.
+- Mobile layout audit (emulated phone landscape sizes 667x375, 740x360, 844x390, 932x430, not real devices): every action button 74 to 118 px, no overlaps; the CAM button was 58x40 and is now 64x44.
+- Rendering profile (headless desktop Chrome, not a phone): 189 draw calls, about 336,000 triangles per frame, 3.5 to 5 ms CPU per frame; the crowd points cost about 1.6 ms; each skater model is about 24,000 triangles, so the 14 skaters and goalies are about 300,000 of the 336,000 triangles. That is the main thing to cut for phones (a low-poly level of detail for distant skaters); not done.
+
 ## Not done (second brief)
-Scorebug redesign, crowd profiling on a phone, mobile layout audit on real devices.
+A phone frame rate measurement and a real-device layout test (no device available here), a low-poly skater level of detail.
 
 ## Not done (first brief)
 Unified animation state machine rewrite, crossovers, hockey-stop animation pose, pivots, stickhandling visuals, puck pickup animation, one-timer animation rework, fall and getup sequence rework, goalie butterfly and recovery rework, AI reactions, faceoff presentation, goal celebration and camera work, rink and puck visuals, audio sync, mobile and input pass, performance profiling. Not tested visually: everything except the frames named above.
