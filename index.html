@@ -50,11 +50,18 @@ button.go{border:none;background:linear-gradient(180deg,#5eead4,#2dd4bf)}
 #bp{right:145px;bottom:26px}
 #bh{right:150px;bottom:122px;width:70px;height:70px;font-size:15px}
 #bc{right:30px;bottom:150px;width:84px;height:84px;font-size:13px;letter-spacing:.3px;background:linear-gradient(160deg,#93c5fd,#3b82f6);color:#0b1b3a}
+
+#flash{position:fixed;inset:0;z-index:5;pointer-events:none;opacity:0}
+#flash.go{animation:fl .6s ease-out}@keyframes fl{0%{opacity:.5}100%{opacity:0}}
+#banner.pop{animation:pop .4s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{0%{transform:translateX(-50%) scale(.55);opacity:0}100%{transform:translateX(-50%) scale(1);opacity:1}}
+#bt1{font-size:28px;letter-spacing:1.5px;text-transform:uppercase}
+#sb b{border-bottom:3px solid transparent;padding-bottom:2px}
 </style></head><body>
 <canvas id="c"></canvas>
 <div id="hud"><div id="sb"><img id="ia"><b id="na"></b><span class="sc" id="sa">0</span><div class="ck"><span id="ck">3:00</span><small id="pd">1st</small></div><span class="sc" id="sh">0</span><b id="nh"></b><img id="ih"></div></div>
 <div class="side" id="sl"></div><div class="side" id="sr"></div>
-<div id="banner"><img id="bi"><div><span id="bt1"></span><small id="bt2"></small></div></div>
+<div id="flash"></div><div id="banner"><img id="bi"><div><span id="bt1"></span><small id="bt2"></small></div></div>
 <div id="ctl"><div id="jz"><div id="jb"></div><div id="jk"></div></div>
 <div class="btn" id="bs">SHOOT</div><div class="btn" id="bh">HIT</div><div class="btn" id="bc">CHANGE</div><div class="btn" id="bp">PASS</div><div class="btn" id="bt">test PP</div></div>
 <div id="menu"><h1>LIHL <span>HOCKEY</span></h1>
@@ -88,7 +95,7 @@ const initials=n=>n.split(' ').map(w=>w[0]).join('').slice(0,2);
 // ---------- state ----------
 let G,H1,A1,puck,input={x:0,y:0,shoot:0,pass:0},keys={};
 function mkTeam(def,side,color,human){
- const t={def,side,dir:side,ownGX:side>0?GX:W-GX,oppGX:side>0?W-GX:GX,color,abbr:def.abbr,name:def.name,icon:def.icon,human,pen:[],shiftT:0,ppT:0,key:'',label:'',seats:{},needUnit:true};
+ const t={def,accent:def.accent,side,dir:side,ownGX:side>0?GX:W-GX,oppGX:side>0?W-GX:GX,color,abbr:def.abbr,name:def.name,icon:def.icon,human,pen:[],shiftT:0,ppT:0,key:'',label:'',seats:{},needUnit:true};
  t.roster=def.players.map(p=>({...p,...attrs(p),x:W/2,y:-9,vx:0,vy:0,fa:0,on:false,box:false,slot:null,stun:0,burst:0,aiT:0,team:t,img:p.photo}));
  t.roster.forEach(p=>{if(p.num==null)p.num=p.id%99});const sc=p=>(p.shot+p.spd)-(p.def+p.chk),by=t.roster.slice().sort((a,b)=>sc(a)-sc(b)),nD=Math.max(4,Math.round(t.roster.length*.4/2)*2);
  t.Ds=by.slice(0,nD).sort((a,b)=>b.rating-a.rating);t.Fs=t.roster.filter(p=>!t.Ds.includes(p)).sort((a,b)=>b.rating-a.rating);
@@ -101,11 +108,12 @@ function mkTeam(def,side,color,human){
 function newGame(){
  const hi=+$('mh').value,ai=+$('ma').value,mode=$('mc').value;
  const hue=h=>`hsl(${h},68%,46%)`;let h1=hash(TEAMS[hi].abbr)%360,h2=hash(TEAMS[ai].abbr)%360;if(Math.abs(h1-h2)<50)h2=(h1+170)%360;
- const dist=(a,b)=>{const f=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));const x=f(a),y=f(b);return Math.abs(x[0]-y[0])+Math.abs(x[1]-y[1])+Math.abs(x[2]-y[2])};let c1=TEAMS[hi].color||hue(h1),c2=TEAMS[ai].color||hue(h2);if(TEAMS[hi].color&&TEAMS[ai].color&&dist(c1,c2)<150)c2=TEAMS[ai].accent;if(dist(c1,c2)<150&&TEAMS[hi].accent)c1=TEAMS[hi].accent;
+ const dist=(a,b)=>{const f=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));const x=f(a),y=f(b);return Math.abs(x[0]-y[0])+Math.abs(x[1]-y[1])+Math.abs(x[2]-y[2])};let c1=TEAMS[hi].color||hue(h1),c2=TEAMS[ai].color||hue(h2);const lum=h=>(.3*parseInt(h.substr(1,2),16)+.59*parseInt(h.substr(3,2),16)+.11*parseInt(h.substr(5,2),16))/255;if(c1[0]==='#'&&lum(c1)>.78&&TEAMS[hi].accent&&lum(TEAMS[hi].accent)<.78)c1=TEAMS[hi].accent;if(c2[0]==='#'&&lum(c2)>.78&&TEAMS[ai].accent&&lum(TEAMS[ai].accent)<.78)c2=TEAMS[ai].accent;
+ if(TEAMS[hi].color&&TEAMS[ai].color&&dist(c1,c2)<150)c2=TEAMS[ai].accent;if(dist(c1,c2)<150&&TEAMS[hi].accent)c1=TEAMS[hi].accent;
  H1=mkTeam(TEAMS[hi],1,c1,mode==='h');A1=mkTeam(TEAMS[ai],-1,c2,mode==='a');H1.opp=A1;A1.opp=H1;
  puck={x:W/2,y:MY,vx:0,vy:0,owner:null,target:null,last:null,cool:0,shot:null};
  G={period:1,plen:+$('ml').value,clock:+$('ml').value,score:[0,0],pause:0.01,over:false,ctlT:0,ot:false,hum:mode==='h'?H1:mode==='a'?A1:null,goals:[],shots:[0,0],saves:[0,0]};
- $('na').textContent=A1.abbr;$('nh').textContent=H1.abbr;$('ia').src=A1.icon||'';$('ih').src=H1.icon||'';
+ $('na').textContent=A1.abbr;$('nh').textContent=H1.abbr;$('na').style.borderBottom='3px solid '+A1.color;$('nh').style.borderBottom='3px solid '+H1.color;$('ia').src=A1.icon||'';$('ih').src=H1.icon||'';
  $('menu').style.display='none';$('end').style.display='none';$('ctl').style.display=G.hum?'block':'none';
  H1.needUnit=A1.needUnit=true;faceoff(true)}
 // ---------- units ----------
@@ -128,7 +136,7 @@ function updateUnit(t){const key=curKey(t);if(key===t.key&&!t.needUnit)return;
  if(t.key&&key[0]==='E'&&t.key[0]==='E'&&puck.owner&&puck.owner.team===t&&t.shiftT%40<9&&!t.needUnit)return;
  const u=unitFor(t,key);applyUnit(t,u.nw,u.label);t.key=key;t.needUnit=false;
  if(!G.quiet&&t.shiftT>1)note(t,'LINE CHANGE '+u.label)}
-let noteT=0,noteTxt='';function note(t,s){noteTxt=`${t.abbr}: ${s}`;noteT=2}
+let shakeT=0,noteT=0,noteTxt='';function note(t,s){noteTxt=`${t.abbr}: ${s}`;noteT=2}
 const onIce=t=>SL.map(s=>t.seats[s]).filter(Boolean);
 function callPenalty(t,p,why){if(t.pen.length>=2||!p||p.box)return;p.box=true;p.on=false;if(puck.owner===p)puck.owner=null;t.pen.push({p,t:120,why});t.needUnit=true;showBanner(p.img,`PENALTY ${t.abbr}`,`${p.name} - ${why} - 2:00`,1.6)}
 // ---------- faceoff ----------
@@ -138,7 +146,7 @@ function faceoff(first){puck.x=W/2;puck.y=MY;puck.vx=puck.vy=0;puck.owner=null;p
   t.goalie.y=MY;t.goalie.x=t.ownGX+t.dir*3.5}
  G.pause=0}
 // ---------- banner ----------
-let banT=0;function showBanner(im,a,b,secs){const e=$('banner');$('bi').src=im||'';$('bi').style.display=im?'block':'none';$('bt1').textContent=a;$('bt2').textContent=b;e.style.display='flex';banT=secs}
+let banT=0;function showBanner(im,a,b,secs,col){const e=$('banner');$('bi').src=im||'';$('bi').style.display=im?'block':'none';$('bt1').textContent=a;$('bt2').textContent=b;e.style.borderColor=col||'rgba(79,209,197,.55)';e.style.boxShadow=col?'0 12px 40px rgba(0,0,0,.5),0 0 44px '+col:'';e.style.display='flex';e.classList.remove('pop');void e.offsetWidth;e.classList.add('pop');banT=secs}
 // ---------- actions ----------
 const goalPos=t=>[t.oppGX,MY];
 function shoot(p,ix,iy,hum,pw){pw=pw||.8;if(G.shots)G.shots[p.team===H1?0:1]++;const t=p.team,dg=hyp(t.oppGX-p.x,MY-p.y);let ang;
@@ -184,7 +192,7 @@ function endPeriod(){if(G.ot){G.over=true;return finish()}
 function finish(){G.over=true;const[a,b]=G.score;$('et').textContent=a===b?'TIE':(a>b?A1:H1).abbr===(a>b?H1:A1).abbr?'':'FINAL';
  $('et').textContent=a===b?'FINAL (TIE)':'FINAL';$('es').textContent=`${H1.abbr} ${b>=0?G.score[0]:0} - ${G.score[1]} ${A1.abbr}`;$('end').style.display='flex'}
 function goal(t,shooter){if(G.over)return;const idx=t===H1?0:1;G.score[idx]++;const sc=t.opp;if(sc.pen.length){const e=sc.pen.shift();e.p.box=false;sc.needUnit=true}
- showBanner(shooter&&shooter.img,`GOAL ${t.abbr}!`,shooter?`${shooter.name} (${shooter.rating})`:'',2.6);G.pause=2.6;G.pendingFace=true;puck.owner=null;puck.vx=puck.vy=0;
+ showBanner(shooter&&shooter.img,`GOAL ${t.abbr}!`,shooter?`${shooter.num!=null?'#'+shooter.num+' ':''}${shooter.name} (${shooter.rating})`:'',2.6,t.color);shakeT=.7;{const f=$('flash');f.style.background=t.color;f.classList.remove('go');void f.offsetWidth;f.classList.add('go')}G.pause=2.6;G.pendingFace=true;puck.owner=null;puck.vx=puck.vy=0;
  if(G.ot){G.over=true;setTimeout(finish,1800)}}
 function keepIn(o,pad,bounce){const R=12,cx_=clamp(o.x,R,W-R),cy_=clamp(o.y,R,H-R),dx=o.x-cx_,dy=o.y-cy_,d=hyp(dx,dy);if(d>R-pad&&d>.001){const k=(R-pad)/d;o.x=cx_+dx*k;o.y=cy_+dy*k;if(bounce){const nx=dx/d,ny=dy/d,vn=o.vx*nx+o.vy*ny;if(vn>0){o.vx-=1.7*vn*nx;o.vy-=1.7*vn*ny}}}}
 function step(dt){
