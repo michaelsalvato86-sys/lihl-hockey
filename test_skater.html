@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8"><title>skater test</title>
+<style>html,body{margin:0;background:#0b1118;overflow:hidden}canvas{display:block}</style></head><body>
+<script src="three.min.js"></script><script src="lib/GLTFLoader.js"></script><script src="lib/SkeletonUtils.js"></script>
+<script src="skater3d.js"></script><script src="skater_pose.js"></script>
+<script>
+const qs=new URLSearchParams(location.search);
+function accOf(p){return p.team.accent}
+function img(){return null}
+const isLt=c=>{const k=new THREE.Color(c);return .3*k.r+.59*k.g+.11*k.b>.62};
+function outlined(x,txt,px,py,fill,line){x.lineJoin='round';x.lineWidth=7;x.strokeStyle=line;x.strokeText(txt,px,py);x.fillStyle=fill;x.fillText(txt,px,py)}
+const r=new THREE.WebGLRenderer({antialias:true});r.setSize(innerWidth,innerHeight);document.body.appendChild(r.domElement);
+const sc=new THREE.Scene();sc.background=new THREE.Color(0x182430);
+sc.add(new THREE.HemisphereLight(0xffffff,0x334455,1.0));const dl=new THREE.DirectionalLight(0xffffff,.8);dl.position.set(3,6,5);sc.add(dl);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(40,40),new THREE.MeshStandardMaterial({color:0xdfeaf2,roughness:.4}));floor.rotation.x=-Math.PI/2;sc.add(floor);
+const cam=new THREE.PerspectiveCamera(35,innerWidth/innerHeight,.1,100);
+window.__go=function(){
+  const p={id:+(qs.get('id')||7),num:17,name:'Test Salvato',team:{color:qs.get('c')||'#c8283a',accent:'#ffffff'}};
+  const m=SK.make(p);sc.add(m.g);window.__m=m;
+  const ph=+(qs.get('ph')||0.8),sp=+(qs.get('sp')||0.6);
+  m.pose=()=>{SK.setPose(m,SK.skatePose(m,ph,sp,0));SK.ground(m)};m.pose();
+  const view=qs.get('v')||'side';
+  const ctr=new THREE.Vector3(0,3,0);
+  if(view==='back')cam.position.set(0,3.2,-9);else if(view==='face')cam.position.set(0,3.2,9);else if(view==='side')cam.position.set(0,3.2,-15);else if(view==='front')cam.position.set(15,3.2,0);else cam.position.set(10,6,-10);
+  cam.lookAt(ctr);
+  const loop=()=>{r.render(sc,cam);requestAnimationFrame(loop)};loop();
+  document.title='ready';
+};
+SK.load(()=>{if(SK.failed){document.title='FAILED'}else window.__go()});
+</script></body></html>

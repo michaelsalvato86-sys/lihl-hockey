@@ -1,0 +1,141 @@
+<!doctype html><html><head><meta charset="utf-8"><title>anim test</title>
+<style>html,body{margin:0;background:#0b1118;overflow:hidden;font-family:monospace;color:#9fb}canvas{display:block}#hud{position:fixed;left:8px;top:6px;font-size:12px;white-space:pre}</style></head><body>
+<div id="hud"></div>
+<script src="three.min.js"></script><script src="lib/GLTFLoader.js"></script><script src="lib/SkeletonUtils.js"></script>
+<script src="skater3d.js"></script><script src="skater_pose.js"></script><script src="anim_rig.js"></script><script src="anim_ctrl.js"></script><script src="anim_goalie.js"></script>
+<script>
+const qs=new URLSearchParams(location.search);
+function accOf(p){return p.team.accent}
+function img(){return null}
+const isLt=c=>{const k=new THREE.Color(c);return .3*k.r+.59*k.g+.11*k.b>.62};
+function outlined(x,txt,px,py,fill,line){x.lineJoin='round';x.lineWidth=7;x.strokeStyle=line;x.strokeText(txt,px,py);x.fillStyle=fill;x.fillText(txt,px,py)}
+const r=new THREE.WebGLRenderer({antialias:true});r.setSize(innerWidth,innerHeight);document.body.appendChild(r.domElement);
+const sc=new THREE.Scene();sc.background=new THREE.Color(0x182430);
+sc.add(new THREE.HemisphereLight(0xffffff,0x334455,1.0));const dl=new THREE.DirectionalLight(0xffffff,.8);dl.position.set(30,60,50);sc.add(dl);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(400,400),new THREE.MeshStandardMaterial({color:0xdfeaf2,roughness:.4}));floor.rotation.x=-Math.PI/2;sc.add(floor);
+const puckM=new THREE.Mesh(new THREE.CylinderGeometry(.6,.6,.38,16),new THREE.MeshStandardMaterial({color:0x050505}));sc.add(puckM);
+const cam=new THREE.PerspectiveCamera(36,innerWidth/innerHeight,1,800);
+const AT=window.AT={sk:null,p:null,m:null,rec:null,views:{}};
+const wrap=a=>((a+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;
+AT.spawn=function(goalie){
+  if(AT.m){sc.remove(AT.m.g)}
+  const p={id:+(qs.get('id')||7),name:'Test Salvato',num:17,team:{color:qs.get('c')||'#c8283a',accent:'#ffffff',dir:1},fa:0,vx:0,vy:0,turn:0,acc01:0,back:false,x:0,y:0,gl:!!goalie};
+  AT.m=SK.make(p,{goalie:!!goalie});sc.add(AT.m.g);AT.p=p;AT.m.g.position.set(0,0,0);AT.puck={x:0,y:0,vx:0,vy:0};AT.ctx={puckW:{x:0,y:.22,z:0},opp:{d:99,s:0},speed:0,vf:0,hasPuck:false,faceoff:false,celeb:false,charge:0};
+};
+// advance the skater one frame under the scenario function
+AT.step=function(fn,t,dt){
+  const p=AT.p,c=AT.ctx,m=AT.m;fn(t,p,c,AT.puck);
+  m.g.position.set(p.x,0,p.y);m.g.rotation.y=-p.fa;m.g.updateMatrixWorld(true);
+  c.speed=Math.hypot(p.vx,p.vy);c.vf=p.vx*Math.cos(p.fa)+p.vy*Math.sin(p.fa);c.vlat=p.vx*Math.sin(p.fa)-p.vy*Math.cos(p.fa);c.key=true;c.puckW.x=AT.puck.x;c.puckW.z=AT.puck.y;
+  if(p.ae&&p.ae.d&&p.ae.d.a!==undefined&&p.ae.d.rel===undefined)p.ae.d.rel=-wrap(p.ae.d.a-p.fa);
+  if(AT.m.goalie&&window.GOAL)GOAL.apply(m,p,c,dt);else ANIM.apply(m,p,c,dt);
+  puckM.position.set(AT.puck.x,.22,AT.puck.y);
+  if(m.an&&m.an.heelOk&&c.hasPuck){const h=m.an.heelW;if(h.distanceTo(puckM.position)<1.2)puckM.position.set(h.x,.22,h.z)}
+};
+const sc_={
+ stationary:(t,p)=>{p.vx=p.vy=0},
+ skate:(t,p,c)=>{p.vx=28;p.vy=0;p.acc01=.2},
+ accelerate:(t,p)=>{const v=Math.min(36,36*(t/1.2));p.vx=v;p.vy=0;p.acc01=t<1.2?.95:0},
+ glide:(t,p)=>{p.vx=30-t*3;p.vy=0;p.acc01=0},
+ backskate:(t,p)=>{p.vx=-12;p.vy=0;p.back=true;p.acc01=.5},
+ turn_left:(t,p)=>{p.vx=20;p.vy=0;p.turn=-1.8;p.acc01=.3},
+ turn_right:(t,p)=>{p.vx=20;p.vy=0;p.turn=1.8;p.acc01=.3},
+ crossover:(t,p)=>{p.vx=26;p.vy=0;p.turn=3.2;p.acc01=.7},
+ stop:(t,p)=>{p.vx=Math.max(0,30-t*90);p.vy=0;p.turn=0;p.acc01=0},
+ carry:(t,p,c,pk)=>{p.vx=22;p.vy=0;p.acc01=.4;c.hasPuck=true;pk.x=p.x+4;pk.y=p.y},
+ protect:(t,p,c,pk)=>{p.vx=18;p.vy=0;p.acc01=.3;c.hasPuck=true;pk.x=p.x+4;pk.y=p.y;c.opp.d=4.5;c.opp.s=3},
+ receive:(t,p,c,pk)=>{p.vx=14;p.vy=0;p.acc01=.2;if(t<.7){pk.x=p.x+14-t*20;pk.y=p.y-3+t*4}else{c.hasPuck=true;pk.x=p.x+4;pk.y=p.y}if(Math.abs(t-0)<.02&&!p.ae)p.ae={id:1,k:'recv',d:{}};if(t>.62&&p.ae&&p.ae.k==='recv')p.ae={id:2,k:'gain',d:{}}},
+ pass:(t,p,c,pk)=>{p.vx=20;p.vy=0;p.acc01=.3;c.hasPuck=t<.02;pk.x=p.x+4;pk.y=p.y;if(t<.02&&!p.ae)p.ae={id:1,k:'pass',d:{a:-0.7}};if(t>=.02){c.hasPuck=false;pk.x+=t*60}},
+ wrist:(t,p,c,pk)=>{p.vx=18;p.vy=0;p.acc01=.2;c.hasPuck=t<.02;pk.x=p.x+4;pk.y=p.y;if(t<.02&&!p.ae)p.ae={id:1,k:'shot',d:{kind:'wrist',a:0.3}};if(t>=.02){c.hasPuck=false;pk.x+=t*100}},
+ slap:(t,p,c,pk)=>{p.vx=14;p.vy=0;p.acc01=.1;c.charge=t<.5?Math.min(1,t/.45):0;c.hasPuck=t<.52;pk.x=p.x+4;pk.y=p.y;if(t>=.5&&!p.ae)p.ae={id:1,k:'shot',d:{kind:'slap',a:0}};if(t>=.52){c.hasPuck=false;pk.x+=(t-.5)*130}},
+ snap:(t,p,c,pk)=>{p.vx=18;p.vy=0;p.acc01=.2;c.hasPuck=t<.02;pk.x=p.x+4;pk.y=p.y;if(t<.02&&!p.ae)p.ae={id:1,k:'shot',d:{kind:'snap',a:-0.2}};if(t>=.02){c.hasPuck=false;pk.x+=t*100}},
+ onetimer:(t,p,c,pk)=>{p.vx=16;p.vy=0;p.acc01=.2;if(t<.45){pk.x=p.x+16-t*30;pk.y=p.y-2}else{pk.x=p.x+4;pk.y=p.y}if(t<.02&&!p.ae)p.ae={id:1,k:'recv',d:{}};if(t>=.44&&p.ae&&p.ae.id===1)p.ae={id:2,k:'shot',d:{kind:'onetimer',a:0}}},
+ checked:(t,p,c)=>{p.vx=20;p.vy=0;if(t<.02&&!p.ae)p.ae={id:1,k:'checked',d:{power:.9,side:1}}},
+ check:(t,p,c)=>{p.vx=22;p.vy=0;p.acc01=.4;if(t<.02&&!p.ae)p.ae={id:1,k:'check',d:{a:.5}}},
+ poke:(t,p,c,pk)=>{p.vx=16;p.vy=0;p.acc01=.2;pk.x=p.x+8;pk.y=p.y+2;if(t<.02&&!p.ae)p.ae={id:1,k:'poke',d:{a:.2}}},
+ fall:(t,p,c)=>{p.vx=Math.max(0,18-t*12);p.vy=0;if(t<.02&&!p.ae)p.ae={id:1,k:'fall',d:{side:1}}},
+ faceoff:(t,p,c,pk)=>{p.vx=p.vy=0;c.faceoff=t<.9;pk.x=p.x+7;pk.y=p.y;if(t>=.9&&!p.ae)p.ae={id:1,k:'draw',d:{}}},
+ pivot:(t,p)=>{p.vx=2;p.vy=0;p.turn=2.8;p.acc01=0},
+ celebrate:(t,p,c)=>{p.vx=6;p.vy=0;c.celeb=true},
+ backhand:(t,p,c,pk)=>{const sg=(p.id&&AT.m.an&&AT.m.an.v.topR)?-1:1;p.vx=16;p.vy=0;p.acc01=.2;c.hasPuck=t<.12;pk.x=p.x+4;pk.y=p.y;if(t>=.1&&!p.ae)p.ae={id:1,k:'shot',d:{kind:'wrist',a:-.9*sg}};if(t>=.12){c.hasPuck=false;pk.x+=(t-.1)*90}},
+ backpass:(t,p,c,pk)=>{const sg=(AT.m.an&&AT.m.an.v.topR)?-1:1;p.vx=20;p.vy=0;p.acc01=.3;c.hasPuck=t<.12;pk.x=p.x+4;pk.y=p.y;if(t>=.1&&!p.ae)p.ae={id:1,k:'pass',d:{a:-.9*sg}};if(t>=.12){c.hasPuck=false;pk.x+=(t-.1)*60}},
+ shuffle:(t,p,c)=>{p.vx=0;p.vy=14;p.acc01=.3},
+ brace:(t,p,c)=>{p.vx=3;p.vy=0;c.opp.d=Math.max(3,36-t*80);c.opp.s=2},
+ lift:(t,p,c,pk)=>{p.vx=14;p.vy=0;p.acc01=.2;pk.x=p.x+4;pk.y=p.y+1;if(t>=.3&&!p.ae)p.ae={id:1,k:'poke',d:{a:.1}}},
+ hit:(t,p,c)=>{p.vx=22;p.vy=0;p.acc01=.4;if(t>=.1&&!p.ae)p.ae={id:1,k:'hitwind',d:{a:.5,d:9}};if(t>=.7&&p.ae.id===1)p.ae={id:2,k:'check',d:{a:.5,board:true,power:.9}}},
+ hitmiss:(t,p,c)=>{p.vx=22;p.vy=0;p.acc01=.4;if(t>=.1&&!p.ae)p.ae={id:1,k:'hitwind',d:{a:-.4,d:9}};if(t>=.7&&p.ae.id===1)p.ae={id:2,k:'hitmiss',d:{}}},
+ checked_board:(t,p,c)=>{p.vx=18;p.vy=0;if(t>=.1&&!p.ae)p.ae={id:1,k:'checked',d:{power:.9,board:true,dir:Math.PI*.8,side:1}}},
+ transition_carry_to_defend:(t,p,c,pk)=>{p.vx=22;p.vy=0;c.hasPuck=t<1;pk.x=p.x+4;pk.y=p.y}
+};
+window.GS={
+ g_ready:(t,p)=>{p.y=0},
+ g_lateral:(t,p)=>{p.y=Math.sin(t*2.2)*9},
+ g_tpush:(t,p)=>{p.y=Math.min(9,t*30)},
+ g_butterfly:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind:'butterfly',side:'l',dy:.5,h:0}}},
+ g_glove:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind:'glove',side:'l',dy:2,h:2}}},
+ g_blocker:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind:'blocker',side:'r',dy:-2,h:1}}},
+ g_pad:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind:'pad',side:'l',dy:3.6,h:0}}},
+ g_stick:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind:'stick',side:'r',dy:-3,h:0}}},
+ g_cover:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'cover',d:{}}},
+ g_goal:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'goalagainst',d:{}}}
+};
+AT.goalieScenarios=Object.keys(GS);
+AT.scenarios=Object.keys(sc_);
+// run a scenario for `secs` at 60 fps; record states and metrics; leave the final pose rendered
+AT.run=function(name,secs,opts){
+  opts=opts||{};AT.spawn(!!opts.goalie);ANIM.debug=true;const fn=(opts.goalie&&GS[name])||sc_[name];const dt=1/60,rec={states:[],maxHandOff:0,maxBotOff:0,minBlade:9,maxBlade:-9,maxSnap:0,frames:0,seq:[]};
+  let last='',prevHeel=null;const vA=new THREE.Vector3(),vB=new THREE.Vector3(),pf=[null,null],qf=new THREE.Quaternion(),qr=new THREE.Quaternion(),up=new THREE.Vector3();rec.slipSum=0;rec.slipN=0;rec.edge=[0,0];rec.edgeN=0;rec.fingerMax=0;rec.maxGrip=-9;
+  for(let t=0;t<=secs+1e-6;t+=dt){AT.step(fn,t,dt);rec.frames++;const an=AT.m.an,s=an&&an.state;if(s&&s!==last){rec.seq.push(+t.toFixed(2)+':'+s);last=s}
+    if(an&&an.metrics){const k=an.metrics;rec.maxHandOff=Math.max(rec.maxHandOff,k.topHandOffShaft);rec.maxBotOff=Math.max(rec.maxBotOff,k.botHandOffShaft);rec.minBlade=Math.min(rec.minBlade,k.bladeHeight);rec.maxBlade=Math.max(rec.maxBlade,k.bladeHeight);}
+    if(an&&an.metrics){rec.maxGrip=Math.max(rec.maxGrip,an.metrics.gripHeight||-9);if(t>0.3&&an.metrics.fingerTop>=0)rec.fingerMax=Math.max(rec.fingerMax,an.metrics.fingerTop,an.metrics.fingerBot)}
+    {const sps=Math.hypot(AT.p.vx,AT.p.vy);const ids=['foot_l','foot_r'],bl=['ball_l','ball_r'],sl=[];
+     for(let i=0;i<2;i++){AT.m.byName[ids[i]].getWorldPosition(vA);AT.m.byName[bl[i]].getWorldPosition(vB);
+       if(pf[i]&&sps>6&&t>0.3){const vx=(vA.x-pf[i].x)/dt,vz=(vA.z-pf[i].z)/dt,tx=vB.x-vA.x,tz=vB.z-vA.z,tl=Math.hypot(tx,tz)||1;sl.push(Math.abs(vx*(-tz/tl)+vz*(tx/tl)))}
+       pf[i]=vA.clone();
+       AT.m.byName[ids[i]].getWorldQuaternion(qf);AT.m.root.getWorldQuaternion(qr);qf.premultiply(qr.invert());up.set(0,1,0).applyQuaternion(SK.restW[ids[i]].clone().invert()).applyQuaternion(qf);rec.edge[i]+=up.dot(SK.Ld);}
+     rec.edgeN++;if(sl.length==2){rec.slipSum+=Math.min(sl[0],sl[1]);rec.slipN++}}
+    if(AT.m.stick){const h=AT.m.stick.heel.clone();if(prevHeel)rec.maxSnap=Math.max(rec.maxSnap,h.distanceTo(prevHeel));prevHeel=h}
+  }
+  rec.slip=rec.slipN?rec.slipSum/rec.slipN:0;rec.edgeAvg=(rec.edge[0]+rec.edge[1])/2/Math.max(1,rec.edgeN);rec.final=AT.m.an&&AT.m.an.state;AT.rec=rec;return rec;
+};
+// ---- automated acceptance: expected states + joint/stick assertions per scenario ----
+AT.expect={stationary:['ready'],skate:['skating'],accelerate:['accelerating','sprint_skating'],glide:['gliding'],backskate:['backward_skating'],turn_left:['turning_left'],turn_right:['turning_right'],crossover:['crossover_turn'],
+ stop:['stopping'],carry:['stickhandling'],protect:['protecting_puck'],receive:['receiving_pass','stickhandling'],pass:['passing'],wrist:['shot_wrist'],slap:['preparing_shot','shot_slap'],snap:['shot_snap'],onetimer:['receiving_pass','shot_onetimer'],
+ checked:['getting_checked'],check:['body_check'],poke:['poke_check'],fall:['falling'],faceoff:['faceoff_stance','faceoff_draw'],pivot:['pivoting'],celebrate:['celebrating'],backhand:['shot_backhand'],backpass:['passing'],shuffle:['side_shuffle'],brace:['bracing'],lift:['stick_lift'],hit:['hit_windup','body_check'],hitmiss:['hit_windup','hit_miss'],checked_board:['getting_checked'],transition_carry_to_defend:['stickhandling']};
+AT.gExpect={g_ready:['goalie_ready'],g_lateral:['goalie_shuffle','goalie_t_push'],g_tpush:['goalie_t_push'],g_butterfly:['goalie_butterfly'],g_glove:['goalie_glove_save'],g_blocker:['goalie_blocker_save'],g_pad:['goalie_pad_save'],g_stick:['goalie_stick_save'],g_cover:['goalie_cover'],g_goal:['goalie_goal_against']};
+AT.assertAll=function(){
+  const out=[];let fails=0;
+  const chk=(n,ok,why)=>{out.push((ok?'PASS ':'FAIL ')+n+(ok?'':'  '+why));if(!ok)fails++};
+  for(const n of AT.scenarios){const r=AT.run(n,n==='slap'?1.5:n==='fall'?2:1.4),seq=r.seq.map(s=>s.replace(/^[0-9.]+:/,''));
+    const exp=AT.expect[n]||[];const missing=exp.filter(e=>!seq.includes(e));
+    const freeHand=/sprint|accelerating|poke|getting|falling|celebr|crossover|hit_|shuffle|bracing|backhand|lift/.test(seq.join())||['skate','glide','crossover'].includes(n);
+    const raised=/check|slap|onetimer|preparing|snap|wrist|pass|poke|falling|celebr|hit_|backhand|lift|getting/.test(seq.join());
+    chk(n+' state',missing.length===0,'missing '+missing.join(',')+' got '+seq.join('>'));
+    chk(n+' top hand on stick',r.maxHandOff<0.02,'off '+r.maxHandOff.toFixed(3));
+    chk(n+' bottom hand on stick',freeHand||r.maxBotOff<0.2,'off '+r.maxBotOff.toFixed(2));
+    chk(n+' blade at ice',raised||r.maxBlade<0.08,'blade '+r.maxBlade.toFixed(2));
+    chk(n+' no stick snap',r.maxSnap<0.6,'snap '+r.maxSnap.toFixed(2)+' m/frame');
+  }
+  { // gap fixes: slap vs wrist, skate blades follow travel, edges bank into turns, pivot, fingers on the shaft
+    const w=AT.run('wrist',1.2),s=AT.run('slap',1.5);chk('slap grip rises well above wrist grip',s.maxGrip-w.maxGrip>=0.3,'slap '+s.maxGrip.toFixed(2)+' wrist '+w.maxGrip.toFixed(2));chk('slap blade windup higher than wrist',s.maxBlade-w.maxBlade>=0.4,'slap '+s.maxBlade.toFixed(2)+' wrist '+w.maxBlade.toFixed(2));
+    for(const n of ['skate','glide','accelerate','carry','turn_left','turn_right']){const r=AT.run(n,1.6);chk(n+' blade slip (ft/s, best foot)',r.slip<1.5,r.slip.toFixed(2))}
+    const L=AT.run('turn_left',1.6),R=AT.run('turn_right',1.6);chk('left turn banks skates left',L.edgeAvg>0.03,'edge '+L.edgeAvg.toFixed(3));chk('right turn banks skates right',R.edgeAvg<-0.03,'edge '+R.edgeAvg.toFixed(3));
+    const st=AT.run('stationary',1.0),cr=AT.run('carry',1.4);chk('fingers wrap shaft (stationary)',st.fingerMax>0&&st.fingerMax<0.07,'max '+st.fingerMax.toFixed(3));chk('fingers wrap shaft (stickhandling)',cr.fingerMax>0&&cr.fingerMax<0.07,'max '+cr.fingerMax.toFixed(3));
+  }
+  for(const n of AT.goalieScenarios){const r=AT.run(n,1.4,{goalie:true}),seq=r.seq.map(s=>s.replace(/^[0-9.]+:/,''));const miss=(AT.gExpect[n]||[]).filter(e=>!seq.includes(e));chk(n+' state',miss.length===0,'missing '+miss.join(',')+' got '+seq.join('>'));chk(n+' no stick snap',r.maxSnap<0.6,r.maxSnap.toFixed(2))}
+  return {fails,total:out.length,failed:out.filter(l=>l.startsWith('FAIL'))};
+};
+AT.view=function(v){
+  const p=AT.p;const px=p.x,pz=p.y;
+  if(v==='broadcast'){cam.position.set(px+4,23,pz+38);cam.lookAt(px,1.5,pz);cam.fov=36}
+  else if(v==='close'){cam.position.set(px+9,5,pz+13);cam.lookAt(px+2,3,pz);cam.fov=34}
+  else if(v==='side'){cam.position.set(px+2,4.5,pz+16);cam.lookAt(px+2,3.2,pz);cam.fov=30}
+  else if(v==='front'){cam.position.set(px+17,4.5,pz+1);cam.lookAt(px,3.3,pz);cam.fov=32}
+  else if(v==='top'){cam.position.set(px+2,26,pz+.1);cam.lookAt(px+2,0,pz);cam.fov=34}
+  else if(v==='back'){cam.position.set(px-14,5,pz-4);cam.lookAt(px+2,3.3,pz);cam.fov=34}
+  cam.updateProjectionMatrix();r.render(sc,cam);
+};
+// frame at time t of a scenario (re-simulates from 0 so the result is exact)
+AT.frame=function(name,t,view,opts){AT.run(name,t,opts);AT.view(view||'close');document.getElementById('hud').textContent=name+' t='+t.toFixed(2)+'s  state='+AT.m.an.state;return AT.m.an.state};
+SK.load(()=>{if(SK.failed){document.title='FAILED';return}AT.spawn(false);AT.step(sc_.stationary,0,1/60);AT.view('close');document.title='ready'});
+</script></body></html>

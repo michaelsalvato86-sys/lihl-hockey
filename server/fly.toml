@@ -1,0 +1,24 @@
+# Fly.io: `fly launch --no-deploy` (accept this file), then `fly deploy`. Keep one machine running so rooms are not lost.
+app = "lihl-hockey-server"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  ALLOWED_ORIGINS = "https://michaelsalvato86-sys.github.io"
+  GRACE_MS = "45000"
+  MAX_ROOMS = "40"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[http_service.checks]]
+  path = "/health"
+  interval = "30s"
+  timeout = "5s"
