@@ -51,7 +51,7 @@ function teamSnap(t){
   const seats = SL.map(s => t.seats[s] ? pidOf(t.seats[s]) : -1);
   const pl = []; for (const s of SL){ const p=t.seats[s]; if(p) pl.push([pidOf(p), r1(p.x), r1(p.y), r1(p.vx), r1(p.vy), r2(p.fa), r1(p.turn||0), r2(p.acc01||0), p.back?1:0, r2(p.st===undefined?1:p.st)]); }
   const g = t.goalie;
-  return { s: seats, pl: pl, g: [r1(g.x), r1(g.y)], pen: t.pen.map(e=>[pidOf(e.p), r1(e.t)]), lb: t.label };
+  return { s: seats, pl: pl, g: [r1(g.x), r1(g.y)], pu: t.pull?1:0, pen: t.pen.map(e=>[pidOf(e.p), r1(e.t)]), lb: t.label };
 }
 function netSnap(){
   const hc = G.humans.map(h=>({side:h.side, p: pidOf(h.ctl)}));

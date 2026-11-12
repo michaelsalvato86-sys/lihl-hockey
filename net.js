@@ -121,7 +121,7 @@
     G.clock = S.c; G.period = S.pd; swapSides(S.pd === 2); G.ot = !!S.ot; G.score = S.sc; G.shots = S.sh; G.pause = S.pa || 0; G.fo = { set: true, dropped: !S.fo };
     [H1, A1].forEach((t, ti) => {
       const ts = S.t[ti]; t.roster.forEach(p => { p.on = false; p.box = false; });
-      const seats = {}; SL.forEach((s, i) => { const p = pid2p(ts.s[i]); seats[s] = p || null; if (p) { p.on = true; p.slot = s; } }); t.seats = seats; t.label = ts.lb || '';
+      const seats = {}; SL.forEach((s, i) => { const p = pid2p(ts.s[i]); seats[s] = p || null; if (p) { p.on = true; p.slot = s; } }); t.seats = seats; t.pull = !!ts.pu; t.label = ts.lb || '';
       t.pen = ts.pen.map(e => { const p = pid2p(e[0]); if (p) p.box = true; return { p, t: e[1], why: '' }; }).filter(e => e.p);
     });
     puck.owner = pid2p(S.pk[4]); noteTxt = S.nt || ''; noteT = S.nt ? 1 : 0;

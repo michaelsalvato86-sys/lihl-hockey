@@ -68,4 +68,15 @@ ck('non-pressing defenders move to cover', c >= 1, String(c));
 { const s = createSim(); s.start({ home: 0, away: 9, plen: 120 }); for (let i = 0; i < 90; i++) s.tick();
   const r = ev(s, `(()=>{const t=H1,p=t.seats.C;p.x=100;p.y=MY;p.vx=p.vy=0;puck.owner=p;const d=t.dir;p.dvx=-d;p.dvy=0;p.vis=true;for(let i=0;i<90;i++){skate(p,1/60,40)}const toNet=Math.atan2(MY-p.y,t.oppGX-p.x);const faceErr=Math.abs(wrapA(p.fa-toNet));const movingBack=(p.vx*d)<-10;const fa0=p.fa;p.vis=false;p.dvx=0;p.dvy=0;skate(p,1/60,40);const snap=Math.abs(wrapA(p.fa-fa0));return[faceErr,movingBack,snap,p.back]})()`);
   ck('vision control: backpedals facing the net, release has no snap', r[0] < .25 && r[1] && r[2] < .2, JSON.stringify(r.map(x => typeof x === 'number' ? +x.toFixed(2) : x))); }
+// 11. goalie pull: trailing late in the third = extra attacker, empty net; a tie or the lead brings the goalie back; no duplicate skaters
+{ let bad = 0, pulledOk = 0, backOk = 0, emptyGoals = 0;
+  for (let k = 0; k < 6; k++) { const s = createSim(); s.start({ home: k, away: 9, plen: 120 }); for (let i = 0; i < 90; i++) s.tick();
+    ev(s, 'G.period=3;G.clock=100;G.score=[1,2]'); for (let i = 0; i < 90; i++) s.tick();
+    const r = JSON.parse(ev(s, `(()=>{const t=H1,L=onIce(t);return JSON.stringify({pull:!!t.pull,n:L.length,u:new Set(L).size,x:!!t.seats.X,oth:!!A1.pull,box:t.pen.length})})()`));
+    if (r.pull && !r.oth && (r.n === 6 || r.box) && r.u === r.n) pulledOk++; else bad++;
+    for (let i = 0; i < 30 * 40 && !s.over(); i++) s.tick();
+    ev(s, 'G.score=[2,2]'); for (let i = 0; i < 90; i++) s.tick();
+    const b = JSON.parse(ev(s, `(()=>{const t=H1,L=onIce(t);return JSON.stringify({pull:!!t.pull,n:L.length,u:new Set(L).size,x:!!t.seats.X,ex:act(t).length})})()`));
+    if (!b.pull && !b.x && b.u === b.n) backOk++; else bad++; }
+  ck('goalie pull and return with six skaters, no duplicates', bad === 0 && pulledOk === 6 && backOk === 6, 'pulled ' + pulledOk + '/6 returned ' + backOk + '/6 bad ' + bad); }
 console.log(fails ? 'FAILED ' + fails : 'p5 tests pass'); process.exit(fails ? 1 : 0);

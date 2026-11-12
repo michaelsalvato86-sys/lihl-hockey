@@ -22,8 +22,12 @@ Fix options (owner decision): add a card to the Fly account (this one small mach
 - Removed stray game_tmp.html and skater3d.bak.js.
 - Subs fix, post-game summary, skating sound setting, forecheck menu (earlier today).
 
+- Instant goal replay (offline only): last 5 s recorded at 20 Hz, played once at 0.6x from a low camera behind the net, tap to skip. Automated tested (starts after the goal pause, ends, play resumes, no replay on the server); camera position checked numerically; not visually confirmed behind the net. Players who changed lines before the goal may not appear in the replay.
+- Goalie pull: last 2:00 of the third, trailing by one or two, the goalie leaves and a sixth skater joins; empty net scores; returns on a tie or lead. Automated tested (6 of 6 pulls and returns, no duplicate skaters); network snapshot carries the pull flag; not visually verified.
+- Side camera zooms tighter near the nets (smoothed). Not visually verified.
+
 ## Not done (second brief)
-Goal replay, pulling the goalie late, scorebug redesign, zoom-by-location camera, crowd profiling on a phone, mobile layout audit on real devices.
+Scorebug redesign, crowd profiling on a phone, mobile layout audit on real devices.
 
 ## Not done (first brief)
 Unified animation state machine rewrite, crossovers, hockey-stop animation pose, pivots, stickhandling visuals, puck pickup animation, one-timer animation rework, fall and getup sequence rework, goalie butterfly and recovery rework, AI reactions, faceoff presentation, goal celebration and camera work, rink and puck visuals, audio sync, mobile and input pass, performance profiling. Not tested visually: everything except the frames named above.

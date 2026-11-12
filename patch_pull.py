@@ -1,0 +1,26 @@
+import os
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+def rep(s,a,b,tag=''):
+    assert s.count(a)==1, tag+' count=%d: '%s.count(a)+a[:90]
+    return s.replace(a,b,1)
+g=open('game.html',encoding='utf-8').read()
+g=rep(g,"const SL=['C','LW','RW','LD','RD'],","const SL=['C','LW','RW','LD','RD','X'],",'SL')
+g=rep(g,"const act=t=>{const k=Math.min(2,t.pen.length);return SL.filter(s=>!(k>=1&&s==='RW')&&!(k>=2&&s==='LW'))};","const act=t=>{const k=Math.min(2,t.pen.length);return SL.filter(s=>!(k>=1&&s==='RW')&&!(k>=2&&s==='LW')&&(s!=='X'||t.pull))};",'act')
+g=rep(g," F=fill(F,3,Fa,Da);D=fill(D,2,Da,Fa.filter(p=>!F.includes(p)),Fa);return{nw:{C:F[0],LW:F[1],RW:F[2],LD:D[0],RD:D[1]},label}}",
+ " F=fill(F,3,Fa,Da);D=fill(D,2,Da,Fa.filter(p=>!F.includes(p)),Fa);let X=null;if(t.pull){X=Fa.filter(p=>!F.includes(p)&&!D.includes(p)).sort((a,b)=>(b.shot+b.pass)-(a.shot+a.pass))[0]||Da.filter(p=>!D.includes(p)&&!F.includes(p))[0]||null}return{nw:{C:F[0],LW:F[1],RW:F[2],LD:D[0],RD:D[1],X},label:t.pull?label+' +6':label}}",'unit')
+g=rep(g,"P={C:[-3.5,0],LW:[-13,-19],RW:[-13,19],LD:[-30,-12],RD:[-30,12]};","P={C:[-3.5,0],LW:[-13,-19],RW:[-13,19],LD:[-30,-12],RD:[-30,12],X:[-22,0]};",'P')
+g=rep(g,"function formation(p,mode){const t=p.team,d=t.dir,s=p.slot,","function formation(p,mode){const t=p.team,d=t.dir,s=p.slot==='X'?'C':p.slot,",'form')
+g=rep(g,"    if(Math.random()<ps){const dyy=puck.y-g.y,","    if(!t.pull&&Math.random()<ps){const dyy=puck.y-g.y,",'empty')
+# pull decision, once per team per step (last 2:00 of the third, trailing by one or two)
+g=rep(g,"t.shiftT+=dt;for(const q of t.roster)if(!q.on)","{const ld=G.score[t===H1?0:1]-G.score[t===H1?1:0],want=G.period===3&&!G.ot&&G.clock<120&&ld<0&&ld>=-2&&!G.over;if(want!==!!t.pull){t.pull=want;t.needUnit=true;if(want&&!G.quiet)note(t,'GOALIE PULLED, EXTRA ATTACKER')}}\n  t.shiftT+=dt;for(const q of t.roster)if(!q.on)",'pull')
+open('game.html','w',encoding='utf-8').write(g)
+r=open('r3d.js',encoding='utf-8').read()
+r=rep(r,"for(const t of[H1,A1]){all.push(t.goalie);for(const s of SL)","for(const t of[H1,A1]){if(!t.pull)all.push(t.goalie);for(const s of SL)",'draw')
+open('r3d.js','w',encoding='utf-8').write(r)
+s=open('server/sim_host.js',encoding='utf-8').read()
+s=rep(s,"g: [r1(g.x), r1(g.y)], pen:","g: [r1(g.x), r1(g.y)], pu: t.pull?1:0, pen:",'snap')
+open('server/sim_host.js','w',encoding='utf-8').write(s)
+n=open('net.js',encoding='utf-8').read()
+n=rep(n,"t.seats = seats; t.label = ts.lb || '';","t.seats = seats; t.pull = !!ts.pu; t.label = ts.lb || '';",'net')
+open('net.js','w',encoding='utf-8').write(n)
+print('ok')
