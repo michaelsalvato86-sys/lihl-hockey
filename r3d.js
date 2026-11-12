@@ -102,7 +102,7 @@ function init3D(){try{if(!window.THREE||qs.get('2d'))return;
  const bowl=new THREE.Mesh(new THREE.CylinderGeometry(190,190,70,32,1,true),new THREE.MeshBasicMaterial({color:0x090d14,side:THREE.BackSide}));bowl.position.y=25;sc.add(bowl);
  const floor=new THREE.Mesh(new THREE.PlaneGeometry(600,600),new THREE.MeshStandardMaterial({color:0x0c1119,roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.y=-.2;sc.add(floor);
  R3.puck=new THREE.Mesh(new THREE.CylinderGeometry(.6,.6,.38,16),new THREE.MeshStandardMaterial({color:0x050505,roughness:.4}));sc.add(R3.puck);
- R3.ring=new THREE.Mesh(new THREE.RingGeometry(2.9,3.6,28),new THREE.MeshBasicMaterial({color:0xffd166,side:THREE.DoubleSide}));R3.ring.rotation.x=-Math.PI/2;R3.ring.position.y=.1;sc.add(R3.ring);
+ R3.ring=new THREE.Mesh(new THREE.RingGeometry(3.3,4.4,32),new THREE.MeshBasicMaterial({color:0xffe27a,side:THREE.DoubleSide,transparent:true,opacity:.95}));const ag=new THREE.ConeGeometry(1.2,2.6,4);ag.rotateX(Math.PI);R3.arrow=new THREE.Mesh(ag,new THREE.MeshBasicMaterial({color:0xffe27a}));sc.add(R3.arrow);R3.ring.rotation.x=-Math.PI/2;R3.ring.position.y=.1;sc.add(R3.ring);
  addEventListener('resize',()=>{if(R3.composer)R3.composer.setSize(innerWidth,innerHeight);r.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()});
  cv.style.display='none';THREE_OK=true}catch(e){console.log('3D init failed',e);THREE_OK=false}}
 function draw3D(dt){const R=R3,all=[];for(const t of[H1,A1]){all.push(t.goalie);for(const s of SL)if(t.seats[s])all.push(t.seats[s])}
@@ -114,8 +114,8 @@ function draw3D(dt){const R=R3,all=[];for(const t of[H1,A1]){all.push(t.goalie);
   m.legs.forEach((l,i)=>l.rotation.z=(i?sw:-sw));m.arms.forEach((a,i)=>a.rotation.z=(i?-sw:sw)*.7);m.body.rotation.z=-.16*k;
   if(p.gl)m.body.position.y=-.3+Math.sin(performance.now()/400)*.08;
   if(!p.gl&&sp>9&&R.iceCtx){const m2=m;if(m2.lx!==undefined){R.iceCtx.strokeStyle='rgba(120,150,175,.22)';R.iceCtx.lineWidth=2.2;R.iceCtx.beginPath();R.iceCtx.moveTo(m2.lx*10,m2.ly*10);R.iceCtx.lineTo(p.x*10,p.y*10);R.iceCtx.stroke()}m2.lx=p.x;m2.ly=p.y}else{m.lx=undefined}
-  if(p===ctl){R.ring.visible=true;R.ring.position.x=p.x-W/2;R.ring.position.z=p.y-H/2}}
- if(!ctl)R.ring.visible=false;
+  if(p===ctl){const tt=performance.now()/1000;R.ring.visible=true;R.ring.position.x=p.x-W/2;R.ring.position.z=p.y-H/2;R.ring.scale.setScalar(1+.12*Math.sin(tt*6));R.arrow.visible=true;R.arrow.position.set(p.x-W/2,15.2+Math.sin(tt*5)*.6,p.y-H/2);R.arrow.rotation.y=tt*2}}
+ if(!ctl){R.ring.visible=false;R.arrow.visible=false}
  R.puck.position.set(puck.x-W/2,.22,puck.y-H/2);
  const tx=clamp(puck.x-W/2+puck.vx*.3,-78,78),tz=clamp(puck.y-H/2+puck.vy*.15,-30,30);
  R.cx+=(tx-R.cx)*Math.min(1,dt*3);R.cz+=(tz-R.cz)*Math.min(1,dt*3);
