@@ -52,6 +52,10 @@ for f in sorted(glob.glob('data/api/*.json')):
                                    'num': int(g['jersey_number']) if str(g['jersey_number']).isdigit() else 30, 'photo': grab(g['profile_image_url'] or raw.get(g['player_id'], {}).get('photo'), f"p{g['player_id']}")})
     else:
         goalies.append({'id': 900000 + tid, 'name': d['acronym'] + ' Goalie', 'gp': 0, 'gaa': 4.0, 'team': tid, 'num': 30, 'photo': None})
+# jersey colour overrides (the league site's team colours do not match the real jerseys; source: lihockey.org/store)
+OVR = json.load(open('data/color_overrides.json', encoding='utf-8')) if os.path.exists('data/color_overrides.json') else {}
+for k, v in OVR.items():
+    if k in teams: teams[k]['color'], teams[k]['accent'] = v[0], v[1]
 out = {'teams': teams, 'players': list(players.values()), 'goalies': goalies}
 json.dump(out, open('data/league.json', 'w', encoding='utf-8'), separators=(',', ':'), ensure_ascii=False)
 print(len(teams), 'teams', len(out['players']), 'players', len(goalies), 'goalies')

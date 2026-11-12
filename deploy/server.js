@@ -175,7 +175,7 @@ setInterval(() => {
       let out; try { out = r.sim.tick(); } catch (e) { console.error('sim error', r.code, e); r.state = 'ended'; continue; }
       const msg = '{"t":"s",' + out.slice(1);
       for (const p of r.players) if (p && p.ws && p.ws.readyState === 1) { try { p.ws.send(msg); } catch (e) { } }
-      if (r.sim.over()) { r.state = 'ended'; const sc = r.sim.score(); setTimeout(() => r.players.forEach(p => send(p, { t: 'end', sc: sc.sc, sh: sc.sh, home: r.players[0] && r.players[0].team, away: r.players[1] && r.players[1].team })), 900); r.players.forEach(p => p && (p.ready = false)); r.touch = Date.now(); }
+      if (r.sim.over()) { r.state = 'ended'; const sc = r.sim.score(); setTimeout(() => r.players.forEach(p => send(p, { t: 'end', ss: r.sim.stats(), sc: sc.sc, sh: sc.sh, home: r.players[0] && r.players[0].team, away: r.players[1] && r.players[1].team })), 900); r.players.forEach(p => p && (p.ready = false)); r.touch = Date.now(); }
     }
   }
 }, 8);

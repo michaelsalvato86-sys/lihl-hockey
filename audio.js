@@ -1,6 +1,6 @@
 /* Original synthesized game audio (WebAudio). No sample files, nothing licensed. Optional, with volume. */
 const AU = {
-  ctx: null, vol: 0.7, on: true, say: true, last: {},
+  ctx: null, vol: 0.7, on: true, say: true, last: {}, skv: (function () { try { const v = localStorage.getItem('lihl_skv'); return v === null ? 0.35 : +v; } catch (e) { return 0.35; } })(), setSkate(v) { this.skv = v; try { localStorage.setItem('lihl_skv', v); } catch (e) { } },
   init() {
     if (this.ctx) { this.ctx.resume && this.ctx.resume(); return; }
     const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
@@ -44,7 +44,7 @@ const AU = {
   /* v 0..1 skater speed: more speed = louder and brighter hiss */
   skate(v) {
     if (!this.sg || !this.on) return; v = Math.max(0, Math.min(1, v || 0)); const t = this.ctx.currentTime;
-    this.sg.gain.setTargetAtTime(v < 0.06 ? 0 : (0.012 + v * v * 0.05), t, 0.12);
+    this.sg.gain.setTargetAtTime(v < 0.06 ? 0 : (0.012 + v * v * 0.05) * this.skv, t, 0.12);
     this.sf.frequency.setTargetAtTime(3000 + v * 3000, t, 0.15);
   },
   _note(f, t0, dur, type, vol) {

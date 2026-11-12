@@ -183,7 +183,7 @@ SK.make = function (p, opts) {
   if (MOB) root.traverse(o => { if (o.isSkinnedMesh && o !== body) o.visible = false; });
   const par = body.parent;
   const col = SK.col(p.team.color, 1.18, 1.0), acc = new THREE.Color(accOf(p)), dark = new THREE.Color(0x11151c);
-  const pope = p.name === 'Justin Faithfull', roo = p.name === 'Joe Faithfull'; if (pope) { col.set(0xf8f5ee); acc.set(0xf8f5ee); } if (roo) { col.set(0xb5733a); acc.set(0xf0d9b0); }
+  const pope = p.name === 'Justin Faithfull', roo = p.name === 'Joe Faithfull'; if (pope) { col.set(0xf8f5ee); acc.set(0xf8f5ee); } if (roo) { col.set(0xb5733a); acc.set(0xf0d9b0); } if (/^(michael|mike) salvato$/i.test(p.name||'')) { col.set(0xf4f1e8); acc.set(0x2f8fb8); } /* the admin always wears the St. Beer jersey (cream with stained-glass blue) */
   const tone = ((((p.id | 0) * 2654435761) >>> 0)) % 3;
   const bodyMat = body.material.clone(); if (SK.tex) bodyMat.map = SK.tex[tone === 0 ? 'light' : 'dark'] || bodyMat.map; if (tone === 2) bodyMat.color = new THREE.Color(0xd8b08f);
   body.material = bodyMat;

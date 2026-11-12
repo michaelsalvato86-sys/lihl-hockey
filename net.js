@@ -110,7 +110,7 @@
   }
   function ev(e) {
     if (e.e === 'sfx') { AU.sfx(e.n); if (e.n === 'horn') AU.crowd(1); if (e.n === 'hit') { shakeT = .3; G.excite = Math.max(G.excite || 0, .4); } }
-    else if (e.e === 'ae') { const q = pid2p(e.p); if (q) { q.ae = { id: (G.aeid = (G.aeid || 0) + 1), k: e.k, d: e.d || {} }; if (e.k === 'shotwind') { const T = (e.d && e.d.t) || .2; q.act = { k: 'shot', t: T, T }; } else if (e.k === 'actcancel' || e.k === 'shot' || e.k === 'passwind') q.act = null; if (window.ANN) ANN.ev(q, e.k, e.d || {}); } }
+    else if (e.e === 'ae') { const q = pid2p(e.p); if (q) { q.ae = { id: (G.aeid = (G.aeid || 0) + 1), k: e.k, d: e.d || {} }; if (e.k === 'shotwind') { const T = (e.d && e.d.t) || .2; q.act = { k: 'shot', t: T, T }; } else if (e.k === 'passwind') { const T = (e.d && e.d.t) || .12; q.act = { k: 'pass', t: T, T }; } else if (e.k === 'actcancel' || e.k === 'shot' || e.k === 'pass') q.act = null; if (window.ANN) ANN.ev(q, e.k, e.d || {}); } }
     else if (e.e === 'bn') showBanner(e.im || null, e.a, e.b, e.secs, e.col || null);
     else if (e.e === 'goal') {
       const t = e.tm === 0 ? H1 : A1, p = pid2p(e.p); G.cele = { p: p, t: 2.6 }; if (p) { p.celeb = 2.6; for (const m of onIce(t)) if (m !== p) m.celeb = 2.4; } G.gfx = { d: t.dir > 0 ? -1 : 1, t: 3.2 }; G.excite = 1; shakeT = .7;
@@ -167,6 +167,7 @@
     $('oet').textContent = my > opp ? 'VICTORY' : my < opp ? 'DEFEAT' : 'FINAL (TIE)';
     $('oes').textContent = `${TEAMS[m.away] ? TEAMS[m.away].abbr : ''} ${m.sc[1]} - ${m.sc[0]} ${TEAMS[m.home] ? TEAMS[m.home].abbr : ''}`;
     $('oesub').textContent = `SHOTS ${m.sh[1]} - ${m.sh[0]}  ·  ${NET.names[1]} (AWAY) vs ${NET.names[0]} (HOME)`;
+    try { if (m.ss) { Object.assign(G, { hits: m.ss.h, pims: m.ss.p, fow: m.ss.f, passes: m.ss.a, poss: m.ss.o, goals: m.ss.g, pst: m.ss.s, saves: m.ss.sv, shots: m.ss.sh, score: m.sc }); let se = $('oesum'); if (!se) { se = document.createElement('div'); se.id = 'oesum'; se.className = 'sumw'; $('oesub').after(se); } se.innerHTML = summaryHTML(); } } catch (e) { }
     $('oRe').textContent = 'REMATCH'; $('oRe').disabled = false; $('oend').style.display = 'flex';
     const ch = $('oChat'); if (!ch.firstChild) CHAT.forEach((c, i) => { const b = document.createElement('button'); b.textContent = c; b.onclick = () => NET.send({ t: 'chat', i }); ch.appendChild(b); });
   }

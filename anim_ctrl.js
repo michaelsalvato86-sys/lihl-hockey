@@ -39,7 +39,7 @@ ANIM.apply = function (m, p, c, dt) {
   // ---------- 0. events ----------
   if (p.ae && p.ae.id !== an.evId) {
     an.evId = p.ae.id; const k = p.ae.k, d = p.ae.d || {};
-    if (k === 'recv') an.recvT = 0.9; else if (k === 'gain') { an.cush = 0.35; an.recvT = 0; an.gainT = 0; } else if (k === 'fall') an.fall = { t: 0, side: d.side || 1 };
+    if (k === 'recv') an.recvT = 0.9; else if (k === 'gain') { an.cush = 0.35; an.cq = ({ difficult: 1.6, bobble: 2.2, deflect: 2.4, miss: 2.8 })[d.q] || 1; an.recvT = 0; an.gainT = 0; } else if (k === 'fall') an.fall = { t: 0, side: d.side || 1 };
     else {
       const rel0 = d.rel || 0, sd0 = V.topR ? -1 : 1, kd = d.kind, hk = k === 'hitwind' || k === 'check' || k === 'hitmiss' || k === 'checked';
       let dr = 0; if (typeof d.dir === 'number') dr = -wrapA(d.dir - (p.fa || 0)); else if (d.dir && d.dir.x !== undefined) dr = -wrapA(Math.atan2(d.dir.y, d.dir.x) - (p.fa || 0));   // victim push direction relative to heading, +left
@@ -166,7 +166,7 @@ ANIM.apply = function (m, p, c, dt) {
   const ch = Math.max(S.charge, S.pre);
   if (ch > 0.02) { const slap = _es((S.charge - 0.62) / 0.3); eYaw += sgn * (-0.3 - 0.7 * slap) * ch * V.wind; eBf += (-0.35 - 0.6 * slap) * ch; eBh += (0.15 + 1.0 * slap) * ch; eHh += 0.6 * slap * ch; eCr += 0.15 * ch + 0.25 * slap * ch; eStance += 0.3 * slap * ch + 0.15 * S.pre; eWeight -= 0.5 * ch; }
   // receiving: cushion the puck (hands give, blade drifts back with it), then hand off into stickhandling
-  const cush = an.cush > 0 ? kf(an.cush / 0.35, [[0, 0], [0.5, 1], [1, 0.3]]) : 0; eHandPull += 0.16 * cush; eBf -= 0.2 * cush; eHh -= 0.04 * cush;
+  const cush = an.cush > 0 ? kf(an.cush / 0.35, [[0, 0], [0.5, 1], [1, 0.3]]) : 0; { const cq = an.cq || 1; eHandPull += 0.16 * cush * cq; eBf -= 0.2 * cush * (cq > 2 ? -1.2 : 1) * Math.min(cq, 2); eHh -= 0.04 * cush * cq; }
   // incoming pass on the off side (backhand reception): shoulders turn to the puck, hands a touch lower
   if (S.recv > 0.01) { const rb = _es((-an.psv * sgn - 0.2) / 0.5); eYaw += _cl(Math.atan2(an.psv, Math.max(an.pfv, 0.5)), -0.6, 0.6) * 0.6 * S.recv; eHh -= 0.06 * rb * S.recv; eCr += 0.08 * S.recv; }
   // opponent bearing down: brace (low, wide, shoulder turned in, elbows tucked) / checker closing: lunge posture

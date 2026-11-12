@@ -76,6 +76,7 @@ function createSim() {
     input: (s, m) => { ctx.__m = m; vm.runInContext(`netInput(${s}, __m)`, ctx); },
     tick: () => vm.runInContext('netTick()', ctx),
     over: () => vm.runInContext('!!G.over', ctx),
+    stats: () => JSON.parse(vm.runInContext('JSON.stringify({h:G.hits,p:G.pims,f:G.fow,a:G.passes,o:G.poss.map(Math.round),g:G.goals,s:G.pst,sv:G.saves,sh:G.shots})', ctx)),
     score: () => JSON.parse(vm.runInContext('JSON.stringify({sc:G.score,sh:G.shots,pd:G.period,ot:!!G.ot})', ctx))
   };
 }
