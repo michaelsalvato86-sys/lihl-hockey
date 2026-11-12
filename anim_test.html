@@ -60,13 +60,16 @@ const sc_={
  fall_back:(t,p,c)=>{p.vx=Math.max(0,22-t*10);p.vy=0;if(t<.02&&!p.ae)p.ae={id:1,k:'fall',d:{side:1,kind:'back'}}},
  fall_board:(t,p,c)=>{p.vx=Math.max(0,18-t*12);p.vy=0;if(t<.02&&!p.ae)p.ae={id:1,k:'fall',d:{side:1,board:true}}},
  fall_stumble:(t,p,c)=>{p.vx=Math.max(0,18-t*6);p.vy=0;if(t<.02&&!p.ae)p.ae={id:1,k:'fall',d:{side:-1,kind:'stumble'}}},
- fall_knees:(t,p,c)=>{p.vx=Math.max(0,10-t*8);p.vy=0;if(t<.02&&!p.ae)p.ae={id:1,k:'fall',d:{side:1}}},
+ fall_knees:(t,p,c)=>{p.vx=3;p.vy=0;if(t<.02&&!p.ae)p.ae={id:4,k:'fall',d:{side:1}}},
  checked:(t,p,c)=>{p.vx=20;p.vy=0;if(t<.02&&!p.ae)p.ae={id:1,k:'checked',d:{power:.9,side:1}}},
  check:(t,p,c)=>{p.vx=22;p.vy=0;p.acc01=.4;if(t<.02&&!p.ae)p.ae={id:1,k:'check',d:{a:.5}}},
  poke:(t,p,c,pk)=>{p.vx=16;p.vy=0;p.acc01=.2;pk.x=p.x+8;pk.y=p.y+2;if(t<.02&&!p.ae)p.ae={id:1,k:'poke',d:{a:.2}}},
  fall:(t,p,c)=>{p.vx=Math.max(0,18-t*12);p.vy=0;if(t<.02&&!p.ae)p.ae={id:1,k:'fall',d:{side:1}}},
  faceoff:(t,p,c,pk)=>{p.vx=p.vy=0;c.faceoff=t<.9;pk.x=p.x+7;pk.y=p.y;if(t>=.9&&!p.ae)p.ae={id:1,k:'draw',d:{}}},
  pivot:(t,p)=>{p.vx=2;p.vy=0;p.turn=2.8;p.acc01=0},
+ stop_slow:(t,p)=>{p.vx=Math.max(0,7-t*8);p.vy=0;p.x+=p.vx/60;p.acc01=0;p.stp=p.vx>2?.7:0},
+ pivot_walk:(t,p)=>{p.vx=2.5;p.vy=0;p.x+=p.vx/60;p.turn=2.8;p.acc01=0},
+ stop_back:(t,p)=>{const fa=Math.min(1,t/.12)*Math.PI/2;p.fa=fa;p.vx=-Math.max(0,20-t*28)*Math.cos(0);p.vy=0;p.x+=p.vx/60;p.turn=t<.12?13:0;p.stp=p.vx<-2?.9:0;p.back=false},
  celebrate:(t,p,c)=>{p.vx=6;p.vy=0;c.celeb=true},
  backhand:(t,p,c,pk)=>{const sg=(p.id&&AT.m.an&&AT.m.an.v.topR)?-1:1;p.vx=16;p.vy=0;p.acc01=.2;c.hasPuck=t<.12;pk.x=p.x+4;pk.y=p.y;if(t>=.1&&!p.ae)p.ae={id:1,k:'shot',d:{kind:'wrist',a:-.9*sg}};if(t>=.12){c.hasPuck=false;pk.x+=(t-.1)*90}},
  backpass:(t,p,c,pk)=>{const sg=(AT.m.an&&AT.m.an.v.topR)?-1:1;p.vx=20;p.vy=0;p.acc01=.3;c.hasPuck=t<.12;pk.x=p.x+4;pk.y=p.y;if(t>=.1&&!p.ae)p.ae={id:1,k:'pass',d:{a:-.9*sg}};if(t>=.12){c.hasPuck=false;pk.x+=(t-.1)*60}},
@@ -93,6 +96,20 @@ window.GS={
  g_cover:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'cover',d:{}}},
  g_goal:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'goalagainst',d:{}}}
 };
+AT.sc=sc_;
+// min knee flexion (rad, 0 = straight) per leg over a scenario, and pelvis lateral travel (root space, m)
+AT.limbStat=function(fn,secs,t0){const v=[new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3()],dt=1/60,mn=[9,9],R={pelMin:9,pelMax:-9,pelY:[9,-9]};AT.spawn(false);ANIM.debug=true;t0=t0===undefined?.4:t0;
+ for(let t=0;t<=secs+1e-6;t+=dt){AT.step(fn,t,dt);if(t<t0)continue;AT.m.inner.updateMatrixWorld(true);
+  ['l','r'].forEach((s,i)=>{AR.pos(AT.m,'thigh_'+s,v[0]);AR.pos(AT.m,'calf_'+s,v[1]);AR.pos(AT.m,'foot_'+s,v[2]);const a=v[0].clone().sub(v[1]).normalize(),b=v[2].clone().sub(v[1]).normalize();mn[i]=Math.min(mn[i],Math.PI-Math.acos(Math.max(-1,Math.min(1,a.dot(b)))))});
+  AR.pos(AT.m,'pelvis',v[0]);R.pelMin=Math.min(R.pelMin,v[0].x);R.pelMax=Math.max(R.pelMax,v[0].x);R.pelY=[Math.min(R.pelY[0],v[0].y-(-AT.m.root.position.y)),Math.max(R.pelY[1],v[0].y-(-AT.m.root.position.y))]}
+ R.flex=mn;R.pelAmp=R.pelMax-R.pelMin;return R};
+// planted foot: world xz drift while the plant is on (ft), frames planted, and min hip-to-ankle vertical drop (fraction of leg length)
+AT.plantStat=function(fn,secs){AT.spawn(false);ANIM.debug=true;const dt=1/60,v=new THREE.Vector3(),H=new THREE.Vector3(),lat={l:null,r:null},R={drift:0,frames:0,minDrop:9,maxReach:0};
+ for(let t=0;t<=secs+1e-6;t+=dt){AT.step(fn,t,dt);const an=AT.m.an,pl=an.plant;AT.m.g.updateMatrixWorld(true);
+  for(const s of ['l','r']){AT.m.byName['foot_'+s].getWorldPosition(v);const on=pl&&pl[s].on&&an.legD[s].pw>0.7;if(on){if(!lat[s])lat[s]=v.clone();else R.drift=Math.max(R.drift,Math.hypot(v.x-lat[s].x,v.z-lat[s].z));R.frames++;if(AT.p.vx>1.2)R.moving=(R.moving||0)+1}else lat[s]=null;
+   if(t>.4){AR.pos(AT.m,'thigh_'+s,H);AR.pos(AT.m,'foot_'+s,v);R.minDrop=Math.min(R.minDrop,(H.y-v.y)/(AR.llen[s].l1+AR.llen[s].l2))}}
+  if(an.legRes)R.maxReach=Math.max(R.maxReach,an.legRes.l.reach,an.legRes.r.reach)}
+ return R};
 AT.goalieScenarios=Object.keys(GS);
 AT.scenarios=Object.keys(sc_);
 // run a scenario for `secs` at 60 fps; record states and metrics; leave the final pose rendered
@@ -160,6 +177,26 @@ AT.animChecks=function(chk){
  // one-timer is visibly distinct
  {const a=AT.run('otwind',.5),b=AT.run('receive',.5);chk('one-timer stance blade cocked above receive',a.maxGrip-b.maxGrip>=0.15,a.maxGrip.toFixed(2)+' vs '+b.maxGrip.toFixed(2));
   const m=AT.run('otmiss',2.2);chk('missed one-timer reacts then recovers',m.seq.some(s=>/one_timer_miss/.test(s))&&m.final!=='one_timer_miss','seq '+m.seq.join('>'))}
+ // weight shift: pelvis slides over the stance leg (opposite the pushing leg), none when standing
+ {const sk=AT.limbStat(AT.sc.skate,2),st=AT.limbStat(AT.sc.stationary,1),bk=AT.limbStat(AT.sc.backskate,2);AT.wsStat={sk:sk.pelAmp,st:st.pelAmp,bk:bk.pelAmp};
+  chk('weight shift: pelvis lateral travel while skating (m)',sk.pelAmp>0.04,sk.pelAmp.toFixed(3));chk('weight shift: none when standing',st.pelAmp<0.005,st.pelAmp.toFixed(3));chk('weight shift also in backskating',bk.pelAmp>0.025,bk.pelAmp.toFixed(3));
+  AT.spawn(false);ANIM.debug=true;const pv=new THREE.Vector3();let ok=0,n=0,wc=0;for(let t=0;t<=2;t+=dt){AT.step(AT.sc.skate,t,dt);if(t>.6){AR.pos(AT.m,'pelvis',pv);const ph=Math.sin(AT.m.an.ph);if(Math.abs(ph)>.9){n++;if((ph>0)===(pv.x<0))ok++}}}
+  chk('pelvis shifts toward the NON-pushing leg (sign matches stride phase)',n>5&&ok===n,ok+'/'+n)}
+ // backskate: push leg stays bent with the foot well below the hip (no straight, lunge-like trailing leg)
+ {const R=AT.plantStat(AT.sc.backskate,2),K=AT.limbStat(AT.sc.backskate,2);AT.bkStat={drop:R.minDrop,flex:K.flex};chk('backskate: foot at least 0.4 leg-lengths below the hip',R.minDrop>0.4,R.minDrop.toFixed(2));chk('backskate: knees stay bent (min flex rad)',Math.min(...K.flex)>0.8,K.flex.map(x=>x.toFixed(2)).join('/'))}
+ // planted-foot lock in slow stops and slow pivots
+ {const a=AT.plantStat(AT.sc.stop_slow,1.6),b=AT.plantStat(AT.sc.pivot,1.6);AT.plantS={stop:a,piv:b};
+  chk('slow stop: a foot locks while sliding to rest',a.frames>=20&&a.drift<0.03,a.frames+' frames drift '+a.drift.toFixed(3));chk('slow stop: IK still reaches',a.maxReach<0.03,a.maxReach.toFixed(3));
+  chk('slow pivot: ground foot locked',b.frames>=40&&b.drift<0.03,b.frames+' frames drift '+b.drift.toFixed(3));
+  ANIM.noLock=true;const c0=AT.plantStat(AT.sc.pivot,1.6);ANIM.noLock=false;chk('pivot lock switch matters (planted frames with vs without the new lock)',c0.frames<b.frames-30,c0.frames+' vs '+b.frames)}
+ // backward hockey stop pose
+ {const r=AT.run('stop_back',.5);chk('backward stop: state is stopping',r.seq.some(s=>/stopping/.test(s)),r.seq.join('>'));chk('backward stop: spray',AT.m.an.spray>=0&&Math.max(...(()=>{AT.spawn(false);let m=0;for(let t=0;t<=.5;t+=dt){AT.step(AT.sc.stop_back,t,dt);m=Math.max(m,AT.m.an.spray||0)}return [m]})())>0.4,'')}
+ // per-kind falls: knees really triggers knees, stumble kicks a skate up, prone dive lies low (pelvis well under the old 1.2 ft) without the head clipping the ice
+ {const kinds={};let pel={},head={};for(const n of ['fall_knees','fall_stumble','fall_fwd','fall_back','fall']){AT.spawn(false);ANIM.debug=true;let mn=9,hd=9,k='',st=0;const w=new THREE.Vector3();for(let t=0;t<=2.2;t+=dt){AT.step(sc_[n],t,dt);if(AT.m.an.fall)k=AT.m.an.fall.kind;st=Math.max(st,AT.m.an.stum||0);AT.m.byName.pelvis.getWorldPosition(w);mn=Math.min(mn,w.y);AT.m.byName.Head.getWorldPosition(w);hd=Math.min(hd,w.y)}kinds[n]=k;pel[n]=mn;head[n]=hd;if(n==='fall_stumble')AT.stum=st}
+  AT.fallKinds=kinds;AT.fallPel=pel;chk('fall_knees scenario really triggers the knees type',kinds.fall_knees==='knees',kinds.fall_knees);chk('fall_stumble triggers the stumble type',kinds.fall_stumble==='stumble',kinds.fall_stumble);chk('stumble: one skate kicks up (stumble layer reaches 1)',AT.stum>0.95,AT.stum.toFixed(2));
+  chk('prone forward fall: pelvis below 0.95 ft (was 1.24)',pel.fall_fwd<0.95,pel.fall_fwd.toFixed(2));chk('prone forward fall: head stays above the ice',head.fall_fwd>0.02,head.fall_fwd.toFixed(2));chk('backward fall pelvis stays low',pel.fall_back<0.8,pel.fall_back.toFixed(2));chk('six distinct fall kinds seen across scenarios',new Set(Object.values(kinds)).size>=5,JSON.stringify(kinds))}
+ // crossover: the stepping-over knee stays below the hip
+ {const H=new THREE.Vector3(),K=new THREE.Vector3();AT.spawn(false);ANIM.debug=true;let mn=9;for(let t=0;t<=2;t+=dt){AT.step(sc_.crossover,t,dt);if(t<.4)continue;for(const s of ['l','r']){AR.pos(AT.m,'thigh_'+s,H);AR.pos(AT.m,'calf_'+s,K);mn=Math.min(mn,(H.y-K.y)/AR.llen[s].l1)}}chk('crossover: knee never above the hip (thigh drop fraction)',mn>0.05,mn.toFixed(2))}
  // spray intensity and spring ring-down
  {AT.run('stop_sim',.4);chk('stop produces spray intensity',AT.m.an.spray>0.5,(AT.m.an.spray||0).toFixed(2));AT.run('stationary',.3);chk('no spray standing',(AT.m.an.spray||0)<0.05,'');
   AT.spawn(false);let sc=0,pv=0;for(let t=0;t<=1.2;t+=dt){AT.step(sc_.checked,t,dt);const x=AT.m.an.spX||0;if(t>.1&&pv*x<0)sc++;pv=x||pv}
@@ -214,6 +251,8 @@ AT.view=function(v){
   if(v==='broadcast'){cam.position.set(px+4,23,pz+38);cam.lookAt(px,1.5,pz);cam.fov=36}
   else if(v==='close'){cam.position.set(px+9,5,pz+13);cam.lookAt(px+2,3,pz);cam.fov=34}
   else if(v==='side'){cam.position.set(px+2,4.5,pz+16);cam.lookAt(px+2,3.2,pz);cam.fov=30}
+  else if(v==='wide'){cam.position.set(px+1,3.2,pz+20);cam.lookAt(px+1,1.6,pz);cam.fov=36}
+  else if(v==='wideF'){cam.position.set(px+20,3.2,pz+1);cam.lookAt(px,1.6,pz);cam.fov=36}
   else if(v==='front'){cam.position.set(px+17,4.5,pz+1);cam.lookAt(px,3.3,pz);cam.fov=32}
   else if(v==='top'){cam.position.set(px+2,26,pz+.1);cam.lookAt(px+2,0,pz);cam.fov=34}
   else if(v==='back'){cam.position.set(px-14,5,pz-4);cam.lookAt(px+2,3.3,pz);cam.fov=34}

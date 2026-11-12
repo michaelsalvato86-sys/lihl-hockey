@@ -52,13 +52,16 @@ function teamSnap(t){
   const seats = SL.map(s => t.seats[s] ? pidOf(t.seats[s]) : -1);
   const pl = []; for (const s of SL){ const p=t.seats[s]; if(p) pl.push([pidOf(p), r1(p.x), r1(p.y), r1(p.vx), r1(p.vy), r2(p.fa), r1(p.turn||0), r2(p.acc01||0), p.back?1:0, r2(p.st===undefined?1:p.st), skq(p)]); }
   const g = t.goalie;
-  return { s: seats, pl: pl, g: [r1(g.x), r1(g.y)], pu: t.pull?1:0, pen: t.pen.map(e=>[pidOf(e.p), r1(e.t)]), lb: t.label };
+  return { s: seats, pl: pl, g: (g.windT>0?[r1(g.x), r1(g.y), 1]:[r1(g.x), r1(g.y)]), pu: t.pull?1:0, pen: t.pen.map(e=>[pidOf(e.p), r1(e.t)]), lb: t.label };
 }
 function netSnap(){
   const hc = G.humans.map(h=>({side:h.side, p: pidOf(h.ctl)}));
-  return { k:G.tick, c:r2(G.clock), pd:G.period, ot:G.ot?1:0, sc:G.score.slice(), sh:G.shots.slice(), pa: G.pause>0?r1(G.pause):0, fo: (G.fo&&G.fo.set&&!G.fo.dropped)?1:0, ov:G.over?1:0,
+  const o = { k:G.tick, c:r2(G.clock), pd:G.period, ot:G.ot?1:0, sc:G.score.slice(), sh:G.shots.slice(), pa: G.pause>0?r1(G.pause):0, fo: (G.fo&&G.fo.set&&!G.fo.dropped)?1:0, ov:G.over?1:0,
     pk:(puck.z>0.05?[r1(puck.x), r1(puck.y), r1(puck.vx), r1(puck.vy), pidOf(puck.owner), r1(puck.z)]:[r1(puck.x), r1(puck.y), r1(puck.vx), r1(puck.vy), pidOf(puck.owner)]), t:[teamSnap(H1), teamSnap(A1)], nt: noteT>0?noteTxt:'', hc: hc };
+  if(G.rbWait) o.rb = 1;
+  return o;
 }
+function netRbOn(v){ G.rbOn = v?1:0; } function netRbResume(){ G.rbWait = 0; }
 function netTick(){ G.tick++; step(1/30); const o = JSON.stringify({ s: netSnap(), ev: EVQ }); EVQ.length = 0; return o; }
 function netSummary(){ return JSON.stringify({ n: TEAMS.length, teams: TEAMS.map(t=>({abbr:t.abbr,name:t.name,color:t.color,n:t.players.length})) }); }
 `;
@@ -76,6 +79,8 @@ function createSim() {
     drop: s => vm.runInContext(`netDrop(${s})`, ctx),
     input: (s, m) => { ctx.__m = m; vm.runInContext(`netInput(${s}, __m)`, ctx); },
     tick: () => vm.runInContext('netTick()', ctx),
+    rbOn: v => vm.runInContext(`netRbOn(${v ? 1 : 0})`, ctx),
+    rbResume: () => vm.runInContext('netRbResume()', ctx),
     over: () => vm.runInContext('!!G.over', ctx),
     stats: () => JSON.parse(vm.runInContext('JSON.stringify({h:G.hits,p:G.pims,f:G.fow,a:G.passes,o:G.poss.map(Math.round),g:G.goals,s:G.pst,sv:G.saves,sh:G.shots})', ctx)),
     score: () => JSON.parse(vm.runInContext('JSON.stringify({sc:G.score,sh:G.shots,pd:G.period,ot:!!G.ot})', ctx))

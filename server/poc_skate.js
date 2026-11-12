@@ -19,6 +19,12 @@ function scen(flag, MX) {
     for (t = 0; t < 4; t += dt) { step(-1, 0); const sv = spd(); if (sv < minS) minS = sv; if (T < 0 && sv < 2) { T = t; O['stopD' + v] = +(p.x - x0).toFixed(1); } if (T < 0 && sv > 4) { const a = Math.abs(wrapA(Math.atan2(p.vy, p.vx) - p.fa)); if (a > angMax) angMax = a } stpMax = Math.max(stpMax, p.stp || 0); if (p.spray) spray = true }
     O['stopT' + v] = T < 0 ? 99 : +T.toFixed(2); O['stopMin' + v] = +minS.toFixed(2); O['stopAng' + v] = +angMax.toFixed(2); O['stopStp' + v] = +stpMax.toFixed(2); O['stopSpray' + v] = spray;
   }
+  // BACKWARD hockey stop: travelling backward (facing +x, moving -x), input hard forward (opposes travel)
+  for (const v of [14, 17, 20]) {
+    reset(-v, 0, 0); x0 = p.x; let T = -1, minS = 1e9, angMax = 3.14, stpMax = 0, spray = false, nStp = 0;
+    for (t = 0; t < 4; t += dt) { step(1, 0); const sv = spd(); if (sv < minS) minS = sv; if (T < 0 && sv < 2) { T = t; O['bstopD' + v] = +(x0 - p.x).toFixed(1); } if (T < 0 && sv > 4) { const a = Math.abs(wrapA(Math.atan2(p.vy, p.vx) - p.fa)); if (Math.abs(a - Math.PI / 2) < Math.abs(angMax - Math.PI / 2)) angMax = a; const lat = Math.abs(-p.vx * Math.sin(p.fa) + p.vy * Math.cos(p.fa)); O['bLat' + v] = Math.max(O['bLat' + v] || 0, +lat.toFixed(1)) } stpMax = Math.max(stpMax, p.stp || 0); if (p.spray) spray = true }
+    O['bstopT' + v] = T < 0 ? 99 : +T.toFixed(2); O['bstopMin' + v] = +minS.toFixed(2); O['bstopAng' + v] = +angMax.toFixed(2); O['bstopStp' + v] = +stpMax.toFixed(2); O['bstopSpray' + v] = spray;
+  }
   // 90 degree turn at speed (input perpendicular held): arc length / angle, time, peak lateral slip
   for (const v of [15, 25, 40]) {
     reset(v, 0, 0); let L = 0, pk = 0, tt = 0, ok = false; for (; tt < 5; tt += dt) { const sx = p.x, sy = p.y; step(0, 1); L += Math.hypot(p.x - sx, p.y - sy); const fx = Math.cos(p.fa), fy = Math.sin(p.fa); pk = Math.max(pk, Math.abs(-p.vx * fy + p.vy * fx)); if (Math.atan2(p.vy, p.vx) > Math.PI / 2 * .95) { ok = true; break } }
@@ -48,6 +54,12 @@ for (const v of [15, 25, 40]) { chk(stopOk(B['stopT' + v], B['stopMin' + v], B['
 chk(B.stopT40 >= 0.9, 'no instant stop from 40 ft/s: ' + B.stopT40); chk(B.stopD40 >= 15, 'stop distance from 40 too short: ' + B.stopD40);
 chk(B.stopT15 < B.stopT25 && B.stopT25 < B.stopT40, 'stop time must scale with speed'); chk(B.stopD15 < B.stopD25 && B.stopD25 < B.stopD40, 'stop distance must scale with speed');
 chk(B.stopSpray40 === true, 'spray flag at 40'); chk(B.stopSpray15 === true || B.stopSpray15 === false, '');
+// backward hockey stop: must stop (not just turn around), body across travel, speed-scaled distance, spray
+for (const v of [14, 17, 20]) { chk(stopOk(B['bstopT' + v], B['bstopMin' + v], B['bstopD' + v], v), 'backward stop ' + v + ' must end with speed < 2 within 3s: T=' + B['bstopT' + v]); chk(B['bstopStp' + v] > .5, 'p.stp must engage on backward stop ' + v); chk(B['bstopAng' + v] > 1.2 && B['bstopAng' + v] < 1.95, 'backward stop body ~90deg across travel at ' + v + ': ' + B['bstopAng' + v]); chk(B['bLat' + v] > 6, 'backward stop must have lateral slip (not a turn-around): ' + B['bLat' + v]) }
+chk(B.bstopD14 < B.bstopD17 && B.bstopD17 < B.bstopD20, 'backward stop distance must scale with speed: ' + [B.bstopD14, B.bstopD17, B.bstopD20]); chk(B.bstopT14 < B.bstopT20, 'backward stop time scales'); chk(B.bstopSpray20 === true, 'spray flag on backward stop at 20');
+chk(B.bstopD20 > 5, 'no instant backward stop: ' + B.bstopD20);
+// SKATE2=false must not latch the stop
+chk(A.bstopStp20 === 0, 'old model (SKATE2=false) has no stop latch: ' + A.bstopStp20);
 chk(B.turnR15 < B.turnR25 && B.turnR25 < B.turnR40, 'turn radius must grow with speed: ' + [B.turnR15, B.turnR25, B.turnR40]); chk(B.turnR40 >= 1.5 * B.turnR15, 'radius growth too small');
 chk(B.slip40 > 2, 'grip budget: expected lateral slip at 40 during a hard turn: ' + B.slip40); chk(B.slip40 > B.slip15, 'slip must grow with speed');
 chk(B.turnEnd40 > 14, 'a 90 degree carve at 40 must not be a stop: ' + B.turnEnd40);

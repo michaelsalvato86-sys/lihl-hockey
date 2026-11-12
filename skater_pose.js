@@ -8,7 +8,7 @@ SK.skatePose = function (m, ph, sp, turn, acc, back, drive) {
   const sl = Math.sin(ph) * drive, pl = Math.max(0, sl) * push, pr = Math.max(0, -sl) * push, lean = turn || 0, up = -.3 * bk;   // torso upright (forward skating leans over)
   // recovery swing: the non-pushing foot lifts and tucks under the body, scaled by speed; the push leg rolls onto the toe
   const lk = Math.min(1, sp * 3) * (1 - .4 * bk), rl_ = Math.max(0, -sl) * lk, rr_ = Math.max(0, sl) * lk;
-  const leg = (s, pu, rc) => ({ tp: -(.5 + .55 * crouch) + .95 * pu - .3 * rc, tr: SK.abd[s] * (.12 + (.95 + .55 * bk) * pu + .34 * bk - .25 * rc), cp: .12 + .55 * crouch * (1 - .6 * pu) + .1 * pu + .38 * rc });
+  const leg = (s, pu, rc) => ({ tp: -(.5 + .55 * crouch) + .95 * pu - SK.recoverLift * rc, tr: SK.abd[s] * (.12 + (.95 - .4 * bk) * pu + .34 * bk - .25 * rc), cp: .12 + .55 * crouch * (1 - .6 * pu) + .1 * pu + .38 * rc + .35 * bk * pu });
   const L = leg('l', pl, rl_), R = leg('r', pr, rr_), rl = SK.rollLeft * lean, ar = (v, b) => v * mx(1, b);
   return {
     pelvis: { p: .18 + .12 * sp + up * .6, r: rl * .45 }, spine_01: { p: .3 + .18 * sp + up, r: rl * .4 }, spine_02: { p: .36 + .14 * sp + up, r: rl * .4 }, spine_03: { p: .4 + .12 * sp + up, r: rl * .4 },
@@ -20,6 +20,7 @@ SK.skatePose = function (m, ph, sp, turn, acc, back, drive) {
   };
 };
 SK.toeSign = 1;
+SK.recoverLift = 0.3;   // thigh flexion of the recovering leg (rad per unit recovery)
 SK._v = new THREE.Vector3();
 SK.ground = function (m) {
   m.root.position.y = 0; m.inner.updateMatrixWorld(true);

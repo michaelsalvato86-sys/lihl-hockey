@@ -98,12 +98,13 @@ AR.legs = function (m, an, pose, D, iceY) {
     // planted foot: hold its world xz while the skater is (nearly) still
     const st = pl[s];
     if (d.pw > 0.5 && !st.on) { W.copy(A); m.root.localToWorld(W); st.w.copy(W); st.on = true; } else if (d.pw < 0.25) st.on = false;
-    if (st.on) { W.copy(st.w); m.root.worldToLocal(W); T.x += (W.x - T.x) * d.pw; T.z += (W.z - T.z) * d.pw; }
+    if (st.on) { W.copy(st.w); m.root.worldToLocal(W); const kk = Math.max(0, Math.min(1, (d.pw - 0.25) / 0.5)); const kk2 = kk * kk * (3 - 2 * kk); T.x += (W.x - T.x) * kk2; T.z += (W.z - T.z) * kk2; }
     // ice contact: ankle and toe-ball may not sink below their rest heights above the ice
     const minA = iceY + SK.footRestY, minB = iceY + AR.ballRestY;
     let lift = Math.max(0, minA - T.y, minB - (T.y + Bo.y)); r.lift = lift; T.y += lift;
     const e = AR.elbow(H, T, L.l1, L.l2, P, AR.t.a2 || (AR.t.a2 = new THREE.Vector3()));
     r.reach = Math.max(0, H.distanceTo(T) - (L.l1 + L.l2));
+    if (st.on && out[s].reach > 0.04) st.on = false;               // stretched too far (body travelled on): release, the next frame re-plants at the FK foot = a step
     const d1 = AR.t.b2 || (AR.t.b2 = new THREE.Vector3()), d2 = AR.t.c2 || (AR.t.c2 = new THREE.Vector3());
     d1.copy(e).sub(H).normalize(); q[th] = q[th] || new THREE.Quaternion(); AR.qa.setFromUnitVectors(AR.dir[th], d1); q[th].copy(AR.qa).multiply(SK.restW[th]);
     // if the leg is fully stretched the ankle lands short of T along the line; calf still points at T

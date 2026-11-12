@@ -21,6 +21,7 @@ SK.init = function (g) {
   SK.body = body; const bones = body.skeleton.bones; SK.names = bones.map(b => b.name);
   const wq = n => { const q = _Q(); const ch = []; for (let o = n; o && o !== sc; o = o.parent) ch.push(o); for (let i = ch.length - 1; i >= 0; i--) q.multiply(ch[i].quaternion); return q; };
   SK.restW = {}; SK.restP = {}; SK.parent = {};
+  SK.restLoc = {}; bones.forEach(b => { if (b.name === 'pelvis') SK.restLoc.pelvis = b.position.clone(); });
   bones.forEach(b => { SK.restW[b.name] = wq(b); const v = _V(); b.getWorldPosition(v); SK.restP[b.name] = v; SK.parent[b.name] = (b.parent && b.parent.isBone) ? b.parent.name : null; });
   SK.U = new THREE.Vector3(0, 1, 0);
   const F = SK.restP.ball_l.clone().sub(SK.restP.foot_l); F.y = 0; F.normalize(); SK.F = F;
@@ -292,11 +293,13 @@ SK.wrenchify = function (m) {
 
 /* ---------- pose ---------- */
 SK._qa = _Q(); SK._qb = _Q(); SK._qc = _Q(); SK._wq = {};
+SK._tv = new THREE.Vector3();
 SK.setPose = function (m, pose) {
   const W = SK._wq, qa = SK._qa, qb = SK._qb, qc = SK._qc;
   for (const name of SK.order) {
     const b = m.byName[name], pn = SK.parent[name], Wp = pn ? W[pn] : null; const t = pose[name];
     let wq = W[name] || (W[name] = new THREE.Quaternion());
+    if (name === 'pelvis' && SK.restLoc && SK.restLoc.pelvis) { b.position.copy(SK.restLoc.pelvis); if (t && t.t && Wp) b.position.add(SK._tv.copy(t.t).applyQuaternion(qc.copy(Wp).invert())); }   // t.t: translation (model/root space metres) of the pelvis only
     if (t && t.c) { const lq = SK.restW[name].clone(); if (pn) lq.premultiply(qc.copy(SK.restW[pn]).invert()); qa.setFromAxisAngle(t.c.v, t.c.a); lq.multiply(qa); b.quaternion.copy(lq); if (Wp) wq.copy(Wp).multiply(lq); else wq.copy(lq); continue; }
     if (t) {
       if (t.q) wq.copy(t.q);

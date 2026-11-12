@@ -19,7 +19,7 @@ const X = { Fb: V3(), Sb: V3(), O: V3(), P: V3(), Th: V3(), Bt: V3(), Tt: V3(), 
 
 const FALLS = {
   side: { dur: 1.7, roll: [[0, 0], [0.28, 1.3], [0.9, 1.3], [1.5, 0.35], [1.7, 0]], pitch: [[0, 0], [1.7, 0]], amp: 1, sag: 0 },
-  fwd: { dur: 1.9, roll: [[0, 0], [1.9, 0]], pitch: [[0, 0], [0.22, 1.3], [1.0, 1.3], [1.55, 0.45], [1.9, 0]], amp: 0.9, sag: 0 },
+  fwd: { dur: 1.9, roll: [[0, 0], [1.9, 0]], pitch: [[0, 0], [0.22, 1.44], [1.0, 1.44], [1.55, 0.45], [1.9, 0]], amp: 0.9, sag: 0, lie: 1 },
   back: { dur: 1.9, roll: [[0, 0], [1.9, 0]], pitch: [[0, 0], [0.2, -1.25], [1.0, -1.25], [1.55, -0.4], [1.9, 0]], amp: 0.9, sag: 0 },
   board: { dur: 1.5, roll: [[0, 0], [0.14, 0.55], [0.6, 0.55], [1.1, 0.15], [1.5, 0]], pitch: [[0, 0], [0.14, 0.28], [0.5, 0.22], [1.5, 0]], amp: 0.7, sag: 0.5 },
   stumble: { dur: 0.95, roll: [[0, 0], [0.12, 0.3], [0.35, -0.2], [0.6, 0.1], [0.95, 0]], pitch: [[0, 0], [0.15, 0.55], [0.5, 0.3], [0.95, 0]], amp: 0.4, sag: 0 },
@@ -33,7 +33,7 @@ ANIM.make = function (m, p) {
   m.an = {
     ph: _hv(id, 7) * 6, tHand: _hv(id, 8) * 6, evId: 0, ev: null, prevVf: 0, dec: 0, cush: 0, recvT: 0, fall: null,
     v: { stride: 0.94 + 0.12 * _hv(id, 1), crouch: -0.04 + 0.08 * _hv(id, 2), sway: 0.7 + 0.6 * _hv(id, 3), carry: 0.8 + 0.4 * _hv(id, 4), topR: _hv(id, 5) > 0.5, stopSide: _hv(id, 6) > 0.5 ? 1 : -1, wind: 0.85 + 0.3 * _hv(id, 9) },
-    s: { pivot: 0, carry: 0, free: 0, stop: 0, crouch: 0.5, faceoff: 0, recv: 0, prot: 0, yaw: 0, lean: 0, acc: 0, charge: 0, flail: 0, back: 0, pre: 0, brace: 0, lunge: 0, shuf: 0, drive: 0, plant: 0, load: 0, fat: 0, ot: 0 },
+    s: { pivot: 0, carry: 0, free: 0, stop: 0, crouch: 0.5, faceoff: 0, recv: 0, prot: 0, yaw: 0, lean: 0, acc: 0, charge: 0, flail: 0, back: 0, pre: 0, brace: 0, lunge: 0, shuf: 0, drive: 0, plant: 0, wsh: 0, load: 0, fat: 0, ot: 0 },
     q: { upperarm_l: new THREE.Quaternion(), lowerarm_l: new THREE.Quaternion(), upperarm_r: new THREE.Quaternion(), lowerarm_r: new THREE.Quaternion(), hand_l: new THREE.Quaternion(), hand_r: new THREE.Quaternion() }, pivPh: 0,
     otH: 0, spX: 0, spY: 0, spK: 0, spKy: 0, spVx: 0, spVy: 0, state: 'ready', metrics: null, gainT: 9, od: -1, clos: 0, pfv: 3, psv: 0
   };
@@ -268,6 +268,7 @@ ANIM.apply = function (m, p, c, dt) {
     pose['thigh_' + sd].p -= 0.35 * lift; pose['calf_' + sd].p += 0.5 * lift;
     pose['foot_' + sd] = { p: pose['foot_' + sd].p, y: beta * (1 - S.stop) - Math.sign(turn || 1) * YL * 0.5 * lift + (pose['thigh_' + sd].y || 0) * (0.6 + 0.3 * S.back), r: edge - pose['thigh_' + sd].r * 0.35 };
   }
+  if (xo > 0) for (const sd of ['l', 'r']) { const rc = Math.max(0, sd === 'l' ? -Math.sin(an.ph) : Math.sin(an.ph)) * Math.min(1, sp * 3) * (1 - 0.4 * S.back); pose['thigh_' + sd].p += 0.22 * rc * xo; }   // crossover: the stepping-over knee stays below the hip
   if (xo > 0) for (const sd of ['l', 'r']) { const outside = (sd === 'l') === (lean < 0); if (outside) { pose['thigh_' + sd].r *= (1 - 1.9 * xo); pose['calf_' + sd].r = pose['thigh_' + sd].r; } }
   const sway = Math.sin(an.ph) * S.drive * 0.12 * s01 * V.sway * SK.rollLeft;   // A5: load the stance leg
   pose.pelvis.r += SK.rollLeft * V.stopSide * YL * 0.22 * S.stop + sway - SK.rollLeft * 0.08 * eWeight + SK.rollLeft * (eRoll + (c.vlat > 0 ? 1 : -1) * 0.14 * S.shuf) * 0.4; { const rr = SK.rollLeft * (eRoll + (c.vlat > 0 ? 1 : -1) * 0.14 * S.shuf) * 0.2; pose.spine_01.r += rr; pose.spine_02.r += rr; pose.spine_03.r += rr; } pose.spine_01.r -= sway * 0.5; pose.spine_02.r -= sway * 0.7; pose.spine_03.r -= sway * 0.7;
@@ -275,12 +276,21 @@ ANIM.apply = function (m, p, c, dt) {
   const Y = S.yaw; pose.pelvis.y = Y * 0.25 + hipOpen; pose.spine_01.y = Y * 0.5 + hipOpen * 0.5; pose.spine_02.y = Y * 0.8; pose.spine_03.y = Y;
   // head: looks at the puck / the target, kept level against the body twist
     pose.neck_01.y = -Y * 0.3 + eHead * 0.4 * YL; pose.Head.y = -Y * 0.35 + eHead * 0.5 * YL; pose.Head.p = -0.1 + 0.3 * S.faceoff - 0.4 * ePitch - 0.25 * settle - 0.15 * S.recv;
+  // weight shift: the pelvis slides sideways over the stance (gliding) leg while the other leg pushes; the feet stay where they were (compensated in the leg IK)
+  { const wsT = -Math.sin(an.ph) * S.drive * (ANIM.wsAmp === undefined ? 0.03 : ANIM.wsAmp) * (1 - 0.4 * S.carry) * Math.min(1, sp / 14) * (1 - 0.35 * S.back) * (an.fall ? 0 : 1) * (1 - S.pivot); _sm(S, 'wsh', wsT, 14, dt);
+    an.wsv = an.wsv || V3(); an.wsv.copy(SK.Ld).multiplyScalar(S.wsh); pose.pelvis.t = an.wsv; }
   // whole-model yaw for the hockey stop (skates turn across the direction of travel)
   m.inner.rotation.y = Math.PI / 2 + S.stop * V.stopSide * 1.15;
 
   // fall layer: rotate the whole body about the forward axis, then recover
   let fallA = 0, fallP = 0;
   if (an.fall) { const t = an.fall.t, side = an.fall.side, cf = an.fall.cfg; fallA = side * kf(t, cf.roll); fallP = kf(t, cf.pitch); for (const sd of ['l', 'r']) { pose['thigh_' + sd].r *= 1.0 + 1.5 * Math.max(Math.abs(fallA), 0.8 * Math.abs(fallP)); } }
+  // lying phase (prone / on the side): legs straighten out behind instead of staying folded under the hips (the folded pose kept the pelvis ~1.2 ft up)
+  if (an.fall && an.fall.cfg.lie) { const cf = an.fall.cfg, lie = cf.lie * kf(an.fall.t, [[0, 0], [0.3, 1], [cf.dur - 0.7, 1], [cf.dur - 0.15, 0]]); an.lie = lie;
+    for (const sd of ['l', 'r']) { pose['thigh_' + sd].p += 0.8 * lie; pose['calf_' + sd].p -= 0.45 * lie; } }
+  // stumble: one skate catches and kicks up behind, the other steps ahead to catch the balance
+  if (an.fall && an.fall.kind === 'stumble') { const st = kf(an.fall.t, [[0, 0], [0.12, 1], [0.5, 1], [0.85, 0]]), tr = an.fall.side > 0 ? 'l' : 'r', fr = tr === 'l' ? 'r' : 'l'; an.stum = st;
+    pose['thigh_' + tr].p += 0.7 * st; pose['calf_' + tr].p += 1.0 * st; pose['thigh_' + fr].p -= 0.3 * st; pose['calf_' + fr].p += 0.2 * st; }
   m.root.rotation.z = fallA; m.root.rotation.x = fallP;
 
   // ---------- 5. pass 1: legs/torso into the skeleton, ground contact, read shoulders ----------
@@ -303,7 +313,10 @@ ANIM.apply = function (m, p, c, dt) {
       d.addScaledVector(Lq, out * S.load * (isOut ? 0.05 : -0.04) * k);
       // hockey stop: front foot ahead, back foot trailing, both a little wider
       d.addScaledVector(Fq, S.stop * (sd === (V.stopSide > 0 ? 'l' : 'r') ? 0.07 : -0.05)); d.addScaledVector(Lq, out * 0.04 * S.stop);
-      d.pw = S.plant;
+      d.addScaledVector(SK.Ld, -S.wsh);   // keep the foot under its pre-shift line
+      { // planted-foot lock beyond standing still: the last slow part of a stop (blades dug in) and the ground foot of a slow pivot
+        const stopL = S.stop * (1 - _es((sp - 3) / 3.5)), pLift = Math.max(0, Math.sin(an.pivPh + (sd === 'l' ? 0 : Math.PI))) * S.pivot, pivL = S.pivot * (1 - _es((sp - 1.8) / 1)) * (1 - _es(pLift * 3));
+        d.pw = ANIM.noLock ? S.plant : Math.max(S.plant, stopL, pivL); }
     }
     AR.legs(m, an, pose, an.legD, ice0);
     SK.setPose(m, pose); SK.ground2(m); m.g.updateMatrixWorld(true);

@@ -1,7 +1,9 @@
 /* LIHL Hockey service worker: offline shell. Network first for code and pages (so a deploy is never stale),
    cache first for models, data and icons. Photos and the live game socket are never cached. */
 const V = 'lihl-shell-v1';
-self.addEventListener('install', e => { self.skipWaiting(); });
+/* Reflector.js is loaded lazily (high tier only), so it would never be fetched on other tiers: precache it so the high tier also works offline. */
+const PRE = ['lib/Reflector.js'];
+self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(V).then(c => Promise.all(PRE.map(u => c.add(u).catch(() => {})))).catch(() => {})); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {
   const r = e.request, u = new URL(r.url);

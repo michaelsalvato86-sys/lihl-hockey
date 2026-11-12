@@ -26,7 +26,7 @@
       const url = serverUrl(); if (!url) return rej(new Error('The online server is not configured for this site yet.'));
       let ws, done = false; try { ws = new WebSocket(url); } catch (e) { return rej(e); }
       NET.ws = ws;
-      ws.onopen = () => NET.send({ t: 'hello', name: NET.name || 'Player', token: NET.token });
+      ws.onopen = () => NET.send({ t: 'hello', name: NET.name || 'Player', token: NET.token, caps: { replay: 1 } });
       ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (_) { return; } if (m.t === 'welcome' && !done) { done = true; res(); } onMsg(m); };
       ws.onclose = () => { NET.connected = false; if (!done) { done = true; rej(new Error('Could not reach the server. Is it running?')); } onClose(); };
       ws.onerror = () => { };
@@ -50,6 +50,8 @@
       case 'cd': $('cdwin').style.display = 'flex'; $('cdn').textContent = m.n > 0 ? m.n : 'GO'; break;
       case 'start': begin(m); break;
       case 's': snap(m); break;
+      case 'rb': rbStart(m); break;
+      case 'rbend': rbEnd(); break;
       case 'peer': if (m.left) { peer('OPPONENT LEFT - CPU TAKES OVER'); setTimeout(() => peer(''), 4000); } else if (m.conn === false) { let t = Math.round(m.grace / 1000); peer('OPPONENT DISCONNECTED - WAITING ' + t + 's'); clearInterval(NET.pi); NET.pi = setInterval(() => { t--; if (t <= 0) { clearInterval(NET.pi); peer(''); } else peer('OPPONENT DISCONNECTED - WAITING ' + t + 's'); }, 1000); } else { clearInterval(NET.pi); peer(''); toast('Opponent reconnected'); } break;
       case 'end': showEnd(m); break;
       case 'chat': toast((m.name || 'Player') + ': ' + CHAT[m.i], 3000); break;
@@ -95,7 +97,7 @@
   // ---------------- match ----------------
   function begin(m) {
     $('cdwin').style.display = 'none'; $('online').style.display = 'none'; $('oend').style.display = 'none'; $('menu').style.display = 'none'; peer('');
-    NET.side = m.side; NET.names = m.names || ['', '']; NET.buf = []; NET.cur = null; NET.rematchMe = false;
+    NET.side = m.side; NET.names = m.names || ['', '']; NET.buf = []; NET.cur = null; NET.rematchMe = false; NET.ring = []; NET.goalI = -1; NET.ri = 0; NET.lastS = null; NET.rbW = 0; NET.inRp = false; if (G && G.rp) G.rp = null; document.body.classList.remove('replay');
     $('mh').value = m.home; $('ma').value = m.away; $('mc').value = 'n'; $('ml').value = m.plen;
     document.body.classList.remove('inmenu'); document.body.classList.add('ingame', 'netgame');
     newGame(false); G.net = 1; G.humans = []; G.hum = null; $('ctl').style.display = 'block'; NET.on = true; AU.init();
@@ -107,10 +109,36 @@
     const now = performance.now(); NET.buf.push({ rt: now, s: m.s }); if (NET.buf.length > 40) NET.buf.shift();
     if (NET.lastSnap) { const gp = now - NET.lastSnap; NET.gm = (NET.gm || 33) * .95 + gp * .05; NET.gd = (NET.gd || 5) * .95 + Math.abs(gp - NET.gm) * .05; NET.delay = Math.max(100, Math.min(230, 66 + 4 * NET.gd)); } NET.lastSnap = now;
     NET.evq = NET.evq || []; for (const e of m.ev) NET.evq.push({ at: now + NET.delay, e });
+    // replay ring: last 200 snapshots (+ their animation events) so a goal can be replayed locally
+    const ri = NET.ri = (NET.ri || 0) + 1, ae = []; for (const e of m.ev) { if (e.e === 'ae') ae.push(e); else if (e.e === 'goal') { NET.goalI = ri; NET.goalTm = e.tm; } }
+    (NET.ring = NET.ring || []).push({ i: ri, s: m.s, ae }); if (NET.ring.length > 200) NET.ring.shift(); NET.lastS = m.s;
+  }
+  // ---- goal replay break (server sent {t:'rb'}): play the ~2.8 s before the goal at 0.6x from the local ring, then {t:'rbdone'} ----
+  function rbStart(m) {
+    const gi = NET.goalI, fr = gi > 0 ? (NET.ring || []).filter(f => f.i >= gi - 75 && f.i <= gi + 9) : [];
+    if (fr.length < 20 || !G || !NET.on || (G.rp && G.rp.net)) { NET.send({ t: 'rbdone', skip: 1 }); return; }
+    NET.buf = []; NET.cur = null; NET.lastSnap = 0; NET.evq = []; NET.rbW = 1; NET.inRp = true; NET.goalI = -1;
+    discrete(fr[0].s); const gt = NET.goalTm === 0 ? H1 : A1, dur = fr.length / 30 / .6;
+    G.rp = { net: 1, fr: { length: Math.round(dur / .05) }, t: 0, gx: gt.opp.ownGX, skip: 0, cur: [], k: -1, ev: -1, frames: fr };
+    document.body.classList.add('replay'); peer('');
+  }
+  function rbFinish() {
+    const r = G && G.rp && G.rp.net ? G.rp : null; if (!r) return; G.rp = null; document.body.classList.remove('replay'); NET.inRp = false;
+    if (NET.lastS) { discrete(NET.lastS); positions(NET.lastS, NET.lastS, 1); }
+    NET.buf = []; NET.cur = null; NET.lastSnap = 0; NET.send({ t: 'rbdone', skip: r.skip ? 1 : 0 }); if (NET.rbW) peer('WAITING FOR OPPONENT...');
+  }
+  function rbEnd() { if (G && G.rp && G.rp.net) { G.rp = null; document.body.classList.remove('replay'); NET.inRp = false; if (NET.lastS) { discrete(NET.lastS); positions(NET.lastS, NET.lastS, 1); } NET.buf = []; NET.cur = null; NET.lastSnap = 0; } NET.rbW = 0; peer(''); }
+  function rbFrame(dt) {
+    const r = G.rp; r.t += dt; if (r.skip) { rbFinish(); return; }
+    const f = r.t * .6 * 30, k = Math.floor(f), n = r.frames.length; if (k >= n - 1) { rbFinish(); return; }
+    const A = r.frames[k], B = r.frames[k + 1], al = f - k;
+    while (r.ev < k) { r.ev++; for (const e of r.frames[r.ev].ae) ev(e); }
+    if (r.k !== k) { r.k = k; discrete(B.s); r.cur = []; for (const t of [H1, A1]) { for (const p of onIce(t)) r.cur.push(p); if (!t.pull) r.cur.push(t.goalie); } }
+    positions(A.s, B.s, al);
   }
   function ev(e) {
     if (e.e === 'sfx') { AU.sfx(e.n); if (e.n === 'horn') AU.crowd(1); if (e.n === 'hit') { shakeT = .3; G.excite = Math.max(G.excite || 0, .4); } }
-    else if (e.e === 'ae') { const q = pid2p(e.p); if (q) { q.ae = { id: (G.aeid = (G.aeid || 0) + 1), k: e.k, d: e.d || {} }; if (e.k === 'shotwind') { const T = (e.d && e.d.t) || .2; q.act = { k: 'shot', t: T, T }; } else if (e.k === 'passwind') { const T = (e.d && e.d.t) || .12; q.act = { k: 'pass', t: T, T }; } else if (e.k === 'actcancel' || e.k === 'shot' || e.k === 'pass') q.act = null; if (window.ANN) ANN.ev(q, e.k, e.d || {}); } }
+    else if (e.e === 'ae') { const q = pid2p(e.p); if (q) { q.ae = { id: (G.aeid = (G.aeid || 0) + 1), k: e.k, d: e.d || {} }; if (e.k === 'shotwind') { const T = (e.d && e.d.t) || .2; q.act = { k: 'shot', t: T, T }; } else if (e.k === 'passwind') { const T = (e.d && e.d.t) || .12; q.act = { k: 'pass', t: T, T }; } else if (e.k === 'actcancel' || e.k === 'shot' || e.k === 'pass') q.act = null; if (window.ANN && !NET.inRp) ANN.ev(q, e.k, e.d || {}); } }
     else if (e.e === 'bn') showBanner(e.im || null, e.a, e.b, e.secs, e.col || null);
     else if (e.e === 'goal') {
       const t = e.tm === 0 ? H1 : A1, p = pid2p(e.p); G.cele = { p: p, t: 2.6 }; if (p) { p.celeb = 2.6; for (const m of onIce(t)) if (m !== p) m.celeb = 2.4; } G.gfx = { d: t.dir > 0 ? -1 : 1, t: 3.2 }; G.excite = 1; shakeT = .7;
@@ -136,12 +164,13 @@
         p.vx = e[3]; p.vy = e[4]; p.turn = e[6]; p.acc01 = e[7]; p.back = e[8]; p.st = e[9];
         if (e[10] !== undefined) { const q = e[10], qa = a ? a[10] : undefined; p.edge = ((q & 7) - 3) / 3; p.stp = ((q >> 3) & 7) / 7; p.spray = !!(q & 64); p.xo = !!(q & 128); const ph1 = ((q >> 8) & 31) * 0.2027; p.ph = qa === undefined ? ph1 : (lerpA(((qa >> 8) & 31) * 0.2027, ph1, al) + 6.2832) % 6.2832; }
       }
-      const ga = A.t[ti].g, gb = B.t[ti].g; t.goalie.x = lerp(ga[0], gb[0], al); t.goalie.y = lerp(ga[1], gb[1], al);
+      const ga = A.t[ti].g, gb = B.t[ti].g; t.goalie.x = lerp(ga[0], gb[0], al); t.goalie.y = lerp(ga[1], gb[1], al); t.goalie.windT = gb.length > 2 ? .4 : 0; /* gb[2]=1: sim goalie wind-up (shooter loading) */
     });
     puck.x = lerp(A.pk[0], B.pk[0], al); puck.y = lerp(A.pk[1], B.pk[1], al); puck.vx = B.pk[2]; puck.vy = B.pk[3]; puck.z = lerp(A.pk[5] || 0, B.pk[5] || 0, al); puck.vz = 0; /* pk[5] = height in ft, present only when > 0.05 */
   }
   window.netFrame = function (dt) {
     if (!NET.on || !G) return;
+    if (G.rp && G.rp.net) { rbFrame(dt); return; }
     NET.acc += dt;
     if (NET.acc >= 1 / 30) { NET.acc = 0; const I = readLocal(); NET.send({ t: 'in', x: +I.nx.toFixed(2), y: +I.ny.toFixed(2), sh: I.sh ? 1 : 0, pw: +(I.pw || .5).toFixed(2), ps: I.ps ? 1 : 0, hit: I.hit ? 1 : 0, sw: I.sw ? 1 : 0, vs: I.vs ? 1 : 0 }); }
     { const q = NET.evq; if (q && q.length) { const nowt = performance.now(); while (q.length && q[0].at <= nowt) ev(q.shift().e); } }

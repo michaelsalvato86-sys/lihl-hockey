@@ -12,6 +12,7 @@ const PORT = +process.env.PORT || 8090;
 const ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 const GRACE_MS = +process.env.GRACE_MS || 45000;
 const MAX_ROOMS = +process.env.MAX_ROOMS || 40;
+const RB_MS = +process.env.RB_MS || 8000; // hard cap of the goal replay break (see docs/ONLINE_REPLAY_PROTOCOL.md)
 const TICK_MS = 1000 / 30;
 const CHAT = ['Good game', 'Nice shot', 'Nice save', 'Ready?', 'Rematch?', 'One moment'];
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -45,19 +46,32 @@ function seat(r, c, slot) {
 function leaveRoom(c, permanent) {
   const r = c.room; if (!r) return; const slot = c.slot;
   if (r.state === 'playing' && permanent) { try { r.sim.drop(slot); } catch (e) { } send(r.players[1 - slot], { t: 'peer', left: true, slot }); }
-  r.players[slot] = null; c.room = null;
+  r.players[slot] = null; c.room = null; if (r.sim) syncRb(r); if (r.rb) rbDone(r, slot);
   if (!r.players[0] && !r.players[1]) { closeRoom(r); return; }
   if (r.state === 'lobby' || r.state === 'ended') { r.state = r.state === 'ended' ? 'ended' : 'lobby'; r.players.forEach(p => p && (p.ready = false)); }
   pushRoom(r);
 }
-function closeRoom(r) { clearTimeout(r.grace[0]); clearTimeout(r.grace[1]); rooms.delete(r.code); r.sim = null; }
+/* Goal replay break. Only used when every connected player said hello with caps.replay.
+   server -> client {t:'rb', ms}   : sim is paused, play your local replay (max ms)
+   client -> server {t:'rbdone', skip}: finished or skipped
+   server -> client {t:'rbend'}    : break over, snapshots resume (faceoff) */
+function rbCapable(r) { const ps = r.players.filter(p => p && p.conn); return ps.length > 0 && ps.every(p => p.caps && p.caps.replay); }
+function syncRb(r) { if (!r.sim) return; const v = rbCapable(r) ? 1 : 0; if (r.rbFlag !== v) { r.rbFlag = v; r.sim.rbOn(v); } }
+function rbBegin(r) {
+  if (r.rb) return; r.rb = { done: [false, false], timer: setTimeout(() => rbEnd(r), RB_MS) };
+  r.players.forEach((p, i) => { if (p && p.conn) send(p, { t: 'rb', ms: RB_MS }); else r.rb.done[i] = true; });
+}
+function rbDone(r, slot) { if (!r.rb) return; r.rb.done[slot] = true; if (r.players.every((p, i) => !p || !p.conn || r.rb.done[i])) rbEnd(r); }
+function rbEnd(r) { if (!r.rb) return; clearTimeout(r.rb.timer); r.rb = null; if (r.sim) r.sim.rbResume(); r.players.forEach(p => send(p, { t: 'rbend' })); r.touch = Date.now(); }
+function closeRoom(r) { if (r.rb) clearTimeout(r.rb.timer); clearTimeout(r.grace[0]); clearTimeout(r.grace[1]); rooms.delete(r.code); r.sim = null; }
 
 function startGame(r, rejoinOnly) {
   if (!r.sim || !rejoinOnly) {
     r.sim = createSim();
     const [a, b] = r.players; r.sim.start({ home: a.team, away: b.team, plen: r.plen });
-    r.sim.human(0); r.sim.human(1); r.state = 'playing'; r.rematch = [false, false]; r.paused = false; r.t0 = Date.now(); track('game_start', { room: r.code, n: r.players.map(p => p && p.name).join(' vs '), teams: a.team + '-' + b.team, plen: r.plen });
+    r.sim.human(0); r.sim.human(1); r.state = 'playing'; r.rematch = [false, false]; r.paused = false; r.rb = null; r.rbFlag = undefined; r.t0 = Date.now(); track('game_start', { room: r.code, n: r.players.map(p => p && p.name).join(' vs '), teams: a.team + '-' + b.team, plen: r.plen });
   }
+  syncRb(r);
   r.players.forEach((p, i) => p && send(p, { t: 'start', home: r.players[0].team, away: r.players[1].team, plen: r.plen, side: i, rejoin: !!rejoinOnly, names: [r.players[0].name, r.players[1].name] }));
   pushRoom(r);
 }
@@ -77,6 +91,7 @@ function disconnect(c) {
   const r = c.room; if (!r) { tokens.delete(c.token); return; }
   c.conn = false; c.ws = null;
   if (r.state === 'playing') {
+    if (r.rb) rbDone(r, c.slot);
     r.paused = true; send(r.players[1 - c.slot], { t: 'peer', conn: false, grace: GRACE_MS });
     r.grace[c.slot] = setTimeout(() => {
       if (c.conn) return; tokens.delete(c.token); leaveRoom(c, true);
@@ -104,6 +119,7 @@ function ipOf(req) { const x = (req.headers['x-forwarded-for'] || '').split(',')
 function pid(ip) { return crypto.createHash('sha256').update(SALT + ip).digest('hex').slice(0, 10); }
 function dayKey(t) { return new Date(t).toISOString().slice(0, 10); }
 function track(ev, o) {
+  if (o && o.room) { const lr = rooms.get(o.room); if (lr && lr.players.some(p => p && p.lt)) return; } // load-test rooms never count
   const t = Date.now(), rec = Object.assign({ t, ev }, o); TR.recent.push(rec); if (TR.recent.length > 200) TR.recent.shift();
   const dk = dayKey(t); let d = TR.days.get(dk); if (!d) { d = { visitors: new Set(), mobile: 0, desktop: 0, games: 0, finished: 0, names: new Set() }; TR.days.set(dk, d); }
   if (ev === 'conn') { TR.conns++; d.visitors.add(o.p); if (o.m) d.mobile++; else d.desktop++; }
@@ -140,8 +156,8 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocketServer({ server, maxPayload: 2048, verifyClient: (info, cb) => { const o = info.origin || ''; if (ORIGINS.length && !ORIGINS.includes(o)) return cb(false, 403, 'origin not allowed'); cb(true); } });
 
 wss.on('connection', (ws, req) => {
-  { const ua = String((req && req.headers && req.headers['user-agent']) || ''); ws.__tr = { p: pid(ipOf(req)), m: /Mobi|Android|iPhone|iPad/i.test(ua) }; track('conn', ws.__tr); }
-  const c = { id: rid(6), ws, name: 'Player', token: null, room: null, slot: 0, team: 0, ready: false, conn: true, msgs: 0, strikes: 0 };
+  { const ua = String((req && req.headers && req.headers['user-agent']) || ''); ws.__tr = { p: pid(ipOf(req)), m: /Mobi|Android|iPhone|iPad/i.test(ua) }; ws.__lt = ua.startsWith('LIHL-LOADTEST'); if (!ws.__lt) track('conn', ws.__tr); }
+  const c = { id: rid(6), ws, name: 'Player', token: null, room: null, slot: 0, team: 0, ready: false, conn: true, msgs: 0, strikes: 0, lt: !!ws.__lt };
   ws.on('message', data => {
     if (++c.msgs > 90) { /* per-second limiter below */ }
     let m; try { m = JSON.parse(data); } catch (e) { return; } if (!m || typeof m.t !== 'string') return;
@@ -158,7 +174,7 @@ function handle(c, m) {
     const old = m.token && tokens.get(String(m.token));
     if (old && old.room) { // reconnect (also when the old socket has not been detected as dead yet)
       if (old.conn && old.ws && old.ws !== c.ws) { try { old.ws.removeAllListeners('close'); old.ws.removeAllListeners('message'); old.ws.terminate(); } catch (e) { } old.conn = false; }
-      clearTimeout(old.room.grace[old.slot]); old.ws = c.ws; old.conn = true; old.name = clean(m.name || old.name); clients.delete(c.id); c.ws.__c = old;
+      clearTimeout(old.room.grace[old.slot]); old.ws = c.ws; old.conn = true; old.name = clean(m.name || old.name); old.caps = { replay: !!(m.caps && m.caps.replay) }; if (old.room.rb) old.room.rb.done[old.slot] = true; clients.delete(c.id); c.ws.__c = old;
       c.ws.removeAllListeners('message'); c.ws.removeAllListeners('close');
       c.ws.on('message', d => { let mm; try { mm = JSON.parse(d); } catch (e) { return; } if (mm && typeof mm.t === 'string') { old.msgs++; handle(old, mm); } });
       c.ws.on('close', () => disconnect(old)); clients.set(old.id, old);
@@ -167,7 +183,7 @@ function handle(c, m) {
       if (r.state === 'playing') { r.paused = !(r.players[0] && r.players[0].conn && r.players[1] && r.players[1].conn); startGame(r, true); } else pushRoom(r);
       return;
     }
-    c.name = clean(m.name); c.token = rid(16); tokens.set(c.token, c); clients.set(c.id, c); c.p = c.ws && c.ws.__tr && c.ws.__tr.p; track('name', { p: c.p, n: c.name });
+    c.name = clean(m.name); c.caps = { replay: !!(m.caps && m.caps.replay) }; c.token = rid(16); tokens.set(c.token, c); clients.set(c.id, c); c.p = c.ws && c.ws.__tr && c.ws.__tr.p; if (!c.lt) track('name', { p: c.p, n: c.name });
     return send(c, { t: 'welcome', id: c.id, token: c.token, name: c.name, teams: TEAMS.teams });
   }
   if (!c.token) return;
@@ -189,7 +205,8 @@ function handle(c, m) {
     case 'ready': if (!r || (r.state !== 'lobby' && r.state !== 'ended')) break; c.ready = !!m.v; pushRoom(r); maybeStart(r); break;
     case 'plen': if (!r || c.slot !== 0 || r.state === 'playing') break; if ([120, 180, 300].includes(+m.v) || (process.env.LIHL_TEST && +m.v >= 5 && +m.v <= 60)) { r.plen = +m.v; r.players.forEach(p => p && (p.ready = false)); pushRoom(r); } break;
     case 'leave': if (r) { clearTimeout(r.grace[c.slot]); leaveRoom(c, true); } break;
-    case 'in': if (r && r.state === 'playing' && !r.paused && r.sim) r.sim.input(c.slot, m); break;
+    case 'in': if (r && r.state === 'playing' && !r.paused && !r.rb && r.sim) r.sim.input(c.slot, m); break;
+    case 'rbdone': if (r) rbDone(r, c.slot); break;
     case 'chat': if (r) { const i = Math.floor(+m.i); if (i >= 0 && i < CHAT.length) r.players.forEach(p => send(p, { t: 'chat', from: c.slot, name: c.name, i })); } break;
     case 'rematch': if (r && r.state === 'ended') { r.rematch[c.slot] = true; r.players.forEach(p => send(p, { t: 'rematch', slot: c.slot })); if (r.rematch[0] && r.rematch[1]) { r.players.forEach(p => p && (p.ready = true)); startGame(r, false); } } break;
   }
@@ -202,10 +219,11 @@ setInterval(() => {
   while (acc >= TICK_MS) {
     acc -= TICK_MS;
     for (const r of rooms.values()) {
-      if (r.state !== 'playing' || r.paused || !r.sim) continue;
+      if (r.state !== 'playing' || r.paused || r.rb || !r.sim) continue;
       let out; try { out = r.sim.tick(); } catch (e) { console.error('sim error', r.code, e); r.state = 'ended'; continue; }
       const msg = '{"t":"s",' + out.slice(1);
       for (const p of r.players) if (p && p.ws && p.ws.readyState === 1) { try { p.ws.send(msg); } catch (e) { } }
+      if (out.indexOf('"rb":1') >= 0) rbBegin(r);
       if (r.sim.over()) { r.state = 'ended'; const sc = r.sim.score(); track('game_end', { room: r.code, n: r.players.map(p => p && p.name).join(' vs '), sc: JSON.stringify(sc.sc), min: Math.round((Date.now() - (r.t0 || Date.now())) / 60000) }); setTimeout(() => r.players.forEach(p => send(p, { t: 'end', ss: r.sim.stats(), sc: sc.sc, sh: sc.sh, home: r.players[0] && r.players[0].team, away: r.players[1] && r.players[1].team })), 900); r.players.forEach(p => p && (p.ready = false)); r.touch = Date.now(); }
     }
   }
@@ -213,4 +231,4 @@ setInterval(() => {
 setInterval(() => { const now = Date.now(); for (const r of [...rooms.values()]) { const idle = now - r.touch; if ((r.state === 'lobby' && idle > 30 * 60e3) || (r.state === 'ended' && idle > 10 * 60e3) || (r.state === 'playing' && idle > 3 * 3600e3)) closeRoom(r); } }, 30000);
 
 if (require.main === module) server.listen(PORT, () => console.log(`LIHL server listening on :${PORT} (origins: ${ORIGINS.join(',') || 'any'})`));
-module.exports = { server };
+module.exports = { server, _rooms: rooms };
