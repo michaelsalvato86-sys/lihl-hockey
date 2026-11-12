@@ -167,7 +167,7 @@ function shoot(p,ix,iy,hum,pw){pw=pw||.8;if(G.shots)G.shots[p.team===H1?0:1]++;c
  for(const o of onIce(t.opp)){const dx=Math.cos(ang),dy=Math.sin(ang),rx=o.x-p.x,ry=o.y-p.y,al=rx*dx+ry*dy;if(al<5||al>26)continue;const dd=Math.abs(rx*dy-ry*dx);if(dd<2.6&&Math.random()<.18+.4*o.def){const a2=ang+rnd(-1.4,1.4);puck.vx=Math.cos(a2)*rnd(10,30);puck.vy=Math.sin(a2)*rnd(10,30);puck.shot=null;puck.rel=null;puck.cool=.3;noteT=1;noteTxt='BLOCKED by '+o.name.split(' ').pop();break}}}
 function pass(p,ix,iy){const t=p.team,im=hyp(ix,iy),ax=im>.3?ix/im:t.dir,ay=im>.3?iy/im:0;let best=null,bs=-9;
  for(const m of onIce(t)){if(m===p)continue;const dx=m.x-p.x,dy=m.y-p.y,d=hyp(dx,dy)||1,dot=(dx*ax+dy*ay)/d;if(dot<.3)continue;const s=dot-d/170;if(s>bs){bs=s;best=m}}
- if(!best)return false;const lx=best.x+best.vx*.3,ly=best.y+best.vy*.3,d=hyp(lx-p.x,ly-p.y)||1,sp=Math.min(100,48+d*1.1)*(.85+.25*p.pass);let a=Math.atan2(ly-p.y,lx-p.x)+(Math.random()-.5)*(1-p.pass)*.25;
+ if(!best)return false;const d0=hyp(best.x-p.x,best.y-p.y)||1,sp=clamp(80+d0*1.5,90,155)*(.92+.18*p.pass);let lx=best.x,ly=best.y;for(let k=0;k<3;k++){const dd=hyp(lx-p.x,ly-p.y),tt=dd/sp;lx=clamp(best.x+best.vx*tt*.95,8,W-8);ly=clamp(best.y+best.vy*tt*.95,3,H-3)}let a=Math.atan2(ly-p.y,lx-p.x)+(Math.random()-.5)*(1-p.pass)*.1;G.passFx={x1:p.x,y1:p.y,x2:best.x,y2:best.y,t:.4};
  puck.owner=null;puck.vx=Math.cos(a)*sp;puck.vy=Math.sin(a)*sp;puck.x=p.x+Math.cos(a)*4.2;puck.y=p.y+Math.sin(a)*4.2;puck.target=best;puck.targetT=1.4;puck.last=p;puck.cool=.3;puck.shot=null;puck.rel={team:t,x:p.x};return true}
 // ---------- AI ----------
 function go(p,tx,ty,k=1){const dx=tx-p.x,dy=ty-p.y,d=hyp(dx,dy);if(d<1.5){p.dvx=p.dvy=0;return}const m=Math.min(1,d/6)*k;p.dvx=dx/d*m;p.dvy=dy/d*m}
@@ -251,7 +251,7 @@ function step(dt){
  // puck
  if(puck.cool>0)puck.cool-=dt;if(puck.targetT>0){puck.targetT-=dt;if(puck.targetT<=0)puck.target=null}
  if(puck.owner){const o=puck.owner;puck.rel=null;puck.x=o.x+Math.cos(o.fa)*4;puck.y=o.y+Math.sin(o.fa)*4;puck.vx=o.vx;puck.vy=o.vy;puck.last=o;if(Math.abs(puck.x-o.team.oppGX)<6&&puck.y>NY[0]&&puck.y<NY[1])shoot(o,0,0,false)}
- else{const px=puck.x;puck.x+=puck.vx*dt;puck.y+=puck.vy*dt;const f=Math.exp(-.45*dt);puck.vx*=f;puck.vy*=f;
+ else{const px=puck.x;puck.x+=puck.vx*dt;puck.y+=puck.vy*dt;const f=Math.exp(-(puck.target?.22:.45)*dt);puck.vx*=f;puck.vy*=f;
   keepIn(puck,0,true);if(puck.y<1){puck.y=1;puck.vy=Math.abs(puck.vy)*.7}if(puck.y>H-1){puck.y=H-1;puck.vy=-Math.abs(puck.vy)*.7}
   for(const t of [H1,A1]){const gx=t.ownGX,inside=t.dir>0?(px>=gx&&puck.x<gx):(px<=gx&&puck.x>gx);
    if(inside&&puck.y>NY[0]&&puck.y<NY[1]&&puck.shot||inside&&puck.y>NY[0]&&puck.y<NY[1]&&hyp(puck.vx,puck.vy)>40){const g=t.goalie,dy=Math.abs(puck.y-g.y),reach=4.2+3.2*g.gl,sp=puck.shot?puck.shot:puck.last;
@@ -260,7 +260,7 @@ function step(dt){
     else{goal(t.opp,sp);return}}}
   if(checkRules(px))return;const L=t=>t.dir>0?puck.x<4:puck.x>W-4;if(puck.x<4){puck.x=4;puck.vx=Math.abs(puck.vx)*.6}if(puck.x>W-4){puck.x=W-4;puck.vx=-Math.abs(puck.vx)*.6}
   if(puck.shot&&hyp(puck.vx,puck.vy)<30)puck.shot=null;
-  let bd=null,bm=9;if(hyp(puck.vx,puck.vy)<105)for(const p of all){if(puck.cool>0&&p===puck.last)continue;const d=hyp(p.x-puck.x,p.y-puck.y),r=4.2+(p===puck.target?3:0);if(d<r&&d<bm){bm=d;bd=p}}
+  let bd=null,bm=9;if(hyp(puck.vx,puck.vy)<(puck.target?200:105))for(const p of all){if(puck.cool>0&&p===puck.last)continue;const d=hyp(p.x-puck.x,p.y-puck.y),r=4.2+(p===puck.target?4:0);if(d<r&&d<bm){bm=d;bd=p}}
   if(bd){puck.owner=bd;puck.target=null;puck.shot=null;puck.last=bd}}
  // checking / stick lifts
  const c=puck.owner;if(c){for(const d of onIce(c.team.opp)){const q=hyp(d.x-c.x,d.y-c.y);if(q<4.8&&d.stun<=0){
