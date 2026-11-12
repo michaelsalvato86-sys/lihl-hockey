@@ -2,84 +2,135 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes"><title>LIHL Hockey</title>
 <style>
-html,body{margin:0;height:100%;background:#0a1620;color:#fff;font-family:system-ui,Segoe UI,sans-serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+:root{--navy:#070d18;--navy2:#0e1828;--steel:#1a2638;--silver:#c8d0da;--white:#f4f7fa;--ca:#2a6fd6;--ch:#d33;--bc:#2a6fd6;
+ --f:"Bahnschrift SemiBold Condensed","Bahnschrift","Arial Narrow","Roboto Condensed","Helvetica Neue",Arial,sans-serif}
+html,body{margin:0;height:100%;background:var(--navy);color:var(--white);font-family:var(--f);overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
 canvas{display:block;position:fixed;inset:0;width:100%;height:100%}
-#menu,#end{position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 18%,rgba(79,209,197,.10),transparent 60%),radial-gradient(ellipse 100% 80% at 50% 100%,rgba(10,30,50,.95),#050a12);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:9;padding:14px;text-align:center;overflow:hidden}
-#menu::before,#end::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.05) 2px,rgba(0,0,0,.05) 4px);pointer-events:none;opacity:.5}
-#end{display:none}
-h1{margin:0;font-size:clamp(32px,6vw,52px);letter-spacing:4px;font-weight:800;text-transform:uppercase;background:linear-gradient(180deg,#fff 30%,#4fd1c5 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 12px rgba(0,0,0,.5)) drop-shadow(0 0 28px rgba(79,209,197,.35))}
-h1 span{color:#4fd1c5;-webkit-text-fill-color:#4fd1c5}
-select,button{font-size:17px;padding:10px 14px;border-radius:10px;border:0;background:#1d3a52;color:#fff}
-button.go{background:linear-gradient(180deg,#5eead4,#2dd4bf);color:#022c26;font-weight:800;font-size:18px;letter-spacing:1.5px;padding:14px 42px;border-radius:14px;border:none;text-transform:uppercase;box-shadow:0 4px 20px rgba(45,212,191,.45),0 0 0 1px rgba(255,255,255,.2) inset;transition:transform .15s,box-shadow .15s}
-button.go:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(45,212,191,.55),0 0 0 1px rgba(255,255,255,.25) inset}button.go:active{transform:none}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
-small{opacity:.7;max-width:520px;line-height:1.4}
-#hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:center;pointer-events:none;z-index:2}
-#sb{display:flex;align-items:center;gap:14px;background:linear-gradient(180deg,rgba(12,28,45,.92),rgba(6,14,24,.95));backdrop-filter:blur(16px) saturate(1.4);border:1px solid rgba(79,209,197,.25);border-top:0;border-radius:0 0 20px 20px;padding:8px 22px;font-weight:700;box-shadow:0 8px 32px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.04) inset,0 0 40px rgba(79,209,197,.08);font-family:ui-monospace,'SF Mono',Consolas,monospace}
-#sb img{height:28px;width:28px;object-fit:contain}#sb .sc{font-size:28px;min-width:28px;text-align:center;text-shadow:0 0 18px rgba(79,209,197,.4)}
-#sb .ck{font-size:18px;text-align:center;min-width:92px}#sb small{display:block;font-weight:400;font-size:11px}
-.side{position:fixed;top:44px;font-size:12px;background:#0a1620aa;border-radius:8px;padding:4px 8px;z-index:2;pointer-events:none;line-height:1.35}
-#sl{left:6px}#sr{right:6px;text-align:right}.pp{color:#7CFC00;font-weight:700}.pk{color:#ff7b7b;font-weight:700}
-#banner{position:fixed;left:50%;top:26%;transform:translateX(-50%);background:#0a1620ee;border:2px solid #4fd1c5;border-radius:16px;padding:10px 22px;z-index:4;display:none;align-items:center;gap:14px;font-size:20px;font-weight:700;pointer-events:none}
-#banner img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid #fff}#banner small{display:block;font-weight:400;font-size:14px}
-#ctl{position:fixed;inset:0;z-index:3;pointer-events:none;display:none}
+button,select{font-family:var(--f);font-size:16px;color:var(--white);background:var(--steel);border:1px solid #ffffff22;border-radius:3px;padding:10px 16px;letter-spacing:1px;text-transform:uppercase;font-weight:700;cursor:pointer}
+button:hover{background:#25344b}
+/* vignette over the 3D view */
+#vig{position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse 85% 80% at 50% 50%,transparent 55%,#000a 100%)}
+/* ---------- scorebug ---------- */
+#hud{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:4;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:3px;filter:drop-shadow(0 6px 14px #000a)}
+#sb{display:flex;align-items:stretch;height:46px;font-weight:800;letter-spacing:1px}
+#sb .tm{display:flex;align-items:center;gap:10px;padding:0 16px;min-width:150px;background:linear-gradient(180deg,#141f33,#0a121f)}
+#sb .tm.a{border-left:6px solid var(--ca);clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%)}
+#sb .tm.h{border-right:6px solid var(--ch);justify-content:flex-end;clip-path:polygon(12px 0,100% 0,100% 100%,0 100%)}
+#sb img{height:30px;width:30px;object-fit:contain;filter:drop-shadow(0 2px 3px #000a)}
+#sb b{font-size:22px;color:var(--white)}
+#sb .sc{font-size:34px;min-width:30px;text-align:center;color:#fff;text-shadow:0 2px 8px #000}
+#sb .mid{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:92px;background:linear-gradient(180deg,#e9eef4,#b9c3cf);color:#0a1220;line-height:1}
+#sb .mid #ck{font-size:25px;font-weight:900}#sb .mid small{font-size:11px;font-weight:800;letter-spacing:2px;opacity:.75}
+#sub{display:flex;gap:14px;font-size:12px;letter-spacing:1.5px;color:var(--silver);background:#0a121fcc;padding:3px 14px;clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 100%,0 100%)}
+#sub .ppx{color:#ffd166;font-weight:800}
+.side{position:fixed;top:68px;font-size:12px;letter-spacing:1px;background:#0a121fb8;border-left:3px solid var(--silver);padding:5px 10px;z-index:4;pointer-events:none;line-height:1.35;text-transform:uppercase}
+#sl{left:10px;border-left-color:var(--ch)}#sr{right:10px;text-align:right;border-left:0;border-right:3px solid var(--ca)}
+.pp{color:#ffd166;font-weight:800}.pk{color:#ff8a8a;font-weight:800}
+#snd{position:fixed;right:10px;top:10px;z-index:6;width:38px;height:34px;padding:0;font-size:16px;display:none;text-align:center;line-height:32px}
+body.ingame #snd{display:block}
+body.inmenu #hud,body.inmenu .side,body.inmenu #vig{display:none}
+/* ---------- event / goal banners ---------- */
+#flash{position:fixed;inset:0;z-index:5;pointer-events:none;opacity:0}
+#flash.go{animation:fl .7s ease-out}@keyframes fl{0%{opacity:.5}100%{opacity:0}}
+#banner{position:fixed;z-index:6;display:none;pointer-events:none;align-items:center;font-weight:800;text-transform:uppercase;letter-spacing:1.5px}
+#banner img{object-fit:cover}
+#banner.evt{left:50%;top:84px;transform:translateX(-50%);background:linear-gradient(180deg,#141f33f2,#0a121ff2);border-top:3px solid var(--bc);padding:7px 26px;gap:12px;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 100%,0 100%)}
+#banner.evt img{display:none}#banner.evt #bt1{font-size:24px}#banner.evt small{font-size:13px;letter-spacing:2px;font-weight:600;opacity:.85;display:block}
+#banner.goal{left:0;bottom:92px;height:104px;min-width:560px;background:linear-gradient(90deg,var(--bc) 0,var(--bc) 150px,#0b1524f5 150px,#0b1524f5 100%);padding:0 46px 0 20px;gap:18px;clip-path:polygon(0 0,100% 0,calc(100% - 24px) 100%,0 100%);box-shadow:0 14px 44px #000a}
+#banner.goal img{width:84px;height:84px;border-radius:50%;border:4px solid #fff;box-shadow:0 4px 18px #000a;margin-left:6px}
+#banner.goal #bt1{font-size:54px;color:#fff;line-height:.95;text-shadow:0 3px 14px #0008}
+#banner.goal small{font-size:20px;letter-spacing:2px;font-weight:700;color:var(--silver);display:block;margin-top:4px}
+#banner.pop{animation:pop .45s cubic-bezier(.2,1.1,.3,1)}
+@keyframes pop{0%{opacity:0;margin-left:-120px}100%{opacity:1;margin-left:0}}
+#banner.evt.pop{animation:popE .3s ease-out}@keyframes popE{0%{opacity:0;transform:translateX(-50%) translateY(-14px)}100%{opacity:1;transform:translateX(-50%)}}
+/* ---------- touch controls ---------- */
+#ctl{position:fixed;inset:0;z-index:5;pointer-events:none;display:none}
 #jz{position:absolute;left:0;top:30%;bottom:0;width:50%;pointer-events:auto}
 #jb,#jk{position:absolute;border-radius:50%;display:none}
-#jb{width:110px;height:110px;border:3px solid #fff6;margin:-55px 0 0 -55px}#jk{width:52px;height:52px;background:#fffa;margin:-26px 0 0 -26px}
-.btn{position:absolute;border-radius:50%;pointer-events:auto;display:flex;align-items:center;justify-content:center;font-weight:700;background:#4fd1c5cc;color:#032;border:3px solid #fff8}
-#bs{right:22px;bottom:26px;width:104px;height:104px;font-size:20px}#bp{right:140px;bottom:26px;width:76px;height:76px;font-size:15px;background:#ffd166cc}
-#bh{right:22px;bottom:150px;width:68px;height:68px;font-size:15px;background:#ff7b7bcc}#bt{right:14px;top:96px;width:auto;height:auto;border-radius:8px;padding:5px 9px;font-size:11px;background:#1d3a52cc;color:#fff;border:0;font-weight:400}
+#jb{width:124px;height:124px;margin:-62px 0 0 -62px;border:3px solid #ffffff55;background:radial-gradient(circle,#ffffff10,#0008);box-shadow:inset 0 0 18px #000a,0 0 0 2px #0006}
+#jk{width:56px;height:56px;margin:-28px 0 0 -28px;background:radial-gradient(circle at 35% 30%,#fff,#9aa6b4);box-shadow:0 4px 12px #000a}
+.btn{position:absolute;pointer-events:auto;display:flex;align-items:center;justify-content:center;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#fff;border-radius:50%;
+ background:radial-gradient(circle at 35% 28%,#2b3b55,#0d1524 70%);border:3px solid var(--silver);box-shadow:0 6px 18px #000a,inset 0 0 0 3px #0008;text-shadow:0 2px 4px #000}
+.btn:active{transform:scale(.93);filter:brightness(1.25)}
+#bs{right:22px;bottom:24px;width:112px;height:112px;font-size:20px;border-color:var(--ch);box-shadow:0 6px 18px #000a,0 0 0 4px #0008,0 0 16px var(--ch)}
+#bp{right:148px;bottom:24px;width:80px;height:80px;font-size:15px}
+#bh{right:152px;bottom:118px;width:72px;height:72px;font-size:15px}
+#bc{right:30px;bottom:150px;width:84px;height:84px;font-size:12px}
+#bt{right:10px;top:104px;width:auto;height:auto;border-radius:3px;padding:6px 10px;font-size:11px;background:#1a2638cc;border:1px solid #ffffff33;box-shadow:none}
+/* ---------- main menu ---------- */
+#menu,#end{position:fixed;inset:0;z-index:9;display:flex;flex-direction:column;color:var(--white)}
+#menu{background:linear-gradient(90deg,#050a14f2 0%,#050a14b8 32%,#050a1466 50%,#050a14b8 68%,#050a14f2 100%),linear-gradient(180deg,#050a14cc 0%,#0000 25%,#0000 55%,#050a14ee 100%)}
+#end{display:none;align-items:center;justify-content:center;gap:14px;background:radial-gradient(ellipse at 50% 40%,#16233a,#050a14);text-align:center}
+.mtop{display:flex;align-items:flex-end;justify-content:space-between;padding:22px 40px 0}
+.logo{font-size:46px;font-weight:900;letter-spacing:5px;line-height:1;text-shadow:0 4px 18px #000}
+.logo b{color:var(--silver);font-weight:900}
+.mtag{font-size:13px;letter-spacing:4px;color:var(--silver);opacity:.8;padding-bottom:6px}
+.mmain{flex:1;display:flex;align-items:center;justify-content:center;gap:22px;padding:0 36px;min-height:0}
+.tp{width:min(37vw,500px);box-sizing:border-box;background:linear-gradient(180deg,#101a2cee,#070d18f2);border-top:5px solid var(--tc,#2a6fd6);padding:14px 18px 12px;box-shadow:0 16px 50px #000a;clip-path:polygon(0 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%)}
+.tp .role{font-size:12px;letter-spacing:4px;color:var(--silver);opacity:.8}
+.tp .hd{display:flex;align-items:center;gap:14px;margin:6px 0 8px}
+.tp .hd img{height:74px;width:74px;object-fit:contain;filter:drop-shadow(0 4px 8px #000)}
+.tp .hd h2{margin:0;font-size:32px;line-height:1;letter-spacing:1.5px;text-transform:uppercase}
+.tp .hd small{display:block;font-size:13px;letter-spacing:2px;color:var(--silver);margin-top:4px;opacity:.85}
+.tp .nav{display:flex;gap:8px;margin-left:auto}.tp .nav button{padding:8px 12px;font-size:18px}
+.tp .ov{display:flex;gap:18px;font-size:13px;letter-spacing:2px;color:var(--silver);margin-bottom:8px}.tp .ov b{color:#fff;font-size:20px;margin-right:4px}
+.roster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.pl{min-width:0;display:flex;align-items:center;gap:8px;background:#ffffff0d;padding:4px 8px 4px 4px;border-left:3px solid var(--tc,#2a6fd6)}
+.pl img{width:36px;height:36px;border-radius:50%;object-fit:cover;background:#222}.pl span{flex:1;font-size:14px;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pl b{font-size:20px}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:9px}.chips i{width:30px;height:30px;border:2px solid transparent;background:#ffffff10 center/contain no-repeat;cursor:pointer}.chips i.on{border-color:#fff;background-color:#ffffff30}
+.vs{font-size:44px;font-weight:900;letter-spacing:4px;color:var(--silver);text-shadow:0 4px 16px #000}
+.mbot{display:flex;align-items:center;justify-content:center;gap:12px;padding:14px 30px 24px;flex-wrap:wrap}
+.seg{display:flex}.seg button{border-radius:0;padding:10px 14px;font-size:14px}.seg button.on{background:var(--white);color:#0a1220}
+button.go{background:linear-gradient(180deg,#f4f7fa,#b7c1cd);color:#0a1220;font-size:26px;font-weight:900;letter-spacing:5px;padding:12px 74px;border:0;border-radius:2px;clip-path:polygon(16px 0,100% 0,calc(100% - 16px) 100%,0 100%);box-shadow:0 8px 24px #000a}
+button.go:hover{filter:brightness(1.08)}button.go:disabled{opacity:.6}
+.modal{position:fixed;inset:0;z-index:12;background:#050a14ee;display:none;align-items:center;justify-content:center}
+.modal .card{background:linear-gradient(180deg,#121d31,#080e1a);border-top:5px solid var(--silver);padding:22px 30px;max-width:640px;width:88vw;max-height:84vh;overflow:auto}
+.modal h3{margin:0 0 10px;letter-spacing:4px;font-size:24px}.modal table{width:100%;border-collapse:collapse;font-size:15px;letter-spacing:.5px}.modal td{padding:5px 8px;border-bottom:1px solid #ffffff14}.modal td:first-child{color:var(--silver);width:44%}
+.modal label{display:flex;align-items:center;gap:12px;margin:12px 0;font-size:16px;letter-spacing:1px}.modal input[type=range]{flex:1}
+#et{font-size:60px;margin:0;letter-spacing:6px}#es{font-size:34px;letter-spacing:3px}
+#sels{display:none}
+@media (max-height:560px){.logo{font-size:30px}.mtop{padding:10px 24px 0}.tp{padding:8px 12px}.tp .hd img{height:50px;width:50px}.tp .hd h2{font-size:22px}.roster{gap:4px}.pl img{width:28px;height:28px}.pl span{font-size:12px}.vs{font-size:28px}.mbot{padding:8px 20px 12px}button.go{font-size:20px;padding:9px 50px}.chips i{width:22px;height:22px}}
 
-/* NHL-style polish layer */
-.side{top:52px;background:rgba(6,14,24,.75);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:6px 10px;line-height:1.4}
-.pp{text-shadow:0 0 10px rgba(124,252,0,.4)}.pk{text-shadow:0 0 10px rgba(255,123,123,.4)}
-#banner{background:linear-gradient(135deg,rgba(8,18,32,.95),rgba(12,28,48,.95));backdrop-filter:blur(16px);border:2px solid rgba(79,209,197,.55);border-radius:18px;padding:12px 26px;gap:16px;box-shadow:0 12px 40px rgba(0,0,0,.5),0 0 30px rgba(79,209,197,.2)}
-#banner img{width:68px;height:68px;box-shadow:0 0 16px rgba(79,209,197,.4)}
-#jb{border:3px solid rgba(255,255,255,.35);box-shadow:0 0 20px rgba(79,209,197,.15)}#jk{background:rgba(255,255,255,.9);box-shadow:0 0 12px rgba(255,255,255,.4)}
-.btn{font-weight:800;letter-spacing:.5px;border:3px solid rgba(255,255,255,.45);box-shadow:0 6px 20px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.15) inset;transition:transform .1s}
-.btn:active{transform:scale(.94)}
-#bs{width:108px;height:108px;font-size:18px;background:linear-gradient(160deg,#5eead4,#14b8a6);color:#022c26}
-#bp{width:78px;height:78px;background:linear-gradient(160deg,#fcd34d,#f59e0b);color:#422006}
-#bh{background:linear-gradient(160deg,#fca5a5,#ef4444);color:#450a0a}
-select,button{background:rgba(20,40,60,.85);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(8px)}
-select:focus,button:focus{outline:none;border-color:rgba(79,209,197,.5);box-shadow:0 0 0 3px rgba(79,209,197,.15)}
-button.go{border:none;background:linear-gradient(180deg,#5eead4,#2dd4bf)}
-
-/* NHL94-style layout: SHOOT big bottom-right, PASS left of it, HIT above PASS, CHANGE above SHOOT */
-#bs{right:22px;bottom:26px}
-#bp{right:145px;bottom:26px}
-#bh{right:150px;bottom:122px;width:70px;height:70px;font-size:15px}
-#bc{right:30px;bottom:150px;width:84px;height:84px;font-size:13px;letter-spacing:.3px;background:linear-gradient(160deg,#93c5fd,#3b82f6);color:#0b1b3a}
-
-#flash{position:fixed;inset:0;z-index:5;pointer-events:none;opacity:0}
-#flash.go{animation:fl .6s ease-out}@keyframes fl{0%{opacity:.5}100%{opacity:0}}
-#banner.pop{animation:pop .4s cubic-bezier(.2,1.4,.4,1)}
-@keyframes pop{0%{transform:translateX(-50%) scale(.55);opacity:0}100%{transform:translateX(-50%) scale(1);opacity:1}}
-#bt1{font-size:28px;letter-spacing:1.5px;text-transform:uppercase}
-#sb b{border-bottom:3px solid transparent;padding-bottom:2px}
 </style></head><body>
-<canvas id="c"></canvas>
-<div id="hud"><div id="sb"><img id="ia"><b id="na"></b><span class="sc" id="sa">0</span><div class="ck"><span id="ck">3:00</span><small id="pd">1st</small></div><span class="sc" id="sh">0</span><b id="nh"></b><img id="ih"></div></div>
+<canvas id="c"></canvas><div id="vig"></div>
+<div id="hud"><div id="sb"><div class="tm a"><img id="ia"><b id="na"></b><span class="sc" id="sa">0</span></div><div class="mid"><span id="ck">3:00</span><small id="pd">1ST</small></div><div class="tm h"><span class="sc" id="sh">0</span><b id="nh"></b><img id="ih"></div></div><div id="sub"></div></div>
 <div class="side" id="sl"></div><div class="side" id="sr"></div>
-<div id="flash"></div><div id="banner"><img id="bi"><div><span id="bt1"></span><small id="bt2"></small></div></div>
+<button id="snd" title="Sound">&#128266;</button>
+<div id="flash"></div><div id="banner" class="evt"><img id="bi"><div><span id="bt1"></span><small id="bt2"></small></div></div>
 <div id="ctl"><div id="jz"><div id="jb"></div><div id="jk"></div></div>
-<div class="btn" id="bs">SHOOT</div><div class="btn" id="bh">HIT</div><div class="btn" id="bc">CHANGE</div><div class="btn" id="bp">PASS</div><div class="btn" id="bt">test PP</div></div>
-<div id="menu"><h1>LIHL <span>HOCKEY</span></h1>
-<small>Real Fall 2026 Long Island Hockey rosters. Ratings and photos from lihockey.org (rated players only). Auto line changes, power play and penalty kill units.</small>
-<div class="row"><select id="mh"></select><b>vs</b><select id="ma"></select></div>
-<div class="row"><select id="mc"><option value="h">You: first team</option><option value="a">You: second team</option><option value="n">Watch (CPU vs CPU)</option></select>
-<select id="ml"><option value="120">Period 2:00</option><option value="180" selected>Period 3:00</option><option value="300">Period 5:00</option></select></div>
-<button class="go" id="go">START</button>
-<small>Phone: hold landscape. Left thumb = skate, SHOOT = shoot (when you have no puck: burst/check), PASS = pass (no puck: switch player). Keyboard: WASD/arrows, hold Space to charge a shot (release to shoot), E pass, Q hit, R or Tab = change player. CHANGE button = switch to the nearest teammate (when you have no puck).</small></div>
-<div id="end"><h1 id="et"></h1><div id="es" style="font-size:22px"></div><button class="go" id="again">PLAY AGAIN</button></div>
+<div class="btn" id="bs">SHOOT</div><div class="btn" id="bp">PASS</div><div class="btn" id="bh">HIT</div><div class="btn" id="bc">CHANGE</div><div class="btn" id="bt">test PP</div></div>
+<div id="menu">
+ <div class="mtop"><div class="logo">LIHL <b>HOCKEY</b></div><div class="mtag">LONG ISLAND HOCKEY LEAGUE &middot; FALL 2026</div></div>
+ <div class="mmain"><div class="tp" id="tpA"></div><div class="vs">VS</div><div class="tp" id="tpH"></div></div>
+ <div class="mbot"><div class="seg" id="segM"></div><div class="seg" id="segL"></div><button id="bset">Settings</button><button id="bhelp">Controls</button><button class="go" id="go" disabled>LOADING...</button></div>
+</div>
+<div id="end"><h1 id="et"></h1><div id="es"></div><button class="go" id="again">MAIN MENU</button></div>
+<div class="modal" id="mset"><div class="card"><h3>SETTINGS</h3>
+ <label><input type="checkbox" id="setSnd" checked> Sound on</label>
+ <label>Volume <input type="range" id="setVol" min="0" max="100" value="70"></label>
+ <label><input type="checkbox" id="setSay" checked> Announcer voice (your browser's speech)</label>
+ <div style="text-align:right"><button id="setX">Close</button></div></div></div>
+<div class="modal" id="mhelp"><div class="card"><h3>CONTROLS</h3><table>
+ <tr><td>Skate</td><td>WASD / Arrow keys, or left thumb stick</td></tr>
+ <tr><td>Shoot</td><td>Hold SPACE to charge, release to shoot (SHOOT button)</td></tr>
+ <tr><td>Pass</td><td>E (PASS button). Aim with the stick</td></tr>
+ <tr><td>Body check</td><td>Q (HIT button)</td></tr>
+ <tr><td>Change player</td><td>R or TAB (CHANGE button)</td></tr>
+ <tr><td>Penalties</td><td>Hooking, tripping, slashing, holding, interference: 2:00 minors, power plays and penalty kills are automatic</td></tr>
+ <tr><td>Rules</td><td>Faceoffs, icing, offside, line changes, fatigue</td></tr>
+ </table><div style="text-align:right;margin-top:14px"><button id="helpX">Close</button></div></div></div>
+<div id="sels"><select id="mh"></select><select id="ma"></select><select id="mc"><option value="h">h</option><option value="a">a</option><option value="n">n</option></select><select id="ml"><option value="120">2</option><option value="180" selected>3</option><option value="300">5</option></select></div>
+
 <script src="three.min.js"></script>
 <script src="lib/CopyShader.js"></script><script src="lib/LuminosityHighPassShader.js"></script><script src="lib/EffectComposer.js"></script><script src="lib/RenderPass.js"></script><script src="lib/ShaderPass.js"></script><script src="lib/MaskPass.js"></script><script src="lib/UnrealBloomPass.js"></script>
 <script src="lib/GLTFLoader.js"></script><script src="lib/SkeletonUtils.js"></script><script src="skater3d.js"></script><script src="skater_pose.js"></script><script src="r3d.js"></script>
+<script src="audio.js"></script>
 <script>
 const ROSTER={"teams":{"198":{"abbr":"D5","name":"District 5","div":"Premier - Tier 2","icon":"photos/team198.png","color":"#009df5","accent":"#0077cc"},"176":{"abbr":"MBH","name":"Meatball Heroes","div":"Weeknight D","icon":"photos/team176.png","color":"#0061fe","accent":"#0042a9"},"196":{"abbr":"PPC","name":"Paddy\u2019s Pub Crawlers","div":"Weeknight D","icon":"photos/team196.png","color":"#01a000","accent":"#fffffa"},"183":{"abbr":"PIMP","name":"Big Pimps","div":"Weeknight D","icon":"photos/team183.png","color":"#ff57a0","accent":"#e63b7a"},"181":{"abbr":"WOOL","name":"Wooly Bullies","div":"Weeknight D","icon":"photos/team181.png","color":"#8cb9cf","accent":"#0281aa"},"178":{"abbr":"HTV","name":"Hometown Villains","div":"Weeknight D","icon":"photos/team178.png","color":"#a70606","accent":"#b51a00"},"171":{"abbr":"BAB","name":"Band-aid Brigade","div":"Weekend E / D","icon":"photos/team171.png","color":"#efe5d9","accent":"#adc606"},"182":{"abbr":"GG","name":"Golden Goons","div":"Weeknight D","icon":"photos/team182.png","color":"#eab239","accent":"#d19d01"},"168":{"abbr":"KCO","name":"Kraken Cold Ones","div":"Weekend E / D","icon":"photos/team168.png","color":"#4d0085","accent":"#ff75d3"},"170":{"abbr":"AJ","name":"Average Joes","div":"Weekend E / D","icon":"photos/team170.png","color":"#ffae00","accent":"#012f7b"},"169":{"abbr":"SP","name":"Slashing Pumpkins","div":"Weekend E / D","icon":"photos/team169.png","color":"#ff7b00","accent":"#000000"}},"players":[{"id":509,"name":"Thomas O'Neill","rating":60,"band":"C","photo":"photos/p509.jpg","teams":[198],"num":16},{"id":449,"name":"Meir Haltovsky","rating":47,"band":"C","photo":"photos/p449.jpg","teams":[198],"num":10},{"id":124,"name":"Chris Micallef","rating":47,"band":"C","photo":null,"teams":[198],"num":9},{"id":133,"name":"Nick Micallef","rating":43,"band":"C","photo":"photos/p133.jpg","teams":[198],"num":7},{"id":956,"name":"Joseph Cerina","rating":42,"band":"C","photo":"photos/p956.jpg","teams":[198,176],"num":24},{"id":1013,"name":"Andrew Gindea","rating":42,"band":"C","photo":"photos/p1013.jpg","teams":[196]},{"id":596,"name":"Zachary Wood","rating":42,"band":"C","photo":"photos/p596.jpg","teams":[183,198],"num":91},{"id":348,"name":"Stephen Baum","rating":41,"band":"C","photo":"photos/p348.jpg","teams":[181],"num":19},{"id":837,"name":"Tyler Pennec","rating":41,"band":"C","photo":"photos/p837.jpg","teams":[198,178],"num":73},{"id":1118,"name":"Nicholas Galdemis","rating":40,"band":"D","photo":"photos/p1118.jpg","teams":[183],"num":13},{"id":97,"name":"Frank Semar","rating":40,"band":"D","photo":"photos/p97.jpg","teams":[181],"num":88},{"id":1229,"name":"Richard Calma","rating":39,"band":"D","photo":null,"teams":[183,181],"num":82},{"id":68,"name":"James Ellerby","rating":37,"band":"D","photo":"photos/p68.jpg","teams":[171,176],"num":12},{"id":538,"name":"Ronald Kemly","rating":37,"band":"D","photo":null,"teams":[182],"num":69},{"id":65,"name":"CW Schwalbe","rating":37,"band":"D","photo":"photos/p65.jpg","teams":[171,178],"num":27},{"id":1089,"name":"Theodore Zikos","rating":37,"band":"D","photo":"photos/p1089.jpg","teams":[168],"num":9},{"id":697,"name":"Ryan Kelly","rating":36,"band":"D","photo":"photos/p697.jpg","teams":[171],"num":71},{"id":89,"name":"Michelle Reis","rating":36,"band":"D","photo":"photos/p89.jpg","teams":[170,196],"num":93},{"id":690,"name":"Anthony Spina","rating":36,"band":"D","photo":"photos/p690.jpg","teams":[176],"num":16},{"id":1215,"name":"Kimberly Apolinar","rating":35,"band":"D","photo":"photos/p1215.jpg","teams":[170],"num":2},{"id":191,"name":"Jon Baer","rating":35,"band":"D","photo":"photos/p191.jpg","teams":[169],"num":27},{"id":520,"name":"Michael Cashman","rating":35,"band":"D","photo":"photos/p520.jpg","teams":[171,181],"num":10},{"id":423,"name":"Scott Coleman","rating":35,"band":"D","photo":null,"teams":[183,169],"num":4},{"id":127,"name":"James Darmiento","rating":35,"band":"D","photo":"photos/p127.jpg","teams":[168],"num":85},{"id":10,"name":"Joe Faithfull","rating":35,"band":"D","photo":"photos/p10.jpg","teams":[170],"num":6},{"id":34,"name":"Amanda Funaro","rating":35,"band":"D","photo":"photos/p34.jpg","teams":[178,169],"num":7},{"id":978,"name":"Antoine Munfakh","rating":35,"band":"D","photo":null,"teams":[183],"num":8},{"id":2,"name":"Daniel Reis","rating":35,"band":"D","photo":"photos/p2.jpg","teams":[170,196],"num":59},{"id":211,"name":"Stephen Seedorf","rating":35,"band":"D","photo":"photos/p211.jpg","teams":[170],"num":63},{"id":752,"name":"Dominic Shaw","rating":35,"band":"D","photo":"photos/p752.jpg","teams":[181],"num":23},{"id":706,"name":"Aidan Feulner","rating":34,"band":"D","photo":"photos/p706.jpg","teams":[176],"num":67},{"id":638,"name":"Marisa Haszto","rating":34,"band":"D","photo":"photos/p638.jpg","teams":[171,181],"num":98},{"id":1238,"name":"Liam Rogers","rating":34,"band":"D","photo":"photos/p1238.jpg","teams":[196]},{"id":52,"name":"James Romanelli","rating":34,"band":"D","photo":"photos/p52.jpg","teams":[176],"num":22},{"id":1169,"name":"Angela Ruffini","rating":34,"band":"D","photo":"photos/p1169.jpg","teams":[168],"num":15},{"id":93,"name":"Brian Raeihle","rating":33,"band":"D","photo":"photos/p93.jpg","teams":[171],"num":20},{"id":645,"name":"Matthew Ring","rating":33,"band":"D","photo":"photos/p645.jpg","teams":[182,168],"num":27},{"id":514,"name":"Brandon Basile","rating":32,"band":"D","photo":"photos/p514.jpg","teams":[198],"num":3},{"id":849,"name":"Garrison Donaghy","rating":32,"band":"D","photo":null,"teams":[183,196]},{"id":130,"name":"Joe Lupo","rating":32,"band":"D","photo":"photos/p130.jpg","teams":[183],"num":21},{"id":947,"name":"Chris Murphy","rating":32,"band":"D","photo":"photos/p947.jpg","teams":[178,168],"num":55},{"id":446,"name":"Dan Decarolis","rating":31,"band":"D","photo":"photos/p446.jpg","teams":[183],"num":19},{"id":1116,"name":"Michael Giarretto","rating":31,"band":"D","photo":"photos/p1116.jpg","teams":[182],"num":2},{"id":669,"name":"Rob Reznik","rating":31,"band":"D","photo":"photos/p669.jpg","teams":[178],"num":91},{"id":1156,"name":"Connor DeKenipp","rating":30,"band":"D","photo":"photos/p1156.jpg","teams":[178],"num":6},{"id":111,"name":"Jason Karpinski","rating":30,"band":"D","photo":"photos/p111.jpg","teams":[182],"num":61},{"id":90,"name":"Raffi Minassian","rating":30,"band":"D","photo":"photos/p90.jpg","teams":[183,168],"num":69},{"id":532,"name":"Sal Riccio","rating":30,"band":"D","photo":"photos/p532.jpg","teams":[183],"num":93},{"id":862,"name":"William Carr","rating":29,"band":"D","photo":"photos/p862.jpg","teams":[170],"num":17},{"id":183,"name":"Anthony DeRiso","rating":29,"band":"D","photo":"photos/p183.jpg","teams":[182],"num":66},{"id":990,"name":"Ewan Dossin","rating":29,"band":"D","photo":"photos/p990.jpg","teams":[183],"num":87},{"id":134,"name":"Paul Post","rating":29,"band":"D","photo":"photos/p134.jpg","teams":[170],"num":55},{"id":241,"name":"Justin Stapleton","rating":29,"band":"D","photo":"photos/p241.jpg","teams":[178],"num":4},{"id":762,"name":"Tyler Adwar","rating":28,"band":"D","photo":"photos/p762.jpg","teams":[169],"num":88},{"id":20,"name":"Alex Cesare","rating":28,"band":"D","photo":"photos/p20.jpg","teams":[196]},{"id":70,"name":"Jim McArdle","rating":28,"band":"D","photo":"photos/p70.jpg","teams":[182]},{"id":1208,"name":"Anthony Silvera","rating":28,"band":"D","photo":null,"teams":[168],"num":21},{"id":722,"name":"Michael Vanadia","rating":28,"band":"D","photo":null,"teams":[168],"num":11},{"id":62,"name":"Wesley Yee","rating":28,"band":"D","photo":"photos/p62.jpg","teams":[182],"num":20},{"id":556,"name":"Ben Anteck","rating":27,"band":"D","photo":"photos/p556.jpg","teams":[171],"num":74},{"id":221,"name":"Austin Basile","rating":27,"band":"D","photo":"photos/p221.jpg","teams":[198,196],"num":32},{"id":174,"name":"Matt Funaro","rating":27,"band":"D","photo":"photos/p174.jpg","teams":[178,169],"num":25},{"id":1066,"name":"Robert Incantalupo","rating":27,"band":"D","photo":"photos/p1066.jpg","teams":[178],"num":35},{"id":975,"name":"Randall Krauss","rating":27,"band":"D","photo":"photos/p975.jpg","teams":[169],"num":8},{"id":209,"name":"Nick LoCascio","rating":27,"band":"D","photo":"photos/p209.jpg","teams":[182],"num":21},{"id":1008,"name":"Eric Maccabi","rating":27,"band":"D","photo":"photos/p1008.jpg","teams":[196]},{"id":512,"name":"CJ Pasqueralli","rating":27,"band":"D","photo":"photos/p512.jpg","teams":[196]},{"id":117,"name":"Rick Pisciotta","rating":27,"band":"D","photo":"photos/p117.jpg","teams":[176,169],"num":20},{"id":466,"name":"Nisar Ahmed","rating":26,"band":"D","photo":"photos/p466.jpg","teams":[171,183],"num":79},{"id":714,"name":"Bobby Becker","rating":26,"band":"D","photo":null,"teams":[196]},{"id":431,"name":"AJ DeVito","rating":26,"band":"D","photo":"photos/p431.jpg","teams":[168],"num":77},{"id":1067,"name":"Paul Jorge","rating":26,"band":"D","photo":"photos/p1067.jpg","teams":[196]},{"id":1,"name":"Robby Lucia","rating":26,"band":"D","photo":"photos/p1.jpg","teams":[183,169],"num":64},{"id":49,"name":"Chris Lupis","rating":26,"band":"D","photo":"photos/p49.jpg","teams":[183,168],"num":23},{"id":9,"name":"James O'Donnell","rating":26,"band":"D","photo":"photos/p9.jpg","teams":[170,176],"num":29},{"id":17,"name":"Rory O\u2019Hara","rating":26,"band":"D","photo":"photos/p17.jpg","teams":[181],"num":81},{"id":751,"name":"Matthew Pospishil","rating":26,"band":"D","photo":null,"teams":[176],"num":10},{"id":667,"name":"Alex Reznik","rating":26,"band":"D","photo":"photos/p667.jpg","teams":[178],"num":77},{"id":129,"name":"Jason Safuto","rating":26,"band":"D","photo":"photos/p129.jpg","teams":[178],"num":3},{"id":123,"name":"Aaron Yu","rating":26,"band":"D","photo":"photos/p123.jpg","teams":[178],"num":83},{"id":408,"name":"Randy Yung","rating":26,"band":"D","photo":"photos/p408.jpg","teams":[181],"num":13},{"id":165,"name":"Mike Levy","rating":25,"band":"D","photo":"photos/p165.jpg","teams":[171,176],"num":17},{"id":1029,"name":"Anthony Tarantino","rating":25,"band":"D","photo":"photos/p1029.jpg","teams":[182,168],"num":40},{"id":59,"name":"Mike Torregrossa","rating":25,"band":"D","photo":"photos/p59.jpg","teams":[178],"num":20},{"id":28,"name":"Peter Urso","rating":25,"band":"D","photo":"photos/p28.jpg","teams":[181],"num":67},{"id":517,"name":"Joe Ciurleo","rating":24,"band":"D","photo":null,"teams":[182],"num":95},{"id":801,"name":"Connor Crichton","rating":24,"band":"D","photo":"photos/p801.jpg","teams":[176],"num":82},{"id":58,"name":"Lydia Holmberg","rating":24,"band":"D","photo":"photos/p58.jpg","teams":[181],"num":22},{"id":375,"name":"Nicholas Lilli","rating":24,"band":"D","photo":"photos/p375.jpg","teams":[178,169],"num":0},{"id":114,"name":"Matt Pisciotta","rating":24,"band":"D","photo":"photos/p114.jpg","teams":[176],"num":3},{"id":98,"name":"Garrett Vella","rating":24,"band":"D","photo":null,"teams":[182],"num":12},{"id":652,"name":"Glen Yelenovic","rating":24,"band":"D","photo":"photos/p652.jpg","teams":[183],"num":92},{"id":248,"name":"Andrew Zych","rating":24,"band":"D","photo":null,"teams":[181],"num":18},{"id":662,"name":"Fran Brzyski","rating":23,"band":"D","photo":"photos/p662.jpg","teams":[182],"num":17},{"id":473,"name":"Jonah Green","rating":23,"band":"D","photo":"photos/p473.jpg","teams":[176],"num":97},{"id":983,"name":"Vincent Marano","rating":23,"band":"D","photo":null,"teams":[183],"num":16},{"id":545,"name":"Kevin Saban","rating":23,"band":"D","photo":"photos/p545.jpg","teams":[178],"num":44},{"id":1079,"name":"Brad Bieselin","rating":22,"band":"D","photo":"photos/p1079.jpg","teams":[176],"num":26},{"id":12,"name":"Justin Colonna","rating":22,"band":"D","photo":"photos/p12.jpg","teams":[170],"num":66},{"id":46,"name":"Sarah Conway","rating":22,"band":"D","photo":"photos/p46.jpg","teams":[196]},{"id":6,"name":"Darren Scandariato","rating":22,"band":"D","photo":"photos/p6.jpg","teams":[181],"num":53},{"id":499,"name":"Gareth Tseng","rating":22,"band":"D","photo":"photos/p499.jpg","teams":[171],"num":67},{"id":1231,"name":"Thomas Breaton","rating":21,"band":"D","photo":"photos/p1231.jpg","teams":[178],"num":5},{"id":47,"name":"Will Campbell","rating":21,"band":"D","photo":"photos/p47.jpg","teams":[176],"num":9},{"id":650,"name":"Jack Casey","rating":21,"band":"D","photo":"photos/p650.jpg","teams":[181],"num":5},{"id":677,"name":"Glenn Forbes","rating":21,"band":"D","photo":"photos/p677.jpg","teams":[183],"num":28},{"id":805,"name":"James Funaro","rating":21,"band":"D","photo":"photos/p805.jpg","teams":[169],"num":44},{"id":18,"name":"Sandra Guarin","rating":21,"band":"D","photo":"photos/p18.jpg","teams":[170,196],"num":10},{"id":1014,"name":"Arye Kremer","rating":21,"band":"D","photo":"photos/p1014.jpg","teams":[196]},{"id":22,"name":"Denise McIntyre","rating":21,"band":"D","photo":"photos/p22.jpg","teams":[183,168],"num":36}],"goalies":[{"id":221,"name":"Austin Basile","gp":3,"gaa":5.0,"team":198,"num":32,"photo":"photos/p221.jpg"},{"id":1211,"name":"Jordan Randazzo","gp":5,"gaa":2.2,"team":176,"num":31,"photo":"photos/p1211.jpg"},{"id":250,"name":"Damon Carbo","gp":5,"gaa":2.0,"team":196,"num":null,"photo":null},{"id":423,"name":"Scott Coleman","gp":5,"gaa":3.4,"team":183,"num":4,"photo":null},{"id":1107,"name":"Andrew DiMartino","gp":4,"gaa":0.25,"team":181,"num":25,"photo":"photos/p1107.jpg"},{"id":34,"name":"Amanda Funaro","gp":2,"gaa":3.0,"team":178,"num":7,"photo":"photos/p34.jpg"},{"id":237,"name":"Sean Ryan","gp":8,"gaa":3.0,"team":171,"num":1,"photo":"photos/p237.jpg"},{"id":464,"name":"Ryan Kennedy","gp":3,"gaa":2.33,"team":182,"num":50,"photo":"photos/p464.jpg"},{"id":212,"name":"Chris Chatterton","gp":7,"gaa":4.57,"team":168,"num":1,"photo":"photos/p212.jpg"},{"id":235,"name":"Jimmy Plakas","gp":9,"gaa":2.44,"team":170,"num":31,"photo":"photos/p235.jpg"},{"id":215,"name":"Giancarlo Vairo","gp":6,"gaa":2.0,"team":169,"num":null,"photo":"photos/p215.jpg"}]};//ROSTER
 const SL=['C','LW','RW','LD','RD'],W=200,H=85,GX=11,NY=[37.5,47.5],MY=42.5;
 const rnd=(a,b)=>a+Math.random()*(b-a),clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),hyp=Math.hypot,$=i=>document.getElementById(i);
 const qs=new URLSearchParams(location.search),SPEED=+qs.get('speed')||1;
+const MOBILE=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&Math.min(screen.width,screen.height)<900)||qs.get('mobile')==='1';
 const hash=s=>{let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))|0;return Math.abs(h)};
 const cv=$('c'),cx=cv.getContext('2d');let S=5,VW=120,VH=60;
 function resize(){const d=devicePixelRatio||1;cv.width=innerWidth*d;cv.height=innerHeight*d;VW=innerWidth>innerHeight?150:80;S=cv.width/VW;VH=cv.height/S}
@@ -105,7 +156,7 @@ function mkTeam(def,side,color,human){
  const gs=(ROSTER.goalies||[]).filter(g=>g.team===def.id).sort((a,b)=>b.gp-a.gp),g0=gs[0],sh=g0?(g0.gaa*g0.gp+3.4*4)/(g0.gp+4):null;
  t.goalie={x:t.ownGX+side*3.5,y:MY,gl:g0?clamp(.5+(3.4-sh)/11,.38,.78):.5,team:t,name:g0?g0.name:t.abbr+' Goalie',num:g0&&g0.num!=null?g0.num:(g0?g0.id%99:null),img:g0?g0.photo:null,gaa:g0?g0.gaa:null,rating:g0?'GAA '+g0.gaa:'no data'};
  return t}
-function newGame(){
+function newGame(att){
  const hi=+$('mh').value,ai=+$('ma').value,mode=$('mc').value;
  const hue=h=>`hsl(${h},68%,46%)`;let h1=hash(TEAMS[hi].abbr)%360,h2=hash(TEAMS[ai].abbr)%360;if(Math.abs(h1-h2)<50)h2=(h1+170)%360;
  const dist=(a,b)=>{const f=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));const x=f(a),y=f(b);return Math.abs(x[0]-y[0])+Math.abs(x[1]-y[1])+Math.abs(x[2]-y[2])};let c1=TEAMS[hi].color||hue(h1),c2=TEAMS[ai].color||hue(h2);const lum=h=>(.3*parseInt(h.substr(1,2),16)+.59*parseInt(h.substr(3,2),16)+.11*parseInt(h.substr(5,2),16))/255;if(c1[0]==='#'&&lum(c1)>.78&&TEAMS[hi].accent&&lum(TEAMS[hi].accent)<.78)c1=TEAMS[hi].accent;if(c2[0]==='#'&&lum(c2)>.78&&TEAMS[ai].accent&&lum(TEAMS[ai].accent)<.78)c2=TEAMS[ai].accent;
@@ -113,8 +164,8 @@ function newGame(){
  H1=mkTeam(TEAMS[hi],1,c1,mode==='h');A1=mkTeam(TEAMS[ai],-1,c2,mode==='a');H1.opp=A1;A1.opp=H1;
  puck={x:W/2,y:MY,vx:0,vy:0,owner:null,target:null,last:null,cool:0,shot:null};
  G={ev:{},period:1,plen:+$('ml').value,clock:+$('ml').value,score:[0,0],pause:0.01,over:false,ctlT:0,ot:false,hum:mode==='h'?H1:mode==='a'?A1:null,goals:[],shots:[0,0],saves:[0,0]};
- $('na').textContent=A1.abbr;$('nh').textContent=H1.abbr;$('na').style.borderBottom='3px solid '+A1.color;$('nh').style.borderBottom='3px solid '+H1.color;$('ia').src=A1.icon||'';$('ih').src=H1.icon||'';
- $('menu').style.display='none';$('end').style.display='none';$('ctl').style.display=G.hum?'block':'none';
+ $('na').textContent=A1.abbr;$('nh').textContent=H1.abbr;document.documentElement.style.setProperty('--ca',A1.color);document.documentElement.style.setProperty('--ch',H1.color);$('ia').src=A1.icon||'';$('ih').src=H1.icon||'';
+ if(!att){$('menu').style.display='none'}G.attract=!!att;$('end').style.display='none';$('ctl').style.display=(G.hum&&!att)?'block':'none';
  H1.needUnit=A1.needUnit=true;faceoff(true)}
 // ---------- units ----------
 const act=t=>{const k=Math.min(2,t.pen.length);return SL.filter(s=>!(k>=1&&s==='RW')&&!(k>=2&&s==='LW'))};
@@ -141,7 +192,7 @@ const onIce=t=>SL.map(s=>t.seats[s]).filter(Boolean);
 function callPenalty(t,p,why){if(t.pen.length>=2||!p||p.box)return;p.box=true;p.on=false;if(puck.owner===p)puck.owner=null;t.pen.push({p,t:120,why});t.needUnit=true;showBanner(p.img,`PENALTY ${t.abbr}`,`${p.name} - ${why} - 2:00`,1.6)}
 // ---------- faceoff ----------
 function faceoff(){G.fo={x:W/2,y:MY,set:false};G.pause=.01}
-function stopPlay(x,y,secs,why,sub){G.fo={x,y,set:false};G.pause=secs;puck.owner=null;puck.vx=puck.vy=0;puck.shot=null;puck.target=null;puck.rel=null;if(G.ev)G.ev[why]=(G.ev[why]||0)+1;if(why)showBanner(null,why,sub||'',secs,null)}
+function stopPlay(x,y,secs,why,sub){G.fo={x,y,set:false};G.pause=secs;puck.owner=null;puck.vx=puck.vy=0;puck.shot=null;puck.target=null;puck.rel=null;if(G.ev)G.ev[why]=(G.ev[why]||0)+1;if(why){showBanner(null,why,sub||'',secs,null);AU.sfx('whistle')}}
 function setupFaceoff(){const f=G.fo;puck.x=f.x;puck.y=f.y;puck.vx=puck.vy=0;puck.owner=null;puck.shot=null;puck.target=null;puck.rel=null;
  for(const t of [H1,A1]){t.needUnit=true;updateUnit(t);const d=t.dir,P={C:[-3.5,0],LW:[-13,-19],RW:[-13,19],LD:[-30,-12],RD:[-30,12]};
   for(const s of SL){const p=t.seats[s];if(!p)continue;p.x=clamp(f.x+d*P[s][0],12,W-12);p.y=clamp(f.y+P[s][1],6,H-6);p.vx=p.vy=0;p.stun=0;p.burst=0;p.fa=d>0?0:Math.PI}
@@ -156,10 +207,10 @@ function checkRules(px){const r=puck.rel;
   if(cr)for(const p of onIce(t)){if(p!==lt&&t.dir*(p.x-bl)>4){stopPlay(t.dir>0?120:80,puck.y<MY?22:63,1.8,'OFFSIDE',p.name.split(' ').pop()+' was in early');return true}}}
  return false}
 // ---------- banner ----------
-let banT=0;function showBanner(im,a,b,secs,col){const e=$('banner');$('bi').src=im||'';$('bi').style.display=im?'block':'none';$('bt1').textContent=a;$('bt2').textContent=b;e.style.borderColor=col||'rgba(79,209,197,.55)';e.style.boxShadow=col?'0 12px 40px rgba(0,0,0,.5),0 0 44px '+col:'';e.style.display='flex';e.classList.remove('pop');void e.offsetWidth;e.classList.add('pop');banT=secs}
+let banT=0;function showBanner(im,a,b,secs,col){const e=$('banner');$('bi').src=im||'';$('bi').style.display=(col&&im)?'block':'none';$('bt1').textContent=a;$('bt2').textContent=b;e.style.setProperty('--bc',col||'#2a6fd6');e.className=col?'goal':'evt';e.style.display='flex';void e.offsetWidth;e.classList.add('pop');banT=secs}
 // ---------- actions ----------
 const goalPos=t=>[t.oppGX,MY];
-function shoot(p,ix,iy,hum,pw){pw=pw||.8;if(G.shots)G.shots[p.team===H1?0:1]++;const t=p.team,dg=hyp(t.oppGX-p.x,MY-p.y);let ang;
+function shoot(p,ix,iy,hum,pw){pw=pw||.8;AU.sfx('shot');if(G.shots)G.shots[p.team===H1?0:1]++;const t=p.team,dg=hyp(t.oppGX-p.x,MY-p.y);let ang;
  const toG=Math.atan2(MY-p.y,t.oppGX-p.x),im=hyp(ix,iy);
  if(hum&&im>.4&&(ix*t.dir)<-.3)ang=Math.atan2(iy,ix);else{const ay=hum&&im>.3?MY+clamp(iy,-1,1)*4.5:MY+rnd(-4,4);ang=Math.atan2(ay-p.y,t.oppGX-p.x)}
  ang+=(Math.random()-.5)*((1-p.shot)*.5+dg/260)*(1.25-.5*(1-pw));const sp=(80+70*p.shot)*(.62+.45*pw);
@@ -167,7 +218,7 @@ function shoot(p,ix,iy,hum,pw){pw=pw||.8;if(G.shots)G.shots[p.team===H1?0:1]++;c
  for(const o of onIce(t.opp)){const dx=Math.cos(ang),dy=Math.sin(ang),rx=o.x-p.x,ry=o.y-p.y,al=rx*dx+ry*dy;if(al<5||al>26)continue;const dd=Math.abs(rx*dy-ry*dx);if(dd<2.6&&Math.random()<.18+.4*o.def){const a2=ang+rnd(-1.4,1.4);puck.vx=Math.cos(a2)*rnd(10,30);puck.vy=Math.sin(a2)*rnd(10,30);puck.shot=null;puck.rel=null;puck.cool=.3;noteT=1;noteTxt='BLOCKED by '+o.name.split(' ').pop();break}}}
 function pass(p,ix,iy){const t=p.team,im=hyp(ix,iy),ax=im>.3?ix/im:t.dir,ay=im>.3?iy/im:0;let best=null,bs=-9;
  for(const m of onIce(t)){if(m===p)continue;const dx=m.x-p.x,dy=m.y-p.y,d=hyp(dx,dy)||1,dot=(dx*ax+dy*ay)/d;if(dot<.3)continue;const s=dot-d/170;if(s>bs){bs=s;best=m}}
- if(!best)return false;const d0=hyp(best.x-p.x,best.y-p.y)||1,sp=clamp(80+d0*1.5,90,155)*(.92+.18*p.pass);let lx=best.x,ly=best.y;for(let k=0;k<3;k++){const dd=hyp(lx-p.x,ly-p.y),tt=dd/sp;lx=clamp(best.x+best.vx*tt*.95,8,W-8);ly=clamp(best.y+best.vy*tt*.95,3,H-3)}let a=Math.atan2(ly-p.y,lx-p.x)+(Math.random()-.5)*(1-p.pass)*.1;G.passFx={x1:p.x,y1:p.y,x2:best.x,y2:best.y,t:.4};
+ if(!best)return false;const d0=hyp(best.x-p.x,best.y-p.y)||1,sp=clamp(80+d0*1.5,90,155)*(.92+.18*p.pass);let lx=best.x,ly=best.y;for(let k=0;k<3;k++){const dd=hyp(lx-p.x,ly-p.y),tt=dd/sp;lx=clamp(best.x+best.vx*tt*.95,8,W-8);ly=clamp(best.y+best.vy*tt*.95,3,H-3)}let a=Math.atan2(ly-p.y,lx-p.x)+(Math.random()-.5)*(1-p.pass)*.1;G.passFx={x1:p.x,y1:p.y,x2:best.x,y2:best.y,t:.4};AU.sfx('pass');
  puck.owner=null;puck.vx=Math.cos(a)*sp;puck.vy=Math.sin(a)*sp;puck.x=p.x+Math.cos(a)*4.2;puck.y=p.y+Math.sin(a)*4.2;puck.target=best;puck.targetT=1.4;puck.last=p;puck.cool=.3;puck.shot=null;puck.rel={team:t,x:p.x};return true}
 // ---------- AI ----------
 function go(p,tx,ty,k=1){const dx=tx-p.x,dy=ty-p.y,d=hyp(dx,dy);if(d<1.5){p.dvx=p.dvy=0;return}const m=Math.min(1,d/6)*k;p.dvx=dx/d*m;p.dvy=dy/d*m}
@@ -197,13 +248,13 @@ function aiPlayer(p,dt){const t=p.team,o=t.opp,own=puck.owner;
  else if(own.team===o){if(rk===0){go(p,own.x+own.vx*.25,own.y+own.vy*.25,1);if(hyp(own.x-p.x,own.y-p.y)<5.5&&Math.random()<dt*.35*(.5+p.chk)&&!(p.hitT>0)){p.hitT=.5;p.burst=.4}}else if(rk===1&&hyp(own.x-p.x,own.y-p.y)<32)go(p,own.x-(own.x-t.ownGX)*.0+t.dir*0,own.y,.9);else formation(p,'def')}
  else{formation(p,'off')}}
 // ---------- update ----------
-function endPeriod(){if(G.ot){G.over=true;return finish()}
+function endPeriod(){AU.sfx('buzzer');if(G.ot){G.over=true;return finish()}
  if(G.period>=3){if(G.score[0]===G.score[1]){G.ot=true;G.period=4;G.clock=Math.min(120,G.plen);showBanner(null,'OVERTIME','Sudden death',2);faceoff();return}return finish()}
  G.period++;G.clock=G.plen;showBanner(null,`END OF PERIOD ${G.period-1}`,'',1.6);faceoff()}
 function finish(){G.over=true;const[a,b]=G.score;$('et').textContent=a===b?'TIE':(a>b?A1:H1).abbr===(a>b?H1:A1).abbr?'':'FINAL';
  $('et').textContent=a===b?'FINAL (TIE)':'FINAL';$('es').textContent=`${H1.abbr} ${b>=0?G.score[0]:0} - ${G.score[1]} ${A1.abbr}`;$('end').style.display='flex'}
 function goal(t,shooter){if(G.over)return;const idx=t===H1?0:1;G.score[idx]++;const sc=t.opp;if(sc.pen.length){const e=sc.pen.shift();e.p.box=false;sc.needUnit=true}
- showBanner(shooter&&shooter.img,`GOAL ${t.abbr}!`,shooter?`${shooter.num!=null?'#'+shooter.num+' ':''}${shooter.name} (${shooter.rating})`:'',2.6,t.color);shakeT=.7;{const f=$('flash');f.style.background=t.color;f.classList.remove('go');void f.offsetWidth;f.classList.add('go')}G.pause=2.6;G.fo={x:W/2,y:MY,set:false};puck.owner=null;puck.vx=puck.vy=0;
+ showBanner(shooter&&shooter.img,'GOAL',shooter?`${shooter.num!=null?'#'+shooter.num+' ':''}${shooter.name} \u00b7 ${t.name}`:t.name,2.6,t.color);shakeT=.7;G.cele={p:shooter,t:2.6};if(shooter)shooter.celeb=2.6;G.gfx={d:t.dir>0?-1:1,t:3.2};G.excite=1;AU.sfx('horn');AU.crowd(1);AU.speak('Goal! '+(shooter?shooter.name:t.name));{const f=$('flash');f.style.background=t.color;f.classList.remove('go');void f.offsetWidth;f.classList.add('go')}G.pause=2.6;G.fo={x:W/2,y:MY,set:false};puck.owner=null;puck.vx=puck.vy=0;
  if(G.ot){G.over=true;setTimeout(finish,1800)}}
 function keepIn(o,pad,bounce){const R=12,cx_=clamp(o.x,R,W-R),cy_=clamp(o.y,R,H-R),dx=o.x-cx_,dy=o.y-cy_,d=hyp(dx,dy);if(d>R-pad&&d>.001){const k=(R-pad)/d;o.x=cx_+dx*k;o.y=cy_+dy*k;if(bounce){const nx=dx/d,ny=dy/d,vn=o.vx*nx+o.vy*ny;if(vn>0){o.vx-=1.7*vn*nx;o.vy-=1.7*vn*ny}}}}
 function wrapA(a){return((a+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI}
@@ -256,7 +307,7 @@ function step(dt){
   for(const t of [H1,A1]){const gx=t.ownGX,inside=t.dir>0?(px>=gx&&puck.x<gx):(px<=gx&&puck.x>gx);
    if(inside&&puck.y>NY[0]&&puck.y<NY[1]&&puck.shot||inside&&puck.y>NY[0]&&puck.y<NY[1]&&hyp(puck.vx,puck.vy)>40){const g=t.goalie,dy=Math.abs(puck.y-g.y),reach=4.2+3.2*g.gl,sp=puck.shot?puck.shot:puck.last;
     const ps=dy<reach?clamp(.885+.14*(g.gl-.5)-.35*((sp?sp.shot:.5)-.5),.6,.97):0;
-    if(Math.random()<ps){const a=(t.dir>0?0:Math.PI)+rnd(-1.0,1.0);puck.x=gx+t.dir*4;const s=rnd(12,34);puck.vx=Math.cos(a)*s;puck.vy=Math.sin(a)*s;puck.shot=null;puck.rel=null;puck.cool=.5;G.saves[t===H1?0:1]++;noteT=1.2;noteTxt='SAVE '+g.name+(sp?' on '+sp.name:'');if(Math.random()<.3){stopPlay(t.dir>0?31:169,puck.y<MY?22:63,1.6,'WHISTLE','Goalie freezes the puck');return}}
+    if(Math.random()<ps){const a=(t.dir>0?0:Math.PI)+rnd(-1.0,1.0);puck.x=gx+t.dir*4;const s=rnd(12,34);puck.vx=Math.cos(a)*s;puck.vy=Math.sin(a)*s;puck.shot=null;puck.rel=null;puck.cool=.5;G.saves[t===H1?0:1]++;AU.sfx('save');noteT=1.2;noteTxt='SAVE '+g.name+(sp?' on '+sp.name:'');if(Math.random()<.3){stopPlay(t.dir>0?31:169,puck.y<MY?22:63,1.6,'WHISTLE','Goalie freezes the puck');return}}
     else{goal(t.opp,sp);return}}}
   if(checkRules(px))return;const L=t=>t.dir>0?puck.x<4:puck.x>W-4;if(puck.x<4){puck.x=4;puck.vx=Math.abs(puck.vx)*.6}if(puck.x>W-4){puck.x=W-4;puck.vx=-Math.abs(puck.vx)*.6}
   if(puck.shot&&hyp(puck.vx,puck.vy)<30)puck.shot=null;
@@ -267,7 +318,7 @@ function step(dt){
    const rate=1.25*(.3+d.chk)/(.3+(c.pass+c.spd)/2);if(Math.random()<rate*dt){puck.owner=d;puck.last=d;c.stun=.6;d.stun=.15;puck.cool=.2;break}
    if(Math.random()<.011*dt*60/60*1.0*(1+d.chk*.3)){callPenalty(d.team,d,['Hooking','Tripping','Slashing','Holding','Interference'][hash(d.id+G.clock|0)%5]);break}}}}
  // body checks
- for(const t of [H1,A1])for(const h of onIce(t)){if(h.hitT>0){h.hitT-=dt;for(const v of onIce(t.opp)){if(v.stun>.3)continue;const d=hyp(v.x-h.x,v.y-h.y);if(d<4.2){const was=puck.owner===v;const ux=(v.x-h.x)/(d||1),uy=(v.y-h.y)/(d||1);v.vx+=ux*30;v.vy+=uy*30;v.stun=1.1;h.stun=.25;h.hitT=0;if(was){puck.owner=null;puck.last=v;puck.cool=.25;puck.vx=ux*20+rnd(-8,8);puck.vy=uy*20+rnd(-8,8)}noteT=1.1;noteTxt=h.name.split(' ').pop()+' HITS '+v.name.split(' ').pop();if(!was&&Math.random()<.3)callPenalty(t,h,'Interference');break}}}}
+ for(const t of [H1,A1])for(const h of onIce(t)){if(h.hitT>0){h.hitT-=dt;for(const v of onIce(t.opp)){if(v.stun>.3)continue;const d=hyp(v.x-h.x,v.y-h.y);if(d<4.2){const was=puck.owner===v;const ux=(v.x-h.x)/(d||1),uy=(v.y-h.y)/(d||1);v.vx+=ux*30;v.vy+=uy*30;v.stun=1.1;h.stun=.25;h.hitT=0;if(was){puck.owner=null;puck.last=v;puck.cool=.25;puck.vx=ux*20+rnd(-8,8);puck.vy=uy*20+rnd(-8,8)}shakeT=.3;AU.sfx('hit');G.excite=Math.max(G.excite||0,.4);noteT=1.1;noteTxt=h.name.split(' ').pop()+' HITS '+v.name.split(' ').pop();if(!was&&Math.random()<.3)callPenalty(t,h,'Interference');break}}}}
  // goalies
  for(const t of [H1,A1]){const g=t.goalie,ty=clamp(puck.y,MY-9,MY+9);g.y+=clamp(ty-g.y,-1,1)*Math.min(Math.abs(ty-g.y),(30+16*g.gl)*dt)*1;g.x=t.ownGX+t.dir*clamp(3.2+(Math.abs(puck.x-t.ownGX)<40?1.5:0),3,5)}
 }
@@ -295,7 +346,7 @@ const fm=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
 function side(t){let s=`<b>${t.abbr}</b> ${t.label==='PK'?'<span class=pk>PK</span>':t.label.startsWith('PP')?'<span class=pp>'+t.label+'</span>':t.label}`;for(const e of t.pen)s+=`<br>BOX ${fm(e.t)} ${e.p.name.split(' ').pop()}`;if(ctl&&ctl.team===t)s+=`<br>STAM ${Math.round((ctl.st===undefined?1:ctl.st)*100)}%`;
  return s}
 function hud(){if(!G)return;if(input.sd)$('bs').style.transform=`scale(${1+clamp((performance.now()-input.sd)/700,0,1)*.3})`;$('ck').textContent=fm(G.clock);$('pd').textContent=G.ot?'OT':['','1st','2nd','3rd'][G.period];$('sh').textContent=G.score[0];$('sa').textContent=G.score[1];
- let a=side(H1),b=side(A1);if(noteT>0)b+=`<br><i>${noteTxt}</i>`;$('sl').innerHTML=a;$('sr').innerHTML=b;
+ let a=side(H1),b=side(A1);if(noteT>0)b+=`<br><i>${noteTxt}</i>`;$('sl').innerHTML=a;$('sr').innerHTML=b;{const ppT=(A1.pen.length>H1.pen.length)?[H1,A1]:(H1.pen.length>A1.pen.length)?[A1,H1]:null;let ss=`<span>SHOTS ${G.shots[1]} - ${G.shots[0]}</span>`;if(ppT){const tt=Math.min(...ppT[1].pen.map(e=>e.t));ss+=`<span class=ppx>${ppT[0].abbr} POWER PLAY ${fm(tt)}</span>`}$('sub').innerHTML=ss}AU.skate(ctl&&!G.attract?hyp(ctl.vx,ctl.vy)/36:0);
  if(banT>0){banT-=hdt;if(banT<=0)$('banner').style.display='none'}if(noteT>0)noteT-=hdt}
 // ---------- input ----------
 let hdt=.016;const jz=$('jz');let jid=null,jo=null;
@@ -305,11 +356,12 @@ const jend=e=>{if(e.pointerId!==jid)return;jid=null;input.x=input.y=0;$('jb').st
 const rel=()=>{if(input.sd){input.pw=clamp((performance.now()-input.sd)/700,.25,1);input.sd=0;input.shoot=1;$('bs').style.transform=''}};$('bs').addEventListener('pointerdown',e=>{e.preventDefault();input.sd=performance.now()});['pointerup','pointercancel','pointerleave'].forEach(n=>$('bs').addEventListener(n,rel));$('bh').addEventListener('pointerdown',e=>{e.preventDefault();input.hit=1});$('bc').addEventListener('pointerdown',e=>{e.preventDefault();input.sw=1});$('bp').addEventListener('pointerdown',e=>{e.preventDefault();input.pass=1});
 $('bt').addEventListener('pointerdown',e=>{e.preventDefault();if(G&&!G.over){const t=G.hum?G.hum.opp:A1;callPenalty(t,onIce(t)[2]||onIce(t)[0],'Tripping (test)')}});
 addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();input.sw=1;return}if(e.key===' '){e.preventDefault();if(!input.sd)input.sd=performance.now();return}keys[e.key.length===1?e.key.toLowerCase():e.key]=true});addEventListener('keyup',e=>{if(e.key===' '){rel();return}keys[e.key.length===1?e.key.toLowerCase():e.key]=false});
-$('go').onclick=newGame;$('again').onclick=()=>{$('end').style.display='none';$('menu').style.display='flex'};
+
 // ---------- loop ----------
 let last=performance.now();function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;hdt=dt;
  if(G){const n=Math.max(1,Math.round(SPEED));for(let i=0;i<n;i++)step(dt*(SPEED<1?SPEED:1));if(typeof THREE_OK!=='undefined'&&THREE_OK)draw3D(dt);else draw2D(dt);hud()}requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 if(qs.get('auto')){$('mc').value='n'}
-window.__step=step;addEventListener('load',()=>{if(typeof init3D==='function')init3D();if(THREE_OK&&typeof SK!=='undefined'&&!qs.get('procedural')){const b=$('go');b.disabled=true;b.textContent='LOADING PLAYERS...';SK.load(()=>{b.disabled=false;b.textContent='START';if(qs.get('auto'))b.click()})}else if(qs.get('auto'))$('go').click()});window.__dbg=()=>({G,H1,A1,puck});
-</script></body></html>
+window.__step=step;addEventListener('load',()=>{if(typeof init3D==='function')init3D();const done=()=>{if(window.onReady)window.onReady();if(qs.get('auto'))setTimeout(()=>$('go').click(),300)};if(THREE_OK&&typeof SK!=='undefined'&&!qs.get('procedural')){const b=$('go');b.disabled=true;b.textContent='LOADING...';SK.load(done)}else done()});window.__dbg=()=>({G,H1,A1,puck});
+</script>
+<script src="menu.js"></script></body></html>

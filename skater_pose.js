@@ -41,3 +41,14 @@ SK.apply = function (m, pose) {
     pose.hand_r.p = Math.asin(sin) - S.phi0; SK.setPose(m, pose);
   }
 };
+
+SK.celebPose = function (m, t) {
+  const a = SK.armRoll, bob = Math.abs(Math.sin(t * 9)) * .12;
+  return {
+    pelvis: { p: .05 }, spine_01: { p: -.05 }, spine_02: { p: -.12 }, spine_03: { p: -.18 }, neck_01: { p: -.1 }, Head: { p: -.15 },
+    thigh_l: { p: -.35, r: SK.abd.l * .18 }, calf_l: { p: .3, r: SK.abd.l * .18 }, foot_l: { p: 0 },
+    thigh_r: { p: -.35, r: SK.abd.r * .18 }, calf_r: { p: .3, r: SK.abd.r * .18 }, foot_r: { p: 0 },
+    upperarm_l: { o: 'rp', r: -a.l * .92, p: -.1 + bob }, lowerarm_l: { o: 'rp', r: -a.l * .92, p: -.2 + bob },
+    upperarm_r: { o: 'rp', r: -a.r * .92, p: -.1 + bob }, lowerarm_r: { o: 'rp', r: -a.r * .92, p: -.2 + bob }, hand_r: { p: 0 }
+  };
+};

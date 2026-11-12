@@ -196,7 +196,7 @@ SK.make = function (p, opts) {
   for (let i = 0; i < C.rid.length; i++) { const c = table[C.rid[i]]; ca[i * 3] = c.r; ca[i * 3 + 1] = c.g; ca[i * 3 + 2] = c.b; }
   cg.setAttribute('color', new THREE.BufferAttribute(ca, 3));
   const cmat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5, metalness: 0, skinning: true });
-  if (!MOB) { cmat.bumpMap = SK.fabric; cmat.bumpScale = 0.6; }
+  if (!MOB) { cmat.bumpMap = SK.fabric; cmat.bumpScale = 0.1; }
   const cloth = new THREE.SkinnedMesh(cg, cmat); cloth.frustumCulled = false; par.add(cloth); cloth.bind(body.skeleton, body.bindMatrix);
   const gk = opts.goalie ? 'g' : 's'; if (!SK.gear[gk]) SK.gear[gk] = SK.buildGear(!!opts.goalie); const G0 = SK.gear[gk];
   const gg = new THREE.BufferGeometry(); ['position', 'normal', 'skinIndex', 'skinWeight'].forEach(k => gg.setAttribute(k, G0.g.attributes[k])); gg.setIndex(G0.g.index);
