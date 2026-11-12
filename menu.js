@@ -42,7 +42,8 @@
     if (AU) AU.init(); sync(); document.body.classList.remove('inmenu'); document.body.classList.add('ingame');
     G && (G.attract = false); newGame(false);
   };
-  $('again').onclick = () => { $('end').style.display = 'none'; $('menu').style.display = 'flex'; document.body.classList.remove('ingame'); document.body.classList.add('inmenu'); attract(); };
+  window.showMenu = () => { $('end').style.display = 'none'; $('menu').style.display = 'flex'; document.body.classList.remove('ingame', 'netgame'); document.body.classList.add('inmenu'); attract(); };
+  $('again').onclick = window.showMenu;
   // settings / help
   $('bset').onclick = () => $('mset').style.display = 'flex'; $('setX').onclick = () => $('mset').style.display = 'none';
   $('bhelp').onclick = () => $('mhelp').style.display = 'flex'; $('helpX').onclick = () => $('mhelp').style.display = 'none';
