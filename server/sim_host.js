@@ -56,7 +56,7 @@ function teamSnap(t){
 function netSnap(){
   const hc = G.humans.map(h=>({side:h.side, p: pidOf(h.ctl)}));
   return { k:G.tick, c:r2(G.clock), pd:G.period, ot:G.ot?1:0, sc:G.score.slice(), sh:G.shots.slice(), pa: G.pause>0?r1(G.pause):0, fo: (G.fo&&G.fo.set&&!G.fo.dropped)?1:0, ov:G.over?1:0,
-    pk:[r1(puck.x), r1(puck.y), r1(puck.vx), r1(puck.vy), pidOf(puck.owner)], t:[teamSnap(H1), teamSnap(A1)], nt: noteT>0?noteTxt:'', hc: hc };
+    pk:(puck.z>0.05?[r1(puck.x), r1(puck.y), r1(puck.vx), r1(puck.vy), pidOf(puck.owner), r1(puck.z)]:[r1(puck.x), r1(puck.y), r1(puck.vx), r1(puck.vy), pidOf(puck.owner)]), t:[teamSnap(H1), teamSnap(A1)], nt: noteT>0?noteTxt:'', hc: hc };
 }
 function netTick(){ G.tick++; step(1/30); const o = JSON.stringify({ s: netSnap(), ev: EVQ }); EVQ.length = 0; return o; }
 function netSummary(){ return JSON.stringify({ n: TEAMS.length, teams: TEAMS.map(t=>({abbr:t.abbr,name:t.name,color:t.color,n:t.players.length})) }); }

@@ -23,6 +23,13 @@ AR.init = function () {
   }
   AR.mm2 = new THREE.Matrix4(); AR.qR = new THREE.Quaternion(); AR.ax = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
   AR.curlAng = { index: [0.95, 1.15, 0.8], middle: [0.95, 1.15, 0.8], ring: [0.95, 1.15, 0.8], pinky: [0.95, 1.15, 0.8], thumb: [0.5, 0.55, 0.4] };
+  AR.llen = {}; AR.ballOff = {}; AR.ballRestY = Math.min(SK.restP.ball_l.y, SK.restP.ball_r.y);
+  for (const s of ['l', 'r']) {
+    const th = 'thigh_' + s, ca = 'calf_' + s, ft = 'foot_' + s;
+    AR.llen[s] = { l1: SK.restP[th].distanceTo(SK.restP[ca]), l2: SK.restP[ca].distanceTo(SK.restP[ft]) };
+    AR.dir[th] = SK.restP[ca].clone().sub(SK.restP[th]).normalize();
+    AR.dir[ca] = SK.restP[ft].clone().sub(SK.restP[ca]).normalize();
+  }
   AR.ready = true;
 };
 
@@ -73,6 +80,37 @@ AR.arm = function (m, s, Tg, pole, pose) {
   AR.qa.setFromUnitVectors(AR.dir[la], d2); q[la].copy(AR.qa).multiply(SK.restW[la]);
   pose[ua] = pose[ua] || {}; pose[la] = pose[la] || {}; pose[ua].q = q[ua]; pose[la].q = q[la];
   return Math.max(0, S.distanceTo(Tg) - (L.l1 + L.l2));
+};
+
+
+/* ---------- legs: two-bone hip-knee-ankle IK, ice contact, planted-foot hold ----------
+   Runs after the FK skating pose (pass 1). The FK ankle and knee are the starting point (so the knee bends the way the FK pose bent it);
+   D[s] = {x,y,z (root-space offset of the ankle target), pw (plant weight 0..1)}. Output: world quaternions for thigh/calf in pose (foot keeps its FK blade orientation).
+   Returns per-leg { reach: unreachable metres, lift: metres raised to keep the blade off the ice }. */
+AR.legs = function (m, an, pose, D, iceY) {
+  const out = an.legRes || (an.legRes = { l: { reach: 0, lift: 0 }, r: { reach: 0, lift: 0 } }), q = an.q, pl = an.plant || (an.plant = { l: { on: false, w: new THREE.Vector3() }, r: { on: false, w: new THREE.Vector3() } });
+  const H = AR.t.d, K = AR.t.e, A = AR.t.f, T = AR.t.g, Bo = AR.t.h, P = AR.t.i, W = AR.t.j;
+  for (const s of ['l', 'r']) {
+    const th = 'thigh_' + s, ca = 'calf_' + s, L = AR.llen[s], d = D[s], r = out[s];
+    AR.pos(m, th, H); AR.pos(m, ca, K); AR.pos(m, 'foot_' + s, A); AR.pos(m, 'ball_' + s, Bo); Bo.sub(A);
+    P.copy(K).sub(H);                                            // pole = FK knee direction
+    T.copy(A).add(d);
+    // planted foot: hold its world xz while the skater is (nearly) still
+    const st = pl[s];
+    if (d.pw > 0.5 && !st.on) { W.copy(A); m.root.localToWorld(W); st.w.copy(W); st.on = true; } else if (d.pw < 0.25) st.on = false;
+    if (st.on) { W.copy(st.w); m.root.worldToLocal(W); T.x += (W.x - T.x) * d.pw; T.z += (W.z - T.z) * d.pw; }
+    // ice contact: ankle and toe-ball may not sink below their rest heights above the ice
+    const minA = iceY + SK.footRestY, minB = iceY + AR.ballRestY;
+    let lift = Math.max(0, minA - T.y, minB - (T.y + Bo.y)); r.lift = lift; T.y += lift;
+    const e = AR.elbow(H, T, L.l1, L.l2, P, AR.t.a2 || (AR.t.a2 = new THREE.Vector3()));
+    r.reach = Math.max(0, H.distanceTo(T) - (L.l1 + L.l2));
+    const d1 = AR.t.b2 || (AR.t.b2 = new THREE.Vector3()), d2 = AR.t.c2 || (AR.t.c2 = new THREE.Vector3());
+    d1.copy(e).sub(H).normalize(); q[th] = q[th] || new THREE.Quaternion(); AR.qa.setFromUnitVectors(AR.dir[th], d1); q[th].copy(AR.qa).multiply(SK.restW[th]);
+    // if the leg is fully stretched the ankle lands short of T along the line; calf still points at T
+    d2.copy(T).sub(e).normalize(); q[ca] = q[ca] || new THREE.Quaternion(); AR.qa.setFromUnitVectors(AR.dir[ca], d2); q[ca].copy(AR.qa).multiply(SK.restW[ca]);
+    pose[th] = { q: q[th] }; pose[ca] = { q: q[ca] };
+  }
+  return out;
 };
 
 /* ---------- the stick: a free object. Shaft + blade + tape, in root space ---------- */

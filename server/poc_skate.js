@@ -1,42 +1,57 @@
 'use strict';
-// Proof of concept: current skate() versus a prototype with edge-radius turning, a grip budget and a real hockey stop
-// (ideas from docs/research/02_skating.md). Measures time to speed, stop distance, turn radius at speed, and backskate entry.
-// The prototype is NOT integrated into the game; this only compares the numbers.
+// Skating numeric test: runs the REAL skate() from game.html in the sim vm, OLD (SKATE2=false) vs NEW (SKATE2=true).
+// Prints a before/after table and asserts on the NEW model. Exit code 1 on any failed assertion.
 const { createSim } = require('./sim_host'); const vm = require('vm');
 const s = createSim(); s.start({ home: 0, away: 9, plen: 120 }); for (let i = 0; i < 90; i++) s.tick();
-const cur = (name, setup) => JSON.parse(vm.runInContext(`(()=>{const p=H1.seats.C;p.x=60;p.y=MY;p.vx=p.vy=0;p.fa=0;p.vis=false;p.box=false;puck.owner=null;${setup};})()`, s.ctx));
-const run = code => vm.runInContext(code, s.ctx);
-const MX = 40, dt = 1 / 60;
-// --- current implementation ---
-const A = JSON.parse(run(`(()=>{const p=H1.seats.C;const o={};p.x=60;p.y=MY;p.vx=p.vy=0;p.fa=0;p.dvx=1;p.dvy=0;let t=0;for(;t<6;t+=1/60){skate(p,1/60,${MX});p.x+=p.vx/60;if(Math.hypot(p.vx,p.vy)>${MX}*.9)break}o.t90=+t.toFixed(2);
- // stop: release input at full speed
- p.dvx=0;p.dvy=0;let x0=p.x,ts=0;for(;ts<8;ts+=1/60){skate(p,1/60,${MX});p.x+=p.vx/60;if(Math.hypot(p.vx,p.vy)<2)break}o.stopT=+ts.toFixed(2);o.stopD=+(p.x-x0).toFixed(1);
- // hard reverse input at speed (hockey stop style)
- p.vx=${MX};p.vy=0;p.fa=0;p.dvx=-1;p.dvy=0;x0=p.x;ts=0;for(;ts<8;ts+=1/60){skate(p,1/60,${MX});p.x+=p.vx/60;if(Math.hypot(p.vx,p.vy)<2)break}o.revStopT=+ts.toFixed(2);o.revStopD=+(p.x-x0).toFixed(1);
- // turn radius at speed: full speed then 90 degree input
- p.vx=${MX};p.vy=0;p.fa=0;p.dvx=0;p.dvy=1;let px=p.x,py=p.y,tt=0,maxd=0;for(;tt<3;tt+=1/60){skate(p,1/60,${MX});p.x+=p.vx/60;p.y+=p.vy/60;if(Math.abs(p.fa-Math.PI/2)<.1)break}o.turn90T=+tt.toFixed(2);o.turn90Dx=+(p.x-px).toFixed(1);o.turn90Dy=+(p.y-py).toFixed(1);return JSON.stringify(o)})()`));
-// --- prototype: edge radius turning with grip budget and hard-edge stop ---
-function skate2(p, dt, mx, inp) {
-  const des = Math.min(1, Math.hypot(inp.x, inp.y)), fx = Math.cos(p.fa), fy = Math.sin(p.fa);
-  let vf = p.vx * fx + p.vy * fy, vl = -p.vx * fy + p.vy * fx;
-  const ta = Math.atan2(inp.y, inp.x); let diff = ta - p.fa; while (diff > Math.PI) diff -= 2 * Math.PI; while (diff < -Math.PI) diff += 2 * Math.PI;
-  if (des > .08) {
-    const sp = Math.hypot(p.vx, p.vy);
-    if (Math.abs(diff) > 2.0 && sp > 14) {          // hockey stop: hard edge, big lateral drag, little turning
-      const grip = Math.exp(-14 * dt); vf *= Math.exp(-3.2 * dt); vl *= grip;
-    } else {
-      const Rmin = 3.2 + 0.11 * Math.max(0, vf), edge = Math.max(-1, Math.min(1, diff / 0.9));
-      const yaw = (Math.abs(vf) > 1 ? vf : 6) / (Rmin / Math.max(.15, Math.abs(edge)));
-      p.fa += Math.sign(edge) * Math.min(Math.abs(yaw), 9) * dt;
-      const tgt = des * mx * (.55 + .45 * Math.cos(diff)), a = (36 * (1 - Math.pow(Math.max(0, Math.min(1, vf / mx)), 1.4)) + 6);
-      vf = vf < tgt ? Math.min(tgt, vf + a * dt) : Math.max(tgt, vf - 48 * dt);
-      vl *= Math.exp(-(4 + 9 * (1 - Math.min(1, sp / mx))) * dt);
-    }
-  } else { vf *= Math.exp(-.6 * dt); vl *= Math.exp(-6 * dt); }
-  const fx2 = Math.cos(p.fa), fy2 = Math.sin(p.fa); p.vx = vf * fx2 - vl * fy2; p.vy = vf * fy2 + vl * fx2;
+const MX = 40;
+function scen(flag, MX) {
+  SKATE2 = flag; const dt = 1 / 60, p = H1.seats.C, O = {};
+  const reset = (vx, vy, fa, carry) => { p.x = 100; p.y = MY; p.vx = vx; p.vy = vy; p.fa = fa; p.vis = false; p.box = false; p.spd = .5; p.isCtl = false; p.stpOn = false; p.stp = 0; p.ph = 0; p.turn = 0; puck.owner = carry ? p : null; p.dvx = p.dvy = 0 };
+  const step = (ix, iy) => { p.dvx = ix; p.dvy = iy; skate(p, dt, MX); p.x += p.vx * dt; p.y += p.vy * dt };
+  const spd = () => Math.hypot(p.vx, p.vy);
+  // accel
+  reset(0, 0, 0); let t = 0; for (; t < 8; t += dt) { step(1, 0); if (spd() > MX * .9) break } O.t90 = +t.toFixed(2);
+  // coast from MX
+  reset(MX, 0, 0); let x0 = p.x; t = 0; for (; t < 20; t += dt) { step(0, 0); if (spd() < 2) break } O.coastT = +t.toFixed(2); O.coastD = +(p.x - x0).toFixed(1);
+  // hockey stop from v (hold reverse input 4 s)
+  for (const v of [15, 25, 40]) {
+    reset(v, 0, 0); x0 = p.x; let T = -1, minS = 1e9, maxSpAfter = 0, angMax = 0, ph0 = 0, stpMax = 0, spray = false, phAtStop = 0;
+    for (t = 0; t < 4; t += dt) { step(-1, 0); const sv = spd(); if (sv < minS) minS = sv; if (T < 0 && sv < 2) { T = t; O['stopD' + v] = +(p.x - x0).toFixed(1); } if (T < 0 && sv > 4) { const a = Math.abs(wrapA(Math.atan2(p.vy, p.vx) - p.fa)); if (a > angMax) angMax = a } stpMax = Math.max(stpMax, p.stp || 0); if (p.spray) spray = true }
+    O['stopT' + v] = T < 0 ? 99 : +T.toFixed(2); O['stopMin' + v] = +minS.toFixed(2); O['stopAng' + v] = +angMax.toFixed(2); O['stopStp' + v] = +stpMax.toFixed(2); O['stopSpray' + v] = spray;
+  }
+  // 90 degree turn at speed (input perpendicular held): arc length / angle, time, peak lateral slip
+  for (const v of [15, 25, 40]) {
+    reset(v, 0, 0); let L = 0, pk = 0, tt = 0, ok = false; for (; tt < 5; tt += dt) { const sx = p.x, sy = p.y; step(0, 1); L += Math.hypot(p.x - sx, p.y - sy); const fx = Math.cos(p.fa), fy = Math.sin(p.fa); pk = Math.max(pk, Math.abs(-p.vx * fy + p.vy * fx)); if (Math.atan2(p.vy, p.vx) > Math.PI / 2 * .95) { ok = true; break } }
+    O['turnR' + v] = ok ? +(L / (Math.PI / 2 * .95)).toFixed(1) : 99; O['turnT' + v] = +tt.toFixed(2); O['slip' + v] = +pk.toFixed(1); O['turnEnd' + v] = +spd().toFixed(1);
+  }
+  // 180 pivot with puck from rest and at 10 ft/s
+  for (const v of [0, 10]) { reset(v, 0, 0, true); let tt = 0; for (; tt < 4; tt += dt) { step(-1, 0); if (Math.abs(wrapA(p.fa - Math.PI)) < .15) break } O['pivT' + v] = +tt.toFixed(2); O['pivSp' + v] = +spd().toFixed(1) }
+  // fwd to back (no puck) from 10 ft/s fwd; back to fwd from 10 ft/s back
+  reset(10, 0, 0); t = 0; for (; t < 4; t += dt) { step(-1, 0); if (p.vx < -3) break } O.f2b = +t.toFixed(2);
+  reset(-10, 0, 0); t = 0; for (; t < 4; t += dt) { step(1, 0); if (p.vx > 3) break } O.b2f = +t.toFixed(2);
+  // lateral movement: from rest, input straight up (facing +x); how far sideways drift vs time to move 10 ft
+  reset(0, 0, 0); let y0 = p.y; t = 0; for (; t < 5; t += dt) { step(0, 1); if (Math.abs(p.y - y0) > 10) break } O.lat10 = +t.toFixed(2);
+  // stride phase: advances skating, frozen while coasting
+  reset(30, 0, 0); let acc = 0, pl = p.ph; for (let i = 0; i < 60; i++) { step(1, 0); acc += (p.ph - pl + 6.2832) % 6.2832; pl = p.ph } O.phSkate = +acc.toFixed(2); const pa = p.ph; for (let i = 0; i < 60; i++)step(0, 0); O.phCoastDelta = +Math.abs(p.ph - pa).toFixed(3);
+  return JSON.stringify(O);
 }
-const B = {}; { const p = { x: 60, y: 0, vx: 0, vy: 0, fa: 0 }; let t = 0; for (; t < 6; t += 1 / 60) { skate2(p, dt, MX, { x: 1, y: 0 }); p.x += p.vx * dt; if (Math.hypot(p.vx, p.vy) > MX * .9) break; } B.t90 = +t.toFixed(2);
-  p.vx = MX; p.vy = 0; p.fa = 0; let x0 = p.x, ts = 0; for (; ts < 8; ts += 1 / 60) { skate2(p, dt, MX, { x: 0, y: 0 }); p.x += p.vx * dt; if (Math.hypot(p.vx, p.vy) < 2) break; } B.stopT = +ts.toFixed(2); B.stopD = +(p.x - x0).toFixed(1);
-  p.vx = MX; p.vy = 0; p.fa = 0; x0 = p.x; ts = 0; for (; ts < 8; ts += 1 / 60) { skate2(p, dt, MX, { x: -1, y: 0 }); p.x += p.vx * dt; if (Math.hypot(p.vx, p.vy) < 2) break; } B.revStopT = +ts.toFixed(2); B.revStopD = +(p.x - x0).toFixed(1);
-  p.vx = MX; p.vy = 0; p.fa = 0; let px = p.x, py = p.y, tt = 0; for (; tt < 3; tt += 1 / 60) { skate2(p, dt, MX, { x: 0, y: 1 }); p.x += p.vx * dt; p.y += p.vy * dt; if (Math.abs(p.fa - Math.PI / 2) < .1) break; } B.turn90T = +tt.toFixed(2); B.turn90Dx = +(p.x - px).toFixed(1); B.turn90Dy = +(p.y - py).toFixed(1); }
-console.log('current  ', JSON.stringify(A)); console.log('prototype', JSON.stringify(B));
+const run = f => JSON.parse(vm.runInContext(`(${scen})(${f},${MX})`, s.ctx));
+const A = run(false), B = run(true); vm.runInContext('SKATE2=true', s.ctx);
+const keys = Object.keys(B); console.log('metric'.padEnd(16) + 'OLD'.padEnd(10) + 'NEW');
+for (const k of keys) console.log(k.padEnd(16) + String(A[k]).padEnd(10) + String(B[k]));
+// --- assertions on NEW ---
+let bad = 0; const chk = (c, m) => { if (!c) { bad++; console.error('FAIL: ' + m) } };
+// stop checker, reusable so a fake "just turn around" stop is shown to FAIL it
+const stopOk = (T, minS, D, v) => T > 0 && T < 3 && minS < 2 && D > 0.5;
+chk(!stopOk(99, 25, 60, 25), 'checker must reject a skater who just turns around and keeps skating');
+for (const v of [15, 25, 40]) { chk(stopOk(B['stopT' + v], B['stopMin' + v], B['stopD' + v], v), 'hockey stop ' + v + ' must end with speed < 2 within 3s: T=' + B['stopT' + v]); chk(B['stopStp' + v] > .5, 'p.stp must engage at ' + v); chk(B['stopAng' + v] > 1.2 && B['stopAng' + v] < 1.95, 'body ~90deg across travel at ' + v + ': ' + B['stopAng' + v]) }
+chk(B.stopT40 >= 0.9, 'no instant stop from 40 ft/s: ' + B.stopT40); chk(B.stopD40 >= 15, 'stop distance from 40 too short: ' + B.stopD40);
+chk(B.stopT15 < B.stopT25 && B.stopT25 < B.stopT40, 'stop time must scale with speed'); chk(B.stopD15 < B.stopD25 && B.stopD25 < B.stopD40, 'stop distance must scale with speed');
+chk(B.stopSpray40 === true, 'spray flag at 40'); chk(B.stopSpray15 === true || B.stopSpray15 === false, '');
+chk(B.turnR15 < B.turnR25 && B.turnR25 < B.turnR40, 'turn radius must grow with speed: ' + [B.turnR15, B.turnR25, B.turnR40]); chk(B.turnR40 >= 1.5 * B.turnR15, 'radius growth too small');
+chk(B.slip40 > 2, 'grip budget: expected lateral slip at 40 during a hard turn: ' + B.slip40); chk(B.slip40 > B.slip15, 'slip must grow with speed');
+chk(B.turnEnd40 > 14, 'a 90 degree carve at 40 must not be a stop: ' + B.turnEnd40);
+chk(B.t90 > 1 && B.t90 < 4, 'time to 90% speed: ' + B.t90); chk(B.coastT > 4, 'coast should glide: ' + B.coastT);
+chk(B.pivT0 < 1 && B.pivT10 < 1.2, 'pivot too slow'); chk(B.f2b < 1.5 && B.b2f < 1.5, 'fwd/back transitions too slow'); chk(B.lat10 < 3, 'lateral move too slow');
+chk(B.phSkate > 5 && B.phCoastDelta < .001, 'stride phase must advance only when skating');
+console.log(bad ? bad + ' FAILED' : 'poc_skate: all assertions passed'); process.exit(bad ? 1 : 0);

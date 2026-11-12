@@ -22,7 +22,7 @@ ANIM.make = function (m, p) {
   m.an = {
     ph: _hv(id, 7) * 6, tHand: _hv(id, 8) * 6, evId: 0, ev: null, prevVf: 0, dec: 0, cush: 0, recvT: 0, fall: null,
     v: { stride: 0.94 + 0.12 * _hv(id, 1), crouch: -0.04 + 0.08 * _hv(id, 2), sway: 0.7 + 0.6 * _hv(id, 3), carry: 0.8 + 0.4 * _hv(id, 4), topR: _hv(id, 5) > 0.5, stopSide: _hv(id, 6) > 0.5 ? 1 : -1, wind: 0.85 + 0.3 * _hv(id, 9) },
-    s: { pivot: 0, carry: 0, free: 0, stop: 0, crouch: 0.5, faceoff: 0, recv: 0, prot: 0, yaw: 0, lean: 0, acc: 0, charge: 0, flail: 0, back: 0, pre: 0, brace: 0, lunge: 0, shuf: 0 },
+    s: { pivot: 0, carry: 0, free: 0, stop: 0, crouch: 0.5, faceoff: 0, recv: 0, prot: 0, yaw: 0, lean: 0, acc: 0, charge: 0, flail: 0, back: 0, pre: 0, brace: 0, lunge: 0, shuf: 0, drive: 0, plant: 0, load: 0, fat: 0 },
     q: { upperarm_l: new THREE.Quaternion(), lowerarm_l: new THREE.Quaternion(), upperarm_r: new THREE.Quaternion(), lowerarm_r: new THREE.Quaternion(), hand_l: new THREE.Quaternion(), hand_r: new THREE.Quaternion() }, pivPh: 0,
     state: 'ready', metrics: null, gainT: 9, od: -1, clos: 0, pfv: 3, psv: 0
   };
@@ -61,15 +61,24 @@ ANIM.apply = function (m, p, c, dt) {
   const decel = (vfPrev - an.vfs) / Math.max(dt, 1e-3);
   _sm(an, 'dec', Math.max(0, decel), 26, dt);
   an.stopHold = (an.dec > 55 && sp > 14 && an.vfs > 6) ? (an.stopHold || 0) + dt : 0;
-  const stopT = an.stopHold > 0.035 ? 1 : 0; _sm(S, 'stop', stopT, stopT ? 22 : 5, dt);
+  const stp = +p.stp > 0 ? _cl(+p.stp, 0, 1) : 0;                 // sim stop intensity (Agent A), 0 if absent
+  const stopT = (an.stopHold > 0.035 || (stp > 0.3 && sp > 8)) ? 1 : 0; _sm(S, 'stop', stopT, stopT ? 22 : 5, dt);
+  an.spray = S.stop * _cl(sp / 18, 0, 1) * Math.max(0.5, stp);   // render hook: ice spray intensity 0..1 (nothing consumes it yet)
   const turn = p.turn || 0, xo = _cl((Math.abs(turn) - 1.4) / 1.2, 0, 1) * (sp > 10 ? 1 : 0);
-  _sm(S, 'lean', -_cl(turn * 0.11 * Math.min(1, sp / 18), -0.8, 0.8), 9, dt);
+  const edgeIn = typeof p.edge === 'number' && isFinite(p.edge) ? _cl(p.edge, -1, 1) : null;   // sim edge (-1..1, same sign as turn); fallback derives from turn
+  _sm(S, 'lean', -(edgeIn !== null ? _cl(edgeIn * 0.8, -0.8, 0.8) * Math.min(1, sp / 12) : _cl(turn * 0.11 * Math.min(1, sp / 18), -0.8, 0.8)), 9, dt);
   _sm(S, 'acc', p.acc01 || 0, 10, dt);
   _sm(S, 'back', p.back ? 1 : 0, 8, dt);                  // A2: back flag as a 0..1 blend
+  // drive: are the legs working? coasting (no accel input and slowing) lets the stride freeze; cruising / accelerating / backing keeps it going
+  const fatI = _cl(+p.fat || 0, 0, 1); _sm(S, 'fat', fatI, 2, dt);
+  const coast = ((p.acc01 || 0) < 0.05 && an.dec > 1.2 && !p.back && sp > 1.2) ? 1 : 0;
+  _sm(S, 'drive', sp > 1.2 && !coast ? 1 : 0, coast ? 5 : 9, dt);
   if (sp > 1.2) {
-    if (an.still) { an.ph = 0; an.still = false; }         // A3: first push from standstill starts the cycle at 0
+    if (an.still) { if (S.drive < 0.05) an.ph = 0; an.still = false; }   // A3: first push from standstill starts the cycle at 0 (only once the legs have settled, so no pop)
     const boost = 1 + 0.25 * _cl(((p.acc01 || 0) - 0.3) / 0.4, 0, 1);   // A3: faster cadence while accelerating
-    an.ph += dt * (2.2 + sp * 0.13) * V.stride * boost * (1 - 1.55 * S.back);
+    const simPh = typeof p.ph === 'number' && isFinite(p.ph);      // sim stride phase (radians) when available, else integrate from speed
+    if (simPh) an.ph = p.ph * (ANIM.simPhScale || 1);
+    else an.ph += dt * (2.2 + sp * 0.13) * V.stride * boost * (1 - 0.18 * S.fat) * (1 - 1.55 * S.back) * S.drive * S.drive;
   } else an.still = true;
   an.tHand += dt * (7 + 4 * s01);
   const sgn = V.topR ? -1 : 1;                         // lateral side of the stick (left = +1)
@@ -185,14 +194,14 @@ ANIM.apply = function (m, p, c, dt) {
 
   // ---------- 4. base pose: legs + torso (existing skating layer) + modifiers ----------
   const lean = S.lean;
-  const pose = SK.skatePose(m, an.ph, s01, lean, S.acc, S.back);
+  const pose = SK.skatePose(m, an.ph, s01, lean, S.acc, S.back, S.drive * (1 - 0.25 * S.fat));
   for (const k of ['upperarm_l', 'lowerarm_l', 'upperarm_r', 'lowerarm_r', 'hand_r']) delete pose[k];
-  const ex = crouch - 0.5 + 0.1;                                    // extra flexion beyond the skating pose
+  const ex = crouch - 0.5 + 0.1 + 0.28 * S.stop;                                    // extra flexion beyond the skating pose
   for (const sd of ['l', 'r']) { pose['thigh_' + sd].p -= 0.5 * ex; pose['calf_' + sd].p += 0.45 * ex; }
   // weight transfer: front leg (opposite the stick hand) loads when eWeight > 0, the back leg drives; negative = loaded onto the back leg
   { const fr = sgn > 0 ? 'r' : 'l', rr = fr === 'l' ? 'r' : 'l'; pose['thigh_' + fr].p -= 0.15 * eWeight; pose['calf_' + fr].p += 0.2 * eWeight; pose['thigh_' + rr].p += 0.1 * eWeight; pose['calf_' + rr].p -= 0.15 * eWeight; }
   // backskating: hips open toward the travel direction, legs follow with a wide C-cut (toes alternate), torso stays square to the attacker
-  const bkA = S.back, hipOpen = 0.5 * bkA * V.stopSide * YL, lobeL = Math.max(0, Math.sin(an.ph)), lobeR = Math.max(0, -Math.sin(an.ph));
+  const bkA = S.back, hipOpen = 0.5 * bkA * V.stopSide * YL, lobeL = Math.max(0, Math.sin(an.ph)) * S.drive, lobeR = Math.max(0, -Math.sin(an.ph)) * S.drive;
   for (const sd of ['l', 'r']) {
     pose['thigh_' + sd].r += SK.abd[sd] * eStance;
     if (bkA > 0.01) { const lobe = sd === 'l' ? lobeL : lobeR; pose['thigh_' + sd].y = hipOpen * 0.9 + SK.abd[sd] * (0.12 + 0.4 * lobe) * bkA; pose['calf_' + sd].y = pose['thigh_' + sd].y; }
@@ -210,9 +219,9 @@ ANIM.apply = function (m, p, c, dt) {
     pose['foot_' + sd] = { p: pose['foot_' + sd].p, y: beta * (1 - S.stop) - Math.sign(turn || 1) * YL * 0.5 * lift + (pose['thigh_' + sd].y || 0) * (0.6 + 0.3 * S.back), r: edge - pose['thigh_' + sd].r * 0.35 };
   }
   if (xo > 0) for (const sd of ['l', 'r']) { const outside = (sd === 'l') === (lean < 0); if (outside) { pose['thigh_' + sd].r *= (1 - 1.9 * xo); pose['calf_' + sd].r = pose['thigh_' + sd].r; } }
-  const sway = Math.sin(an.ph) * 0.12 * s01 * V.sway * SK.rollLeft;   // A5: load the stance leg
-  pose.pelvis.r += sway - SK.rollLeft * 0.08 * eWeight + SK.rollLeft * (eRoll + (c.vlat > 0 ? 1 : -1) * 0.14 * S.shuf) * 0.4; { const rr = SK.rollLeft * (eRoll + (c.vlat > 0 ? 1 : -1) * 0.14 * S.shuf) * 0.2; pose.spine_01.r += rr; pose.spine_02.r += rr; pose.spine_03.r += rr; } pose.spine_01.r -= sway * 0.5; pose.spine_02.r -= sway * 0.7; pose.spine_03.r -= sway * 0.7;
-  const pit = ePitch + 0.4 * S.faceoff + 0.06 * S.stop; pose.pelvis.p += 0.2 * pit + 0.08 * ex; pose.spine_01.p += 0.35 * pit; pose.spine_02.p += 0.35 * pit; pose.spine_03.p += 0.35 * pit + 0.1 * S.faceoff;
+  const sway = Math.sin(an.ph) * S.drive * 0.12 * s01 * V.sway * SK.rollLeft;   // A5: load the stance leg
+  pose.pelvis.r += SK.rollLeft * V.stopSide * YL * 0.22 * S.stop + sway - SK.rollLeft * 0.08 * eWeight + SK.rollLeft * (eRoll + (c.vlat > 0 ? 1 : -1) * 0.14 * S.shuf) * 0.4; { const rr = SK.rollLeft * (eRoll + (c.vlat > 0 ? 1 : -1) * 0.14 * S.shuf) * 0.2; pose.spine_01.r += rr; pose.spine_02.r += rr; pose.spine_03.r += rr; } pose.spine_01.r -= sway * 0.5; pose.spine_02.r -= sway * 0.7; pose.spine_03.r -= sway * 0.7;
+  const pit = ePitch + 0.4 * S.faceoff - 0.22 * S.stop + 0.35 * S.acc * (1 - s01) * S.drive; pose.pelvis.p += 0.2 * pit + 0.08 * ex; pose.spine_01.p += 0.35 * pit; pose.spine_02.p += 0.35 * pit; pose.spine_03.p += 0.35 * pit + 0.1 * S.faceoff;
   const Y = S.yaw; pose.pelvis.y = Y * 0.25 + hipOpen; pose.spine_01.y = Y * 0.5 + hipOpen * 0.5; pose.spine_02.y = Y * 0.8; pose.spine_03.y = Y;
   // head: looks at the puck / the target, kept level against the body twist
     pose.neck_01.y = -Y * 0.3 + eHead * 0.4 * YL; pose.Head.y = -Y * 0.35 + eHead * 0.5 * YL; pose.Head.p = -0.1 + 0.3 * S.faceoff - 0.4 * ePitch;
@@ -225,7 +234,30 @@ ANIM.apply = function (m, p, c, dt) {
   m.root.rotation.z = fallA;
 
   // ---------- 5. pass 1: legs/torso into the skeleton, ground contact, read shoulders ----------
-  SK.setPose(m, pose); SK.ground(m); m.g.updateMatrixWorld(true);
+  SK.setPose(m, pose); SK.ground2(m); m.g.updateMatrixWorld(true);
+  { // ---- legs IK: add push-off / recovery swing / backward placement / turn loading, plant the feet when (nearly) still, keep the blades on the ice ----
+    const ice0 = -m.root.position.y, Fq = X.Fb.copy(SK.F).applyAxisAngle(SK.U, pose.pelvis.y || 0), Lq = X.Sb.copy(SK.Ld).applyAxisAngle(SK.U, pose.pelvis.y || 0);
+    const slow = 1 - _es((sp - 2.5) / 3.5); _sm(S, 'plant', slow * (an.fall ? 0 : 1) * (1 - S.pivot), slow > S.plant ? 12 : 30, dt);
+    const bk = S.back, dv = S.drive, sl = Math.sin(an.ph), accP = 0.6 + 0.4 * S.acc, outsideL = lean < 0 ? 1 : -1;   // lean<0 : left turn (outside = right leg)
+    _sm(S, 'load', _cl(Math.abs(lean) / 0.8, 0, 1), 8, dt);
+    an.legD = an.legD || { l: new THREE.Vector3(), r: new THREE.Vector3() };
+    for (const sd of ['l', 'r']) {
+      const lobe = Math.max(0, sd === 'l' ? sl : -sl) * dv, other = Math.max(0, sd === 'l' ? -sl : sl) * dv, out = sd === 'l' ? 1 : -1;   // push lobe / recovery lobe
+      const d = an.legD[sd].set(0, 0, 0), k = Math.min(1, sp * 0.25);
+      // forward: push leg drives back and out (diagonal C-cut), recovery leg swings forward under the body; backward skating mirrors the push
+      d.addScaledVector(Fq, k * (-0.075 * lobe * accP * (1 - 2 * bk) + 0.07 * other * (1 - 2 * bk)));
+      d.addScaledVector(Lq, out * k * (0.005 * lobe * accP * (1 + 0.8 * bk) - 0.003 * other));
+      d.y += k * 0.07 * other * (1 - 0.5 * bk);                        // recovery foot clears the ice
+      // turn: loaded outside leg is pushed wide and the inside foot tucks under
+      const isOut = (sd === 'r') === (outsideL > 0);
+      d.addScaledVector(Lq, out * S.load * (isOut ? 0.05 : -0.04) * k);
+      // hockey stop: front foot ahead, back foot trailing, both a little wider
+      d.addScaledVector(Fq, S.stop * (sd === (V.stopSide > 0 ? 'l' : 'r') ? 0.07 : -0.05)); d.addScaledVector(Lq, out * 0.04 * S.stop);
+      d.pw = S.plant;
+    }
+    AR.legs(m, an, pose, an.legD, ice0);
+    SK.setPose(m, pose); SK.ground2(m); m.g.updateMatrixWorld(true);
+  }
   const iceY = -m.root.position.y;
   AR.pos(m, 'pelvis', X.O); X.O.y = iceY;
   const Yb = pose.spine_02.y; X.Fb.copy(SK.F).applyAxisAngle(SK.U, Yb); X.Sb.copy(SK.Ld).applyAxisAngle(SK.U, Yb);

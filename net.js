@@ -137,7 +137,7 @@
       }
       const ga = A.t[ti].g, gb = B.t[ti].g; t.goalie.x = lerp(ga[0], gb[0], al); t.goalie.y = lerp(ga[1], gb[1], al);
     });
-    puck.x = lerp(A.pk[0], B.pk[0], al); puck.y = lerp(A.pk[1], B.pk[1], al); puck.vx = B.pk[2]; puck.vy = B.pk[3];
+    puck.x = lerp(A.pk[0], B.pk[0], al); puck.y = lerp(A.pk[1], B.pk[1], al); puck.vx = B.pk[2]; puck.vy = B.pk[3]; puck.z = lerp(A.pk[5] || 0, B.pk[5] || 0, al); puck.vz = 0; /* pk[5] = height in ft, present only when > 0.05 */
   }
   window.netFrame = function (dt) {
     if (!NET.on || !G) return;

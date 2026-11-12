@@ -313,7 +313,7 @@ function newGame(att){
   if(w1&&!w2)c1=dk(TH.color);else if(w2&&!w1)c2=dk(TA.color);else if(TA.accent&&lum(TA.accent)<.78)c2=TA.accent;else if(TH.accent&&lum(TH.accent)<.78)c1=TH.accent;
   if(dist(c1,c2)<150&&TH.accent&&!w1&&lum(TH.accent)<.78&&dist(TH.accent,c2)>=150)c1=TH.accent}
  H1=mkTeam(TEAMS[hi],1,c1,mode==='h');A1=mkTeam(TEAMS[ai],-1,c2,mode==='a');H1.opp=A1;A1.opp=H1;
- puck={x:W/2,y:MY,vx:0,vy:0,owner:null,target:null,last:null,cool:0,shot:null};
+ puck={x:W/2,y:MY,vx:0,vy:0,z:0,vz:0,spin:0,bn:0,owner:null,target:null,last:null,cool:0,shot:null};
  G={diff:DIFFV,ev:{},period:1,plen:+$('ml').value,clock:+$('ml').value,score:[0,0],pause:0.01,over:false,ctlT:0,ot:false,hum:mode==='h'?H1:mode==='a'?A1:null,goals:[],shots:[0,0],saves:[0,0],hits:[0,0],pims:[0,0],fow:[0,0],passes:[0,0],poss:[0,0],pst:{}};G.humans=G.hum?[{team:G.hum,local:true,ctlT:0,sel:null,ctl:null}]:[];
  $('na').textContent=A1.abbr;$('nh').textContent=H1.abbr;document.documentElement.style.setProperty('--ca',A1.color);document.documentElement.style.setProperty('--ch',H1.color);$('ia').src=A1.icon||'';$('ih').src=H1.icon||'';
  if(!att){$('menu').style.display='none'}G.attract=!!att;$('end').style.display='none';$('ctl').style.display=(G.hum&&!att)?'block':'none';
@@ -356,24 +356,24 @@ function tickFight(dt){const f=G.fight;if(!f)return;f.t-=dt;f.ph-=dt;const a=f.a
 // ---------- goal replay (offline): ring buffer of the last ~7 s at 20 Hz, played back once at 0.6x from a low camera behind the net ----------
 function recTick(dt){if(G.net||G.rp||G.attract)return;G.rt=(G.rt||0)+dt;if(G.rt<.05)return;G.rt-=.05;const R=G.rec||(G.rec=[]),pl=[];
  for(const t of [H1,A1]){for(const p of onIce(t))pl.push([p,p.x,p.y,p.vx,p.vy,p.fa||0,p.stun||0]);const g=t.goalie;if(g)pl.push([g,g.x,g.y,g.vx||0,g.vy||0,g.fa||0,0])}
- R.push({px:puck.x,py:puck.y,pvx:puck.vx,pvy:puck.vy,pl});if(R.length>150)R.shift()}
+ R.push({px:puck.x,py:puck.y,pz:puck.z||0,pvx:puck.vx,pvy:puck.vy,pl});if(R.length>150)R.shift()}
 function startReplay(){const fr=G.rpPend;G.rpPend=null;if(!fr||fr.length<20){G.pause=.05;return}
  const save=[],seen=new Set();for(const f of fr)for(const e of f.pl)if(!seen.has(e[0])){seen.add(e[0]);const p=e[0];save.push([p,p.x,p.y,p.vx,p.vy,p.fa,p.on])}
  G.rp={fr,t:0,gx:G.rpGX,save,pw:puck.owner,ps:[puck.x,puck.y,puck.vx,puck.vy],skip:0};puck.owner=null;document.body.classList.add('replay')}
 function tickReplay(dt){const r=G.rp;r.t+=dt*.6;const f=r.t/.05,i=Math.floor(f);if(r.skip||i>=r.fr.length-1){endReplay();return}const a=f-i,A=r.fr[i],B=r.fr[i+1];
- puck.x=A.px+(B.px-A.px)*a;puck.y=A.py+(B.py-A.py)*a;puck.vx=A.pvx;puck.vy=A.pvy;
+ puck.x=A.px+(B.px-A.px)*a;puck.y=A.py+(B.py-A.py)*a;puck.z=(A.pz||0)+((B.pz||0)-(A.pz||0))*a;puck.vx=A.pvx;puck.vy=A.pvy;
  for(let k=0;k<A.pl.length;k++){const e=A.pl[k],q=B.pl[k],p=e[0];if(!q||q[0]!==p)continue;p.x=e[1]+(q[1]-e[1])*a;p.y=e[2]+(q[2]-e[2])*a;p.vx=e[3];p.vy=e[4];let d=q[5]-e[5];while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;p.fa=e[5]+d*a;p.on=true}}
-function endReplay(){const r=G.rp;G.rp=null;document.body.classList.remove('replay');for(const s of r.save){const p=s[0];p.x=s[1];p.y=s[2];p.vx=s[3];p.vy=s[4];p.fa=s[5];p.on=s[6]}puck.x=r.ps[0];puck.y=r.ps[1];puck.vx=r.ps[2];puck.vy=r.ps[3];puck.owner=r.pw;G.rec=[];G.pause=.05}
+function endReplay(){const r=G.rp;G.rp=null;document.body.classList.remove('replay');for(const s of r.save){const p=s[0];p.x=s[1];p.y=s[2];p.vx=s[3];p.vy=s[4];p.fa=s[5];p.on=s[6]}puck.x=r.ps[0];puck.y=r.ps[1];puck.vx=r.ps[2];puck.vy=r.ps[3];puck.z=puck.vz=0;puck.owner=r.pw;G.rec=[];G.pause=.05}
 function callPenalty(t,p,why){if(t.pen.length>=2||!p||p.box)return;G.pims[t===H1?0:1]++;p.box=true;p.on=false;if(puck.owner===p)puck.owner=null;const pdur=clamp(Math.round((G.plen||180)*.33/15)*15,30,120);t.pen.push({p,t:pdur,why});t.needUnit=true;if(window.ANN)ANN.penalty(p,why);showBanner(p.img,`PENALTY ${t.abbr}`,`${p.name} - ${why} - ${fm(pdur)}`,1.6)}
 // ---------- faceoff ----------
 function faceoff(){G.fo={x:W/2,y:MY,set:false};G.pause=.01}
-function stopPlay(x,y,secs,why,sub){G.fo={x,y,set:false};G.pause=secs;puck.owner=null;puck.vx=puck.vy=0;puck.shot=null;puck.target=null;puck.rel=null;if(G.ev)G.ev[why]=(G.ev[why]||0)+1;if(why){showBanner(null,why,sub||'',secs,null);AU.sfx('whistle')}}
-function setupFaceoff(){const f=G.fo;puck.x=f.x;puck.y=f.y;puck.vx=puck.vy=0;puck.owner=null;puck.shot=null;puck.target=null;puck.rel=null;
+function stopPlay(x,y,secs,why,sub){G.fo={x,y,set:false};G.pause=secs;puck.owner=null;puck.vx=puck.vy=puck.z=puck.vz=0;puck.shot=null;puck.target=null;puck.rel=null;if(G.ev)G.ev[why]=(G.ev[why]||0)+1;if(why){showBanner(null,why,sub||'',secs,null);AU.sfx('whistle')}}
+function setupFaceoff(){const f=G.fo;puck.x=f.x;puck.y=f.y;puck.vx=puck.vy=puck.z=puck.vz=0;puck.owner=null;puck.shot=null;puck.target=null;puck.rel=null;
  for(const t of [H1,A1]){t.needUnit=true;updateUnit(t);const d=t.dir,P={C:[-3.5,0],LW:[-13,-19],RW:[-13,19],LD:[-30,-12],RD:[-30,12],X:[-22,0]};
   for(const s of SL){const p=t.seats[s];if(!p)continue;p.x=clamp(f.x+d*P[s][0],12,W-12);p.y=clamp(f.y+P[s][1],6,H-6);p.vx=p.vy=0;p.stun=0;p.burst=0;p.fa=d>0?0:Math.PI}
   t.goalie.y=MY;t.goalie.x=t.ownGX+t.dir*3.5}}
 function dropPuck(){const f=G.fo,c1=H1.seats.C,c2=A1.seats.C;let w=null;if(c1&&c2){const a=c1.chk+c1.pass,b=c2.chk+c2.pass;w=Math.random()<clamp(.5+(a-b)*.6,.25,.75)?c1:c2}else w=c1||c2;
- puck.vx=puck.vy=0;puck.owner=null;if(w){G.fow[w.team===H1?0:1]++;puck.last=w;if(Math.random()<.22){puck.vx=rnd(-14,14);puck.vy=rnd(-14,14);puck.cool=0}else{const bk=-w.team.dir;puck.vx=bk*rnd(26,40);puck.vy=rnd(-14,14);puck.cool=.12}}if(c1)AE(c1,'draw');if(c2)AE(c2,'draw');f.dropped=true}
+ puck.vx=puck.vy=puck.z=puck.vz=0;puck.owner=null;if(w){G.fow[w.team===H1?0:1]++;puck.last=w;if(Math.random()<.22){puck.vx=rnd(-14,14);puck.vy=rnd(-14,14);puck.cool=0}else{const bk=-w.team.dir;puck.vx=bk*rnd(26,40);puck.vy=rnd(-14,14);puck.cool=.12}}if(c1)AE(c1,'draw');if(c2)AE(c2,'draw');f.dropped=true}
 function clearPuck(p){const t=p.team,ty=p.y<MY?6:H-6,ang=Math.atan2(ty-p.y,t.oppGX-p.x),sp=40+18*p.shot;puck.sid=(puck.sid||0)+1;puck.owner=null;puck.vx=Math.cos(ang)*sp;puck.vy=Math.sin(ang)*sp;puck.x=p.x+Math.cos(ang)*4.2;puck.y=p.y+Math.sin(ang)*4.2;puck.last=p;puck.cool=.4;puck.shot=null;puck.rel={team:t,x:p.x};p.aiT=.6}
 function checkRules(px){const r=puck.rel;
  if(r&&!puck.owner){const t=r.team,own=t.dir*(r.x-W/2)<0,gl=t.oppGX,cross=t.dir>0?(px<gl&&puck.x>=gl):(px>gl&&puck.x<=gl);
@@ -397,18 +397,46 @@ function startAct(p,k,T,a){if(p.act||p.stun>.35)return false;p.act={k,t:T,T,a};A
 function tickAct(p,dt){const c=p.act;if(!c)return;c.t-=dt;if(p.stun>.35||puck.owner!==p||G.over){p.act=null;AE(p,'actcancel',{});return}if(c.t<=0){p.act=null;if(c.k==='shot')shoot(p,c.a.nx,c.a.ny,c.a.hum,c.a.pw);else pass(p,c.a.nx,c.a.ny)}}
 function aiWind(p){if(startAct(p,'shot',.2,{nx:0,ny:0,hum:false,pw:.8,kind:'wrist'}))p.aiT=.5}
 function pst(p){const s=G.pst||(G.pst={});return s[p.name]||(s[p.name]={n:p.name,t:p.team===H1?0:1,g:0,s:0,sv:0,h:0,num:p.num,goalie:!!p.goalie})}
+// ---------- puck vertical model + collision helpers (see server/poc_puck.js) ----------
+// Feet, seconds. z = puck height above ice. Gravity 32.2, ice bounce restitution .38, crossbar at 4 ft, posts r .3 (puck+post).
+const PK={G:32.2,E:.38,BAR:4,BARLO:3.7,POST:.3,STICK:3,NETD:4};
+// save zones by height at the goal line, for goalie code: 'low' = pads/skates, 'mid' = glove/blocker/body, 'high' = shoulders/mask, 'over' = above the bar
+function puckZone(z){if(z===undefined)z=puck.z;return z<1.1?'low':z<2.7?'mid':z<=PK.BAR?'high':'over'}
+// advances height one tick. returns true if the puck touched the ice this tick with a real bounce
+function puckVert(dt){if(puck.z<=0&&puck.vz<=0){puck.z=0;puck.vz=0;return false}puck.z+=puck.vz*dt-.5*PK.G*dt*dt;puck.vz-=PK.G*dt;
+ if(puck.z<=0){puck.z=0;if(puck.vz<-2.2){puck.vz=-puck.vz*PK.E;puck.bn=(puck.bn||0)+1;puck.vx*=.93;puck.vy*=.93;puck.spin*=.8;return true}puck.vz=0}return false}
+// loft a shot: vz so that the puck is at most zmax at the goal line (distance dg at speed sp)
+function puckLift(vz,sp,dg,zmax){const t=Math.max(.05,dg/Math.max(40,sp));const zg=vz*t-.5*PK.G*t*t;if(zg>zmax)vz=(zmax+.5*PK.G*t*t)/t;puck.vz=Math.max(0,vz);puck.z=0;puck.spin=(sp/10)*(puck.slap?1.4:1)}
+// squared distance and parameter from point to segment
+function segPt(ax,ay,bx,by,px,py){const sx=bx-ax,sy=by-ay,L2=sx*sx+sy*sy;const t=L2>1e-9?Math.max(0,Math.min(1,((px-ax)*sx+(py-ay)*sy)/L2)):0;const qx=ax+sx*t,qy=ay+sy*t;return{t,qx,qy,d:Math.hypot(px-qx,py-qy)}}
+// swept puck vs a post (circle). Returns true if it hit and reflects the puck. ax,ay = start of the tick; the puck is already at its end position.
+function puckPost(ax,ay,cx,cy,r,e){if(puck.z>PK.BAR)return false;const sx=puck.x-ax,sy=puck.y-ay,fx=ax-cx,fy=ay-cy,A=sx*sx+sy*sy;let t=0;
+ if(fx*fx+fy*fy>=r*r){if(A<1e-9)return false;const B=2*(fx*sx+fy*sy),C=fx*fx+fy*fy-r*r,D=B*B-4*A*C;if(D<0)return false;t=(-B-Math.sqrt(D))/(2*A);if(t<0||t>1)return false}
+ const hx=ax+sx*t,hy=ay+sy*t;let nx=hx-cx,ny=hy-cy,d=Math.hypot(nx,ny);if(d<1e-4){const v=Math.hypot(puck.vx,puck.vy)||1;nx=-puck.vx/v;ny=-puck.vy/v}else{nx/=d;ny/=d}
+ const vn=puck.vx*nx+puck.vy*ny;if(vn>=0)return false;puck.vx-=(1+e)*vn*nx;puck.vy-=(1+e)*vn*ny;puck.x=cx+nx*(r+.02);puck.y=cy+ny*(r+.02);return true}
+// swept puck vs the net box behind the goal line (back and side netting). Enters from outside only; the front face is the goal and is handled by the caller.
+function puckNet(t,ax,ay){const d=t.dir,gx=t.ownGX,x0=d>0?gx-PK.NETD:gx,x1=d>0?gx:gx+PK.NETD;if(puck.z>PK.BAR)return false;
+ if(ax>x0&&ax<x1&&ay>NY[0]&&ay<NY[1])return false;const dx=puck.x-ax,dy=puck.y-ay;let te=0,tx=1,face=0;
+ // slab test
+ let t0=0,t1=1;const sl=(a,da,lo,hi,f)=>{if(Math.abs(da)<1e-9){return a>lo&&a<hi}let ta=(lo-a)/da,tb=(hi-a)/da,fa=-1,fb=1;if(ta>tb){const q=ta;ta=tb;tb=q;fa=1;fb=-1}if(ta>t0){t0=ta;face=f*fa}if(tb<t1)t1=tb;return t0<=t1};
+ if(!sl(ax,dx,x0,x1,1))return false;if(!sl(ay,dy,NY[0],NY[1],2))return false;if(t0>=t1||t0<0||t0>1)return false;
+ // entering through the front face (the goal line) is a goal, not netting
+ if(Math.abs(face)===1&&Math.abs(ax+dx*t0-gx)<1e-6)return false;
+ const hx=ax+dx*t0,hy=ay+dy*t0;let nx=0,ny=0;if(Math.abs(face)===1){nx=dx>0?-1:1}else{ny=dy>0?-1:1}
+ const vn=puck.vx*nx+puck.vy*ny;if(vn>=0)return false;puck.vx-=(1+.2)*vn*nx;puck.vy-=(1+.2)*vn*ny;puck.vx*=.8;puck.vy*=.8;puck.x=hx+nx*.05;puck.y=hy+ny*.05;puck.vz=Math.max(puck.vz,0);return true}
 function shoot(p,ix,iy,hum,pw){pw=pw||.8;pst(p).s++;AU.sfx('shot');if(G.shots)G.shots[p.team===H1?0:1]++;G.shs=G.shs||{};G.shs[p.slot]=(G.shs[p.slot]||0)+1;const t=p.team,dg=hyp(t.oppGX-p.x,MY-p.y);let ang;
  const toG=Math.atan2(MY-p.y,t.oppGX-p.x),im=hyp(ix,iy);
  {const gk=t.opp.goalie,farY=clamp(MY-(gk.y-MY)*.7+((gk.y>=MY)?-1.6:1.6),MY-2.9,MY+2.9),ay=hum?(im>.3&&(ix*t.dir)>-.3?.7*(MY+clamp(iy,-1,1)*4.2)+.3*farY:farY):MY+rnd(-4,4);ang=Math.atan2(ay-p.y,t.oppGX-p.x)}
  const kd0=pw>.85?'slap':pw<.6?'snap':'wrist',km=kd0==='snap'?{e:.78,s:.9}:kd0==='slap'?{e:1.25,s:1.1}:{e:1,s:1},bh=Math.cos(p.fa-toG)<-.15?{e:1.25,s:.78}:{e:1,s:1};ang+=(Math.random()-.5)*((1-p.shot)*.5+dg/260)*(1.25-.5*(1-pw))*(hum?.42:dkf(p.team,'shot'))*(1+(1-(p.st===undefined?1:p.st))*.5)*km.e*bh.e;const sp=(80+70*p.shot)*(.62+.45*pw)*km.s*bh.s;AE(p,'shot',{kind:pw>.85?'slap':(p.recvAt!==undefined&&p.recvAt-G.clock>=0&&p.recvAt-G.clock<.7)?'onetimer':pw<.6?'snap':'wrist',a:ang});
- puck.sid=(puck.sid||0)+1;puck.owner=null;puck.vx=Math.cos(ang)*sp;puck.vy=Math.sin(ang)*sp;puck.x=p.x+Math.cos(ang)*4.2;puck.y=p.y+Math.sin(ang)*4.2;puck.shot=p;puck.last=p;puck.cool=.35;p.aiT=.5;puck.rel={team:t,x:p.x};puck.sd=dg;puck.sy=p.y;puck.ss=sp;puck.slap=pw>.85;puck.tip=false;
+ puck.sid=(puck.sid||0)+1;puck.owner=null;puck.vx=Math.cos(ang)*sp;puck.vy=Math.sin(ang)*sp;puck.x=p.x+Math.cos(ang)*4.2;puck.y=p.y+Math.sin(ang)*4.2;puck.shot=p;puck.last=p;puck.cool=.35;p.aiT=.5;puck.rel={team:t,x:p.x};puck.sd=dg;puck.sy=p.y;puck.ss=sp;puck.slap=pw>.85;puck.tip=false;puck.z=0;puck.vz=0;puck.bn=0;
+ {const lf=bh.s<1?rnd(2.5,7):pw>.85?(Math.random()<.45?rnd(2,8.5):rnd(0,2)):pw<.6?(Math.random()<.2?rnd(1.5,4):0):(Math.random()<.2?rnd(1.5,5):rnd(0,1.2));if(lf>0)puckLift(lf,sp,dg,3.95);else puck.spin=sp/12}
  {const dx=Math.cos(ang),dy=Math.sin(ang);let done=false;
   for(const o of onIce(t.opp)){const rx=o.x-p.x,ry=o.y-p.y,al=rx*dx+ry*dy;if(al<5||al>26)continue;const dd=Math.abs(rx*dy-ry*dx);if(dd<2.4&&Math.random()<.09+.24*o.def){
-   if(Math.random()<.3){const a2=ang+rnd(-.5,.5),s2=sp*rnd(.55,.8);puck.vx=Math.cos(a2)*s2;puck.vy=Math.sin(a2)*s2;puck.ss=s2;noteT=1;noteTxt='DEFLECTED by '+o.name.split(' ').pop()}
-   else{const a2=ang+rnd(-1.4,1.4);puck.vx=Math.cos(a2)*rnd(10,30);puck.vy=Math.sin(a2)*rnd(10,30);puck.shot=null;puck.rel=null;puck.cool=.3;noteT=1;noteTxt='BLOCKED by '+o.name.split(' ').pop()}
+   if(Math.random()<.3){const a2=ang+rnd(-.5,.5),s2=sp*rnd(.55,.8);puck.vx=Math.cos(a2)*s2;puck.vy=Math.sin(a2)*s2;puck.ss=s2;puckLift(rnd(2,9),s2,dg,3.9);noteT=1;noteTxt='DEFLECTED by '+o.name.split(' ').pop()}
+   else{const a2=ang+rnd(-1.4,1.4);puck.vx=Math.cos(a2)*rnd(10,30);puck.vy=Math.sin(a2)*rnd(10,30);puck.shot=null;puck.rel=null;puck.cool=.3;puck.vz=rnd(0,6);puck.spin=12;noteT=1;noteTxt='BLOCKED by '+o.name.split(' ').pop()}
    done=true;break}}
   if(!done&&dg>14)for(const m of onIce(t)){if(m===p)continue;const rx=m.x-p.x,ry=m.y-p.y,al=rx*dx+ry*dy;if(al<8||al>dg+2||hyp(t.oppGX-m.x,MY-m.y)>26)continue;const dd=Math.abs(rx*dy-ry*dx);
-   if(dd<3&&Math.random()<.12+.35*m.shot){const aim=Math.atan2(MY+rnd(-4,4)-m.y,t.oppGX-m.x),a2=aim+rnd(-.35,.35),s2=Math.min(sp,150)*.88;puck.vx=Math.cos(a2)*s2;puck.vy=Math.sin(a2)*s2;puck.x=m.x+Math.cos(a2)*3.2;puck.y=m.y+Math.sin(a2)*3.2;puck.ss=s2;puck.sd=hyp(t.oppGX-m.x,MY-m.y);puck.sy=m.y;puck.slap=false;puck.tip=true;noteT=1;noteTxt='TIP by '+m.name.split(' ').pop();break}}}}
+   if(dd<3&&Math.random()<.12+.35*m.shot){const aim=Math.atan2(MY+rnd(-4,4)-m.y,t.oppGX-m.x),a2=aim+rnd(-.35,.35),s2=Math.min(sp,150)*.88;puck.vx=Math.cos(a2)*s2;puck.vy=Math.sin(a2)*s2;puck.x=m.x+Math.cos(a2)*3.2;puck.y=m.y+Math.sin(a2)*3.2;puck.ss=s2;puck.sd=hyp(t.oppGX-m.x,MY-m.y);puck.sy=m.y;puck.slap=false;puck.tip=true;puckLift(rnd(1.5,9),s2,puck.sd,3.9);noteT=1;noteTxt='TIP by '+m.name.split(' ').pop();break}}}}
 function passTarget(p,ix,iy){const t=p.team,im=hyp(ix,iy),has=im>.3,fa=p.fa||0,ax=has?ix/im:Math.cos(fa),ay=has?iy/im:Math.sin(fa),opp=onIce(t.opp);let best=null,bs=-99;
  for(const m of onIce(t)){if(m===p||m.box)continue;const dx=m.x-p.x,dy=m.y-p.y,d=hyp(dx,dy)||1,dot=(dx*ax+dy*ay)/d;
   let lane=0;for(const o of opp){const rx=o.x-p.x,ry=o.y-p.y,al=(rx*dx+ry*dy)/d;if(al<3||al>d)continue;const off=Math.abs(rx*dy-ry*dx)/d;if(off<4)lane+=(4-off)/4}
@@ -473,11 +501,43 @@ function summaryHTML(){const L=[],fm2=s=>Math.floor(s/60)+':'+String(Math.floor(
 function finish(){G.over=true;const[a,b]=G.score;$('et').textContent=a===b?'TIE':(a>b?A1:H1).abbr===(a>b?H1:A1).abbr?'':'FINAL';
  $('et').textContent=a===b?'FINAL (TIE)':'FINAL';$('es').textContent=`${H1.abbr} ${b>=0?G.score[0]:0} - ${G.score[1]} ${A1.abbr}`;try{if(window.onGameEnd&&!G.net)window.onGameEnd(G)}catch(e){}try{let se=$('esum');if(!se){se=document.createElement('div');se.id='esum';se.className='sumw';$('es').after(se)}se.innerHTML=summaryHTML()}catch(e){}$('end').style.display='flex'}
 function goal(t,shooter){if(G.over)return;const idx=t===H1?0:1;G.score[idx]++;if(!G.net&&G.rec&&G.rec.length>20&&!G.ot){G.rpPend=G.rec.slice(-100);G.rpGX=t.opp.ownGX}let ast=null;if(shooter&&G.lp&&G.lp.to===shooter&&G.lp.from!==shooter&&G.lp.per===G.period&&G.lp.c-G.clock<5&&G.lp.c-G.clock>=0){ast=G.lp.from;pst(ast).a=(pst(ast).a||0)+1}if(G.goals)G.goals.push({t:idx,name:shooter?shooter.name:t.name,num:shooter?shooter.num:null,per:G.period,clk:G.clock,ot:!!G.ot,a:ast?ast.name:''});if(shooter)pst(shooter).g++;AE(t.opp.goalie,'goalagainst');const sc=t.opp;if(sc.pen.length){const e=sc.pen.shift();e.p.box=false;sc.needUnit=true}
- showBanner(shooter&&shooter.img,'GOAL',shooter?`${shooter.num!=null?'#'+shooter.num+' ':''}${shooter.name} \u00b7 ${t.name}`:t.name,2.6,t.color);shakeT=.7;G.cele={p:shooter,t:2.6};if(shooter){shooter.celeb=2.6;for(const m of onIce(t))if(m!==shooter){m.celeb=2.4;m.cgo=shooter}}G.gfx={d:t.dir>0?-1:1,t:3.2};G.excite=1;AU.sfx('horn');AU.crowd(1);if(window.ANN&&ANN.mode!=='off')ANN.goal(shooter,t);else AU.speak('Goal! '+(shooter?shooter.name:t.name));{const f=$('flash');f.style.background=t.color;f.classList.remove('go');void f.offsetWidth;f.classList.add('go')}G.pause=2.6;G.fo={x:W/2,y:MY,set:false};puck.owner=null;puck.vx=puck.vy=0;
+ showBanner(shooter&&shooter.img,'GOAL',shooter?`${shooter.num!=null?'#'+shooter.num+' ':''}${shooter.name} \u00b7 ${t.name}`:t.name,2.6,t.color);shakeT=.7;G.cele={p:shooter,t:2.6};if(shooter){shooter.celeb=2.6;for(const m of onIce(t))if(m!==shooter){m.celeb=2.4;m.cgo=shooter}}G.gfx={d:t.dir>0?-1:1,t:3.2};G.excite=1;AU.sfx('horn');AU.crowd(1);if(window.ANN&&ANN.mode!=='off')ANN.goal(shooter,t);else AU.speak('Goal! '+(shooter?shooter.name:t.name));{const f=$('flash');f.style.background=t.color;f.classList.remove('go');void f.offsetWidth;f.classList.add('go')}G.pause=2.6;G.fo={x:W/2,y:MY,set:false};puck.owner=null;puck.vx=puck.vy=puck.z=puck.vz=0;
  if(G.ot){G.over=true;setTimeout(finish,1800)}}
 function keepIn(o,pad,bounce){const R=12,cx_=clamp(o.x,R,W-R),cy_=clamp(o.y,R,H-R),dx=o.x-cx_,dy=o.y-cy_,d=hyp(dx,dy);if(d>R-pad&&d>.001){const k=(R-pad)/d;o.x=cx_+dx*k;o.y=cy_+dy*k;if(bounce){const nx=dx/d,ny=dy/d,vn=o.vx*nx+o.vy*ny;if(vn>0){o.vx-=1.7*vn*nx;o.vy-=1.7*vn*ny}}}}
 function wrapA(a){return((a+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI}
-function skate(p,dt,mx){const dx=p.dvx||0,dy=p.dvy||0,des=Math.min(1,hyp(dx,dy)),sp=hyp(p.vx,p.vy);if(p.fa===undefined)p.fa=0;
+var SKATE2=true;
+/* SKATE2: edge-radius turning, grip budget (lateral slip), real hockey stop, pivot, stride phase. Exposes p.edge(-1..1) p.stp(0..1) p.ph p.xo p.spray, keeps p.turn p.back p.acc01. SKATE2=false -> skateOld */
+function skate(p,dt,mx){
+ if(!SKATE2||(p.vis&&!p.box)){skateOld(p,dt,mx);p.edge=0;p.stp=0;p.xo=false;p.spray=false;p.stpOn=false;if(p.acc01>.02)p.ph=((p.ph||0)+hyp(p.vx,p.vy)*.35*dt)%6.2832;return}
+ const dx=p.dvx||0,dy=p.dvy||0,des=Math.min(1,hyp(dx,dy)),sp=hyp(p.vx,p.vy);if(p.fa===undefined)p.fa=0;
+ const ag=(.7+.6*p.spd)*(p.isCtl?1.22:1);let diff=0,back=false,al=1;p.acc01=0;p.turn=0;
+ let vf=p.vx*Math.cos(p.fa)+p.vy*Math.sin(p.fa);const vf0=vf;
+ let dT=0;if(des>.08){diff=wrapA(Math.atan2(dy,dx)-p.fa);al=Math.cos(diff);if(sp>1)dT=wrapA(Math.atan2(dy,dx)-Math.atan2(p.vy,p.vx))}
+ /* hockey stop latch: judged against TRAVEL direction, forward travel only */
+ if(!p.stpOn){if(des>.5&&sp>14&&vf0>5&&Math.abs(dT)>2.2){p.stpOn=true;const th=Math.atan2(p.vy,p.vx);p.stS=Math.abs(wrapA(th+Math.PI/2-p.fa))<=Math.abs(wrapA(th-Math.PI/2-p.fa))?1:-1}}
+ else if(!(des>.3&&sp>1.6&&Math.abs(dT)>1.4))p.stpOn=false;
+ let edge=0;
+ if(p.stpOn){
+  const th=Math.atan2(p.vy,p.vx),ta=th+p.stS*Math.PI/2,st=clamp(wrapA(ta-p.fa),-14*dt,14*dt);p.fa+=st;p.turn=st/dt;edge=p.stS}
+ else if(des>.08){
+  back=Math.abs(diff)>2.3&&sp<mx*.6&&puck.owner!==p&&vf0<mx*.5;
+  if(!back){const rm=(2.4+.12*Math.max(0,vf0))/Math.sqrt(ag),piv=Math.min(p.isCtl?14:7.5,(2.5+11*Math.max(0,1-sp/(mx*.45)))*ag),yaw=Math.max(Math.max(0,vf0)/rm,piv),st=clamp(diff,-yaw*dt,yaw*dt);p.fa+=st;p.turn=st/dt;edge=clamp(diff/.6,-1,1)}}
+ p.back=back;
+ const fx=Math.cos(p.fa),fy=Math.sin(p.fa);vf=p.vx*fx+p.vy*fy;let vl=-p.vx*fy+p.vy*fx;
+ if(p.stpOn){const a=(20+.3*sp)*Math.sqrt(ag);vl-=Math.sign(vl)*Math.min(Math.abs(vl),a*dt);vf*=Math.exp(-1.2*dt)}
+ else{
+  if(des>.08){
+   if(back){const tgt=-des*mx*.5;if(vf>tgt)vf=Math.max(tgt,vf-70*ag*dt);else vf=Math.min(tgt,vf+60*dt)}
+   else if(al>.35){const tgt=des*mx*(.55+.45*al);if(vf<tgt){const a=(36*(1-Math.pow(clamp(vf/mx,0,1),1.4))+6)*ag;vf=Math.min(tgt,vf+a*dt);p.acc01=clamp(a/60,0,1)}else vf=Math.max(tgt,vf-48*dt)}
+   else if(al<-.3)vf=Math.max(0,vf-90*dt);else vf*=Math.exp(-.8*dt)}
+  else vf*=Math.exp(-.5*dt);
+  if(vf>0)vf*=Math.exp(-.1*Math.abs(p.turn||0)*dt);
+  const G=85*(.8+.2*ag),k=6+9*(1-Math.min(1,sp/mx)),r=Math.min(Math.abs(vl),Math.abs(vl)*(1-Math.exp(-k*dt)),G*dt);vl-=Math.sign(vl)*r;if(vf>-2)vf+=r*.45}
+ if(vf>mx*1.05)vf=mx*1.05;p.vx=vf*fx-vl*fy;p.vy=vf*fy+vl*fx;const s2=hyp(p.vx,p.vy);if(s2>mx*1.15){const q=mx*1.15/s2;p.vx*=q;p.vy*=q}
+ p.edge=edge;p.stp=(p.stp||0)+((p.stpOn?1:0)-(p.stp||0))*Math.min(1,dt*10);
+ p.xo=!p.stpOn&&Math.abs(edge)>.6&&vf>14;p.spray=p.stp>.4&&s2>6;
+ if(des>.08&&!p.stpOn&&s2>1)p.ph=((p.ph||0)+s2*.35*dt)%6.2832}
+function skateOld(p,dt,mx){const dx=p.dvx||0,dy=p.dvy||0,des=Math.min(1,hyp(dx,dy)),sp=hyp(p.vx,p.vy);if(p.fa===undefined)p.fa=0;
  if(p.vis&&!p.box){const off=puck.owner&&puck.owner.team===p.team,tx=off?p.team.oppGX:puck.x,ty=off?MY:puck.y,ta=Math.atan2(ty-p.y,tx-p.x);p.fa+=clamp(wrapA(ta-p.fa),-9*dt,9*dt);const k=Math.min(1,dt*(des>.08?5:2.6)),m2=mx*.86;p.vx+=(dx*m2-p.vx)*k;p.vy+=(dy*m2-p.vy)*k;p.turn=0;p.back=(p.vx*Math.cos(p.fa)+p.vy*Math.sin(p.fa))<-3;p.acc01=des*.35;return}
  const ag=(.7+.6*p.spd)*(p.isCtl?1.22:1);let diff=0,al=1,back=false;p.acc01=0;
  const vf0=p.vx*Math.cos(p.fa)+p.vy*Math.sin(p.fa);
@@ -553,16 +613,21 @@ function step(dt){
  const all=[...onIce(H1),...onIce(A1)];for(let i=0;i<all.length;i++)for(let j=i+1;j<all.length;j++){const a=all[i],b=all[j],dx=b.x-a.x,dy=b.y-a.y,d=hyp(dx,dy);if(d<4.4&&d>.01){const m=(4.4-d)/2,ux=dx/d,uy=dy/d;a.x-=ux*m;a.y-=uy*m;b.x+=ux*m;b.y+=uy*m}}
  // puck
  if(puck.owner&&G.poss&&!(G.pause>0))G.poss[puck.owner.team===H1?0:1]+=dt;if(puck.cool>0)puck.cool-=dt;if(puck.targetT>0){puck.targetT-=dt;if(puck.targetT<=0)puck.target=null}
- if(puck.owner){const o=puck.owner;puck.rel=null;{const sw=Math.sin(G.clock*7+(+o.slot||0))*Math.min(1.2,hyp(o.vx,o.vy)/28),tx=o.x+Math.cos(o.fa)*4-Math.sin(o.fa)*sw,ty=o.y+Math.sin(o.fa)*4+Math.cos(o.fa)*sw,k=Math.min(1,dt*26);if(hyp(tx-puck.x,ty-puck.y)>9){puck.x=tx;puck.y=ty}else{puck.x+=(tx-puck.x)*k;puck.y+=(ty-puck.y)*k}}puck.vx=o.vx;puck.vy=o.vy;puck.last=o;if(Math.abs(puck.x-o.team.oppGX)<6&&puck.y>NY[0]&&puck.y<NY[1])shoot(o,0,0,false)}
- else{const px=puck.x,py0=puck.y;puck.x+=puck.vx*dt;puck.y+=puck.vy*dt;if(puck.target&&puck.last&&!puck.owner){for(const d of onIce(puck.last.team.opp)){if(d.stun>0)continue;const sx=puck.x-px,sy=puck.y-py0,L2=sx*sx+sy*sy||1,tt=clamp(((d.x-px)*sx+(d.y-py0)*sy)/L2,0,1),qx=px+sx*tt,qy=py0+sy*tt;if(hyp(d.x-qx,d.y-qy)<4.6&&Math.random()<.3+.45*d.def){puck.owner=d;puck.target=null;puck.shot=null;puck.last=d;d.gainT=G.clock;AE(d,'gain');G.icpt=(G.icpt||0)+1;noteT=.9;noteTxt='INTERCEPTED BY '+d.name.split(' ').pop().toUpperCase();break}}}const f=Math.exp(-(puck.target?.22:puck.shot?.2:.12)*dt);puck.vx*=f;puck.vy*=f;
+ if(puck.owner){const o=puck.owner;puck.rel=null;{const sw=Math.sin(G.clock*7+(+o.slot||0))*Math.min(1.2,hyp(o.vx,o.vy)/28),tx=o.x+Math.cos(o.fa)*4-Math.sin(o.fa)*sw,ty=o.y+Math.sin(o.fa)*4+Math.cos(o.fa)*sw,k=Math.min(1,dt*26);if(hyp(tx-puck.x,ty-puck.y)>9){puck.x=tx;puck.y=ty}else{puck.x+=(tx-puck.x)*k;puck.y+=(ty-puck.y)*k}}puck.vx=o.vx;puck.vy=o.vy;puck.z=puck.vz=0;puck.last=o;if(Math.abs(puck.x-o.team.oppGX)<6&&puck.y>NY[0]&&puck.y<NY[1])shoot(o,0,0,false)}
+ else{const px=puck.x,py0=puck.y,pz0=puck.z;puck.x+=puck.vx*dt;puck.y+=puck.vy*dt;const bnc=puckVert(dt);if(bnc&&hyp(puck.vx,puck.vy)>20)AU.sfx('post');if(puck.target&&puck.last&&!puck.owner){for(const d of onIce(puck.last.team.opp)){if(d.stun>0||puck.z>PK.STICK)continue;const sx=puck.x-px,sy=puck.y-py0,L2=sx*sx+sy*sy||1,tt=clamp(((d.x-px)*sx+(d.y-py0)*sy)/L2,0,1),qx=px+sx*tt,qy=py0+sy*tt;if(hyp(d.x-qx,d.y-qy)<4.6&&Math.random()<.3+.45*d.def){puck.owner=d;puck.target=null;puck.shot=null;puck.last=d;d.gainT=G.clock;AE(d,'gain');G.icpt=(G.icpt||0)+1;noteT=.9;noteTxt='INTERCEPTED BY '+d.name.split(' ').pop().toUpperCase();break}}}const f=Math.exp(-(puck.z>0?.03:puck.target?.22:puck.shot?.2:.12)*dt);puck.vx*=f;puck.vy*=f;puck.spin*=Math.exp(-.5*dt);
   keepIn(puck,0,true);if(puck.y<1){puck.y=1;puck.vy=Math.abs(puck.vy)*.7}if(puck.y>H-1){puck.y=H-1;puck.vy=-Math.abs(puck.vy)*.7}
   for(const t of [H1,A1]){const gx=t.ownGX,inside=t.dir>0?(px>=gx&&puck.x<gx):(px<=gx&&puck.x>gx);
-   if(inside&&hyp(puck.vx,puck.vy)>35&&(Math.abs(puck.y-NY[0])<.3||Math.abs(puck.y-NY[1])<.3)){puck.x=px;puck.vx*=-.5;puck.vy=(Math.random()-.5)*30;puck.shot=null;puck.cool=.2;AU.sfx('post');noteT=1;noteTxt='OFF THE POST!';continue}
+   {let ph=false;for(const ny of NY)if(puckPost(px,py0,gx,ny,PK.POST,.55)){ph=true;break}
+    if(ph){puck.shot=null;puck.cool=.2;puck.vz=Math.max(puck.vz,0)+1.5;AU.sfx('post');noteT=1;noteTxt='OFF THE POST!';continue}
+    if(inside&&puck.y>NY[0]&&puck.y<NY[1]){const fr=Math.abs(puck.x-px)>1e-6?(gx-px)/(puck.x-px):1,zc=pz0+(puck.z-pz0)*clamp(fr,0,1);
+     if(zc>PK.BARLO&&zc<=PK.BAR+.12){puck.x=px;puck.vx*=-.45;puck.vz=-Math.abs(puck.vz)*.5-2;puck.z=Math.min(puck.z,PK.BAR-.3);puck.shot=null;puck.cool=.2;AU.sfx('post');noteT=1;noteTxt='OFF THE BAR!';continue}
+     if(zc>PK.BAR+.12){puck.shot=null;continue}puck.zg=zc}
+    if(puckNet(t,px,py0)){puck.shot=null}}
    if(inside&&puck.y>NY[0]&&puck.y<NY[1]&&puck.shot||inside&&puck.y>NY[0]&&puck.y<NY[1]&&hyp(puck.vx,puck.vy)>40){const g=t.goalie,dy=Math.abs(puck.y-g.y),reach=3.7+2.8*g.gl,sp=puck.shot?puck.shot:puck.last;
     const spd0=hyp(puck.vx,puck.vy),sd=puck.shot?puck.sd:25,sdy=puck.shot?puck.sy:puck.y;let scr=0;for(const q of [...onIce(t),...onIce(t.opp)]){if(q===sp)continue;const qx=q.x-g.x;if(t.dir*qx>=-1&&t.dir*qx<8&&Math.abs(q.y-g.y)<3.2)scr++}
     const q1=clamp((28-sd)/28,0,1)*.08,q2=clamp(Math.abs(sdy-MY)/Math.max(sd,12),0,1.2)*.08,q3=clamp((spd0-95)/90,-.5,1)*.07,q4=Math.min(scr,2)*.05,q5=puck.tip?.08:0;
-    const ps0=clamp(1.0+.14*(g.gl-.5)-.35*((sp?sp.shot:.5)-.5)-q1-q2-q3-q4-q5,.5,.97),ps=clamp(ps0+dkf(t,'save'),.3,.98)*clamp(1-(dy-reach*.6)/(reach*.9),0,1);
-    if(!t.pull&&Math.random()<ps){const dyy=puck.y-g.y,hh=Math.floor(Math.abs(puck.x*7+puck.y*13+G.clock*5))%3,sd2=(dyy*(t.dir>0?-1:1))>0?'l':'r';const kk=Math.abs(dyy)>3.2?'pad':hh===0?'butterfly':hh===2&&Math.abs(dyy)<1.2?'stick':sd2==='l'?'glove':'blocker';
+    const ps0=clamp(1.0+.14*(g.gl-.5)-.35*((sp?sp.shot:.5)-.5)-q1-q2-q3-q4-q5,.5,.97),ps=clamp(ps0+.03+dkf(t,'save')-(g.recov>0?.1:0),.3,.98)*clamp(1-(dy-reach*.6)/(reach*.9),0,1);
+    if(!t.pull&&Math.random()<ps){const dyy=puck.y-g.y,hv=goalieHV(),hh=hv*2,ady=Math.abs(dyy),sd2=(dyy*(t.dir>0?-1:1))>0?'l':'r';const kk=hv<.3?(ady<1.4?'butterfly':'pad'):ady>3.2?'pad':hv<.5&&ady<1?'stick':sd2==='l'?'glove':'blocker';g.recov=(kk==='butterfly'||kk==='pad')?.55:.2;g.react=.08;
      const side=dyy>=0?1:-1,fwd=t.dir>0?0:Math.PI,sk=clamp(spd0/110,.5,1.5);let a,s3,frz;
      if(kk==='pad'){a=fwd+side*rnd(.8,1.4)*(t.dir>0?1:-1);s3=rnd(18,36)*sk;frz=.12}
      else if(kk==='butterfly'){a=fwd+rnd(-.9,.9);s3=rnd(5,16)*sk;frz=.55}
@@ -574,7 +639,7 @@ function step(dt){
     else{goal(t.opp,sp);return}}}
   if(checkRules(px))return;const L=t=>t.dir>0?puck.x<4:puck.x>W-4;if(puck.x<4){puck.x=4;puck.vx=Math.abs(puck.vx)*.6}if(puck.x>W-4){puck.x=W-4;puck.vx=-Math.abs(puck.vx)*.6}
   if(puck.shot&&hyp(puck.vx,puck.vy)<30)puck.shot=null;
-  let bd=null,bm=9;if(hyp(puck.vx,puck.vy)<(puck.target?200:105))for(const p of all){if(puck.cool>0&&p===puck.last)continue;const d=hyp(p.x-puck.x,p.y-puck.y),r=4.2+(p===puck.target?4:0);if(d<r&&d<bm){bm=d;bd=p}}
+  let bd=null,bm=9;if(hyp(puck.vx,puck.vy)<(puck.target?200:105))if(puck.z<=PK.STICK)for(const p of all){if(puck.cool>0&&p===puck.last)continue;const d=segPt(px,py0,puck.x,puck.y,p.x,p.y).d,r=4.2+(p===puck.target?4:0);if(d<r&&d<bm){bm=d;bd=p}}
   if(bd)bd=contestPick(bd,all);if(bd){const isP=puck.target===bd,sp0=hyp(puck.vx,puck.vy),ot=bd.oneT>0;if(isP)bd.recvAt=G.clock;
    // the blade has to meet the puck: outcome depends on puck speed, angle to the stick, skill, and whether the player is stunned
    let ang=Math.atan2(puck.y-bd.y,puck.x-bd.x)-bd.fa;while(ang>Math.PI)ang-=2*Math.PI;while(ang<-Math.PI)ang+=2*Math.PI;
@@ -595,11 +660,33 @@ function step(dt){
   for(const g of [H1.goalie,A1.goalie]){const dx=p.x-g.x,dy=p.y-g.y,d=hyp(dx,dy)||.01;if(d<6.5){const f=(6.5-d)/6.5*38*dt;p.x+=dx/d*f;p.y+=dy/d*f}}}}
  // body checks
  for(const t of [H1,A1])for(const h of onIce(t)){if(h.hitT>0){h.hitT-=dt;if(!h.hitC&&h.hitT<=.44){h.hitC=1;const bt=h.hitTgt;if(bt&&bt.on!==false){const dd=hyp(bt.x-h.x,bt.y-h.y)||1;h.vx+=(bt.x-h.x)/dd*14;h.vy+=(bt.y-h.y)/dd*14;AE(h,'hitcommit',{a:Math.atan2(bt.y-h.y,bt.x-h.x)})}}if(h.hitT<=.44)for(const v of onIce(t.opp)){if(v.stun>.3)continue;const d=hyp(v.x-h.x,v.y-h.y);if(d<(h.hitTgt===v?7.4:5.4)){const was=puck.owner===v;const ux=(v.x-h.x)/(d||1),uy=(v.y-h.y)/(d||1);const kb=(16+24*h.chk-8*v.def)*(.75+.25*(h.st===undefined?1:h.st));v.vx+=ux*kb;v.vy+=uy*kb;v.stun=.6+.9*h.chk;h.stun=.25;h.hitT=0;h.hitHit=1;if(was&&Math.random()<clamp(.55+.5*(h.chk-v.def),.25,.95)){puck.owner=null;puck.last=v;puck.cool=.25;puck.vx=ux*20+rnd(-8,8);puck.vy=uy*20+rnd(-8,8)}shakeT=.3;AU.sfx('hit');G.excite=Math.max(G.excite||0,.4);{const pw=Math.min(1,hyp(h.vx-v.vx,h.vy-v.vy)/50);const brd=v.y<7||v.y>H-7||v.x<GX+5||v.x>W-GX-5;AE(h,'check',{a:Math.atan2(v.y-h.y,v.x-h.x),board:brd,power:pw});{let da=Math.atan2(uy,ux)-v.fa;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;const ad=Math.abs(da),from=ad<1.0?'behind':ad>2.2?'front':'side';AE(v,'checked',{power:pw,board:brd,dir:Math.atan2(uy,ux),side:da>0?1:-1,from})}tryFightInj(h,v,pw,brd);if(brd){v.stun+=.3;shakeT=.45}if(pw>.65&&Math.random()<.45)AE(v,'fall',{side:(Math.floor(G.clock*5)%2)?1:-1})}noteT=1.1;noteTxt=h.name.split(' ').pop()+' HITS '+v.name.split(' ').pop();if(!was&&Math.random()<.1)callPenalty(t,h,'Interference');break}}}if(h.hitLive&&h.hitT<=0){h.hitLive=0;if(!h.hitHit){AE(h,'hitmiss',{});h.stun=Math.max(h.stun,.3);h.vx*=.5;h.vy*=.5}}}
- // goalies
- for(const t of [H1,A1]){const g=t.goalie;let py=puck.y;if(puck.sid!==g.sid){g.sid=puck.sid;g.react=.03+.09*(1-g.gl)}g.react=Math.max(0,(g.react||0)-dt);{const dx=t.ownGX-puck.x;if(puck.shot&&!(g.react>0)&&dx*puck.vx>0&&Math.abs(puck.vx)>25){const tt=Math.abs(dx)/Math.abs(puck.vx);py=puck.y+puck.vy*tt;if(py<3)py=6-py;if(py>H-3)py=2*(H-3)-py}}{const oc=puck.owner&&puck.owner.team!==t&&hyp(puck.owner.x-t.ownGX,puck.owner.y-MY)<46?puck.owner:null;if(oc&&!puck.shot)py+=oc.vy*.32;}if(!puck.shot&&puck.target&&puck.last&&puck.last.team!==t&&hyp(puck.x-t.ownGX,puck.y-MY)<55)py=puck.y+puck.vy*.3; // follows a pass across the crease // he leans with the carrier's sideways movement, so a deke can pull him out of position
- const ty=clamp(py,MY-4.4,MY+4.4),dd0=ty-g.y,dir=Math.abs(dd0)>.7?Math.sign(dd0):0;if(dir&&g.mvd&&dir!==g.mvd)g.flipT=.36;if(dir)g.mvd=dir;g.flipT=Math.max(0,(g.flipT||0)-dt);
- g.y+=clamp(dd0,-1,1)*Math.min(Math.abs(dd0),(30+16*g.gl)*dkf(t,'gk')*dt*(g.flipT>0?.45:1));{const dpk=hyp(puck.x-t.ownGX,puck.y-MY),dep=3.2+1.7*clamp((70-dpk)/45,0,1),gxT=t.ownGX+t.dir*dep;g.x+=(gxT-g.x)*Math.min(1,dt*4)}}
+ // goalies: arc positioning, reaction delay, accel-limited lateral movement, butterfly recovery
+ for(const t of [H1,A1])goalieStep(t,dt);
 }
+
+// ---------- goalie brain (Pass 7) ----------
+const GK_ACC=480,GK_POST=4.2;
+function goalieHV(){const pz=+puck.z||0;if(pz>0)return clamp(pz/1.5,0,1);const x=Math.sin((puck.sid||0)*12.9898+1.7)*43758.5453;return x-Math.floor(x)}
+function goalieStep(t,dt){const g=t.goalie,gx0=t.ownGX,D=dkf(t,'gk');if(g.vy===undefined)g.vy=0;
+ let wu=null;for(const q of onIce(t.opp))if(q.act&&q.act.k==='shot'&&hyp(q.x-gx0,q.y-MY)<75){wu=q;break}
+ if(wu)g.windT=.4;else g.windT=Math.max(0,(g.windT||0)-dt);
+ if(puck.sid!==g.sid){g.sid=puck.sid;g.react=Math.max(.1,(.1+.07*(1-g.gl))*(g.windT>0?.8:1));g.hold=g.y}
+ g.react=Math.max(0,(g.react||0)-dt);g.recov=Math.max(0,(g.recov||0)-dt);
+ const dpk=hyp(puck.x-gx0,puck.y-MY),dep=3.2+1.7*clamp((70-dpk)/45,0,1);
+ let ty;
+ if(puck.shot&&!(g.react>0)&&Math.abs(puck.vx)>25&&(gx0-puck.x)*puck.vx>0){const tt=Math.abs(gx0-puck.x)/Math.abs(puck.vx);let py=puck.y+puck.vy*tt;if(py<3)py=6-py;if(py>H-3)py=2*(H-3)-py;ty=py}
+ else{
+  let ry=wu?wu.y:puck.y,rx=wu?wu.x:puck.x;
+  {const oc=puck.owner&&puck.owner.team!==t&&hyp(puck.owner.x-gx0,puck.owner.y-MY)<46?puck.owner:null;if(oc&&!wu)ry+=oc.vy*.32}
+  if(puck.target&&puck.last&&puck.last.team!==t&&hyp(puck.x-gx0,puck.y-MY)<55&&!wu)ry=puck.y+puck.vy*.3;
+  const rel=ry-MY,dxp=Math.max(5,Math.abs(rx-gx0)),ang=Math.atan(Math.abs(rel)/dxp);
+  if(ang>.95&&dxp<24)ty=MY+Math.sign(rel)*GK_POST;                                  // low angle: hug the near post
+  else ty=MY+clamp(rel*(dep+2)/dxp*2.1,-4.4,4.4);                                  // on the arc between shooter and net centre
+ }
+ ty=clamp(ty,MY-4.4,MY+4.4);const dd0=ty-g.y,dir=Math.abs(dd0)>.7?Math.sign(dd0):0;if(dir&&g.mvd&&dir!==g.mvd)g.flipT=.36;if(dir)g.mvd=dir;g.flipT=Math.max(0,(g.flipT||0)-dt);
+ const vmax=(30+16*g.gl)*D*(g.flipT>0?.45:1)*(g.recov>0?.4:1),vdes=Math.sign(dd0)*Math.min(vmax,Math.sqrt(2*GK_ACC*Math.abs(dd0)));
+ g.vy+=clamp(vdes-g.vy,-GK_ACC*dt,GK_ACC*dt);g.y+=g.vy*dt;
+ {const dx=gx0+t.dir*dep;g.x+=(dx-g.x)*Math.min(1,dt*4)}}
 // ---------- render ----------
 const cam={x:W/2,y:MY};
 function draw2D(dt){const w=cv.width,h=cv.height;cx.fillStyle='#0a1620';cx.fillRect(0,0,w,h);

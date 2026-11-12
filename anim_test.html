@@ -103,6 +103,30 @@ AT.expect={stationary:['ready'],skate:['skating'],accelerate:['accelerating','sp
  stop:['stopping'],carry:['stickhandling'],protect:['protecting_puck'],receive:['receiving_pass','stickhandling'],pass:['passing'],wrist:['shot_wrist'],slap:['preparing_shot','shot_slap'],snap:['shot_snap'],onetimer:['receiving_pass','shot_onetimer'],
  checked:['getting_checked'],check:['body_check'],poke:['poke_check'],fall:['falling'],faceoff:['faceoff_stance','faceoff_draw'],pivot:['pivoting'],celebrate:['celebrating'],backhand:['shot_backhand'],backpass:['passing'],shuffle:['side_shuffle'],brace:['bracing'],lift:['stick_lift'],hit:['hit_windup','body_check'],hitmiss:['hit_windup','hit_miss'],checked_board:['getting_checked'],transition_carry_to_defend:['stickhandling']};
 AT.gExpect={g_ready:['goalie_ready'],g_lateral:['goalie_shuffle','goalie_t_push'],g_tpush:['goalie_t_push'],g_butterfly:['goalie_butterfly'],g_glove:['goalie_glove_save'],g_blocker:['goalie_blocker_save'],g_pad:['goalie_pad_save'],g_stick:['goalie_stick_save'],g_cover:['goalie_cover'],g_goal:['goalie_goal_against']};
+
+// ---- leg checks: IK reach, ice contact, pop between states, stride freeze on coast ----
+const combo=(t,p,c,pk)=>{p.turn=0;p.back=false;p.acc01=0;p.vy=0;
+ if(t<.8){p.vx=0}else if(t<1.6){p.vx=Math.min(30,(t-.8)*40);p.acc01=.9}else if(t<2.4){p.vx=30;p.acc01=.2}else if(t<3.2){p.vx=30-(t-2.4)*6}
+ else if(t<3.6){p.vx=Math.max(0,25-(t-3.2)*90)}else if(t<4.4){p.vx=Math.min(24,(t-3.6)*30);p.acc01=.8;p.turn=(t>4)?-2.2:0}else if(t<5.4){p.vx=-12;p.back=true;p.acc01=.5}else{p.vx=Math.min(26,Math.max(-12,-12+(t-5.4)*40));p.acc01=.6;p.back=t<5.7}};
+AT.legStats=function(fn,secs){
+ AT.spawn(false);ANIM.debug=true;const dt=1/60,m=()=>AT.m,names=['pelvis','spine_01','spine_03','Head','thigh_l','calf_l','foot_l','thigh_r','calf_r','foot_r'],prev={},cur=new THREE.Quaternion();
+ const rq=new THREE.Quaternion(),R={maxReach:0,minAnkle:9,minBall:9,maxDeg:0,worst:'',worstT:0,phA:[],t:[]},v=new THREE.Vector3();
+ for(let t=0;t<=secs+1e-6;t+=dt){AT.step(fn,t,dt);const mm=m(),an=mm.an;
+  if(an.legRes){R.maxReach=Math.max(R.maxReach,an.legRes.l.reach,an.legRes.r.reach)}
+  mm.inner.updateMatrixWorld(true);
+  for(const s of ['l','r']){mm.byName['foot_'+s].getWorldPosition(v);mm.inner.worldToLocal(v);R.minAnkle=Math.min(R.minAnkle,v.y-SK.footRestY);mm.byName['ball_'+s].getWorldPosition(v);mm.inner.worldToLocal(v);R.minBall=Math.min(R.minBall,v.y-AR.ballRestY)}
+  if(t>.05)for(const n of names){mm.byName[n].getWorldQuaternion(cur);mm.root.getWorldQuaternion(rq);cur.premultiply(rq.invert());if(prev[n]){const d=2*Math.acos(Math.min(1,Math.abs(prev[n].dot(cur))))*180/Math.PI;if(d>R.maxDeg){R.maxDeg=d;R.worst=n;R.worstT=t}}(prev[n]||(prev[n]=new THREE.Quaternion())).copy(cur)}
+  R.phA.push(an.ph);R.t.push(t)}
+ return R};
+AT.legChecks=function(chk){
+ for(const n of ['skate','accelerate','backskate','crossover','stop','pivot','turn_left','glide']){const R=AT.legStats(sc_[n],1.6);chk(n+' leg IK reaches',R.maxReach<0.03,'unreached '+R.maxReach.toFixed(3));chk(n+' ankle not below ice',R.minAnkle>-0.012,R.minAnkle.toFixed(3));chk(n+' toe not below ice',R.minBall>-0.012,R.minBall.toFixed(3))}
+ const C=AT.legStats(combo,6.6);AT.comboStat=C;chk('combo leg IK reaches',C.maxReach<0.03,C.maxReach.toFixed(3));chk('combo feet above ice',C.minAnkle>-0.012&&C.minBall>-0.012,C.minAnkle.toFixed(3)+' '+C.minBall.toFixed(3));
+ chk('no pop between states (max joint deg/frame, 60fps)',C.maxDeg<AT.popMax,C.maxDeg.toFixed(1)+' '+C.worst+' @'+C.worstT.toFixed(2));
+ const G=AT.legStats(sc_.glide,2.0),i0=Math.round(1.0*60),i1=Math.round(1.8*60);chk('stride freezes when coasting',Math.abs(G.phA[i1]-G.phA[i0])<0.08,(G.phA[i1]-G.phA[i0]).toFixed(3));
+ const K=AT.legStats(sc_.skate,1.6);chk('stride runs when skating',Math.abs(K.phA[Math.round(1.5*60)]-K.phA[Math.round(.5*60)])>2.5,(K.phA[90]-K.phA[30]).toFixed(2));
+ const A=AT.legStats(sc_.accelerate,1.6),Kc=AT.legStats(sc_.skate,1.6);
+};
+AT.popMax=12;
 AT.assertAll=function(){
   const out=[];let fails=0;
   const chk=(n,ok,why)=>{out.push((ok?'PASS ':'FAIL ')+n+(ok?'':'  '+why));if(!ok)fails++};
@@ -122,6 +146,7 @@ AT.assertAll=function(){
     const L=AT.run('turn_left',1.6),R=AT.run('turn_right',1.6);chk('left turn banks skates left',L.edgeAvg>0.03,'edge '+L.edgeAvg.toFixed(3));chk('right turn banks skates right',R.edgeAvg<-0.03,'edge '+R.edgeAvg.toFixed(3));
     const st=AT.run('stationary',1.0),cr=AT.run('carry',1.4);chk('fingers wrap shaft (stationary)',st.fingerMax>0&&st.fingerMax<0.07,'max '+st.fingerMax.toFixed(3));chk('fingers wrap shaft (stickhandling)',cr.fingerMax>0&&cr.fingerMax<0.07,'max '+cr.fingerMax.toFixed(3));
   }
+  AT.legChecks(chk);
   for(const n of AT.goalieScenarios){const r=AT.run(n,1.4,{goalie:true}),seq=r.seq.map(s=>s.replace(/^[0-9.]+:/,''));const miss=(AT.gExpect[n]||[]).filter(e=>!seq.includes(e));chk(n+' state',miss.length===0,'missing '+miss.join(',')+' got '+seq.join('>'));chk(n+' no stick snap',r.maxSnap<0.6,r.maxSnap.toFixed(2))}
   return {fails,total:out.length,failed:out.filter(l=>l.startsWith('FAIL'))};
 };

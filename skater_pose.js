@@ -1,10 +1,11 @@
 /* Procedural skating pose + ground contact for SK skaters. */
-SK.skatePose = function (m, ph, sp, turn, acc, back) {
+SK.skatePose = function (m, ph, sp, turn, acc, back, drive) {
+  drive = drive === undefined ? 1 : drive;
   acc = acc || 0;
   const bk = back === true ? 1 : back ? Math.max(0, Math.min(1, +back)) : 0, mx = (a, b) => a + (b - a) * bk;   // back: bool or 0..1 blend
   const pushF = Math.min(1, Math.min(1, sp * 4) * (.4 + .5 * acc) + .15 * sp), pushB = Math.min(1, .25 + sp);
   const push = mx(pushF, pushB), crouch = mx(.6, .78) + .3 * sp * (1 - .4 * bk) + .2 * Math.abs(turn || 0);   // backskating: knees well bent, not a reversed forward stride
-  const sl = Math.sin(ph), pl = Math.max(0, sl) * push, pr = Math.max(0, -sl) * push, lean = turn || 0, up = -.3 * bk;   // torso upright (forward skating leans over)
+  const sl = Math.sin(ph) * drive, pl = Math.max(0, sl) * push, pr = Math.max(0, -sl) * push, lean = turn || 0, up = -.3 * bk;   // torso upright (forward skating leans over)
   // recovery swing: the non-pushing foot lifts and tucks under the body, scaled by speed; the push leg rolls onto the toe
   const lk = Math.min(1, sp * 3) * (1 - .4 * bk), rl_ = Math.max(0, -sl) * lk, rr_ = Math.max(0, sl) * lk;
   const leg = (s, pu, rc) => ({ tp: -(.5 + .55 * crouch) + .95 * pu - .3 * rc, tr: SK.abd[s] * (.12 + (.95 + .55 * bk) * pu + .34 * bk - .25 * rc), cp: .12 + .55 * crouch * (1 - .6 * pu) + .1 * pu + .38 * rc });
@@ -25,6 +26,17 @@ SK.ground = function (m) {
   let miny = 1e9;
   for (const n of ['foot_l', 'foot_r']) { m.byName[n].getWorldPosition(SK._v); m.inner.worldToLocal(SK._v); miny = Math.min(miny, SK._v.y); }
   m.root.position.y = SK.footRestY - miny;
+};
+
+/* ground contact for skaters: the lowest of ankle and toe-ball (each against its own rest height) sits on the ice */
+SK.ground2 = function (m) {
+  m.root.position.y = 0; m.inner.updateMatrixWorld(true);
+  let d = 1e9; const bry = SK.ballRestY !== undefined ? SK.ballRestY : Math.min(SK.restP.ball_l.y, SK.restP.ball_r.y);
+  for (const s of ['l', 'r']) {
+    m.byName['foot_' + s].getWorldPosition(SK._v); m.inner.worldToLocal(SK._v); d = Math.min(d, SK._v.y - SK.footRestY);
+    m.byName['ball_' + s].getWorldPosition(SK._v); m.inner.worldToLocal(SK._v); d = Math.min(d, SK._v.y - bry);
+  }
+  m.root.position.y = -d;
 };
 
 SK.goaliePose = function (m, t) {
