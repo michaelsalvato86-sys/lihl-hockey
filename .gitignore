@@ -1,0 +1,7 @@
+node_modules/
+dist/
+deploy/web/
+deploy/game_index.html
+pub/
+*.log
+__pycache__/

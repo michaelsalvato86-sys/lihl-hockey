@@ -1,0 +1,34 @@
+<div id="online" class="ov-full">
+ <div class="mtop"><div class="logo">ONLINE <b>PLAY</b></div><div class="mtag" id="onStatus">CONNECTING...</div></div>
+ <div class="onbody">
+  <div id="onHome" class="onview">
+   <div class="onname">PLAYER NAME <input id="onName" maxlength="14" placeholder="Your name"></div>
+   <div class="ongrid">
+    <button class="onbtn" id="onCreate"><b>CREATE GAME</b><small>Private room. Share the code or link with a friend.</small></button>
+    <button class="onbtn" id="onCreatePub"><b>PUBLIC MATCH</b><small>Open room that shows up in the public list.</small></button>
+    <button class="onbtn" id="onJoin"><b>JOIN GAME</b><small>Enter a room code or pick a public game.</small></button>
+    <button class="onbtn" id="onQuick"><b>QUICK MATCH</b><small>Get paired with the next available player.</small></button>
+   </div>
+   <div class="onfoot"><button id="onBack">Back to menu</button></div>
+  </div>
+  <div id="onJoinV" class="onview" style="display:none">
+   <div class="onname">ROOM CODE <input id="onCode" maxlength="9" placeholder="LIHL-XXXX" style="text-transform:uppercase"><button id="onGo" class="onsmall">JOIN</button></div>
+   <h4>PUBLIC GAMES</h4><div id="onList" class="onlist">Loading...</div>
+   <div class="onfoot"><button id="onJBack">Back</button><button id="onRefresh">Refresh</button></div>
+  </div>
+  <div id="onQueueV" class="onview" style="display:none"><h2 id="onQMsg">SEARCHING FOR AN OPPONENT...</h2><div class="spin"></div><div class="onfoot"><button id="onQCancel">Cancel</button></div></div>
+  <div id="onLobby" class="onview" style="display:none">
+   <div class="lbtop"><div>ROOM <b id="lbCode"></b></div><div id="lbLink" class="lblink"></div><button id="lbCopy" class="onsmall">COPY INVITE</button></div>
+   <div class="lbcards"><div class="lbcard" id="lbA"></div><div class="vs">VS</div><div class="lbcard" id="lbH"></div></div>
+   <div class="lbmid"><span id="lbPlen"></span><span id="lbMsg"></span></div>
+   <div class="lbchat" id="lbChat"></div>
+   <div class="onfoot"><button id="lbLeave">Leave room</button><button class="go" id="lbReady">READY</button></div>
+  </div>
+ </div>
+</div>
+<div id="cdwin"><b id="cdn">3</b><small>GET READY</small></div>
+<div id="netbar"><i id="netdot"></i><span id="netping">--</span></div>
+<div id="peerbar"></div>
+<div id="toast"></div>
+<div id="oend" class="ov-full"><h1 id="oet"></h1><div id="oes"></div><div id="oesub"></div><div class="onfoot"><button id="oRe" class="go">REMATCH</button><button id="oLeave">Leave</button></div><div class="lbchat" id="oChat"></div></div>
+<div id="ochat"></div>

@@ -1,0 +1,15 @@
+# Render Blueprint: create a new "Blueprint" from this repo/folder. Free plan sleeps when idle; Starter stays awake.
+services:
+  - type: web
+    name: lihl-hockey-server
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free            # change to starter to avoid sleep/cold start
+    healthCheckPath: /health
+    envVars:
+      - key: ALLOWED_ORIGINS
+        value: https://michaelsalvato86-sys.github.io
+      - key: GRACE_MS
+        value: "45000"
+      - key: MAX_ROOMS
+        value: "40"

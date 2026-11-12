@@ -112,7 +112,7 @@ SK.mergeParts = function (parts) {
     const g = pt.geo, p = g.attributes.position, nn = g.attributes.normal, b = bn.findIndex(x => x.name === pt.bone), base = P.length / 3;
     let ki = keys.indexOf(pt.key); if (ki < 0) { ki = keys.length; keys.push(pt.key); }
     for (let i = 0; i < p.count; i++) { P.push(p.getX(i), p.getY(i), p.getZ(i)); N.push(nn.getX(i), nn.getY(i), nn.getZ(i)); SI.push(b, 0, 0, 0); SW.push(1, 0, 0, 0); K.push(ki); }
-    const ia = g.index.array; for (let i = 0; i < ia.length; i++) I.push(ia[i] + base);
+    const ia = g.index ? g.index.array : Array.from({ length: p.count }, (_, k) => k); for (let i = 0; i < ia.length; i++) I.push(ia[i] + base);
   }
   return { P: new Float32Array(P), N: new Float32Array(N), SI: new Uint16Array(SI), SW: new Float32Array(SW), K: new Uint8Array(K), I: new Uint32Array(I), keys };
 };
@@ -183,16 +183,17 @@ SK.make = function (p, opts) {
   if (MOB) root.traverse(o => { if (o.isSkinnedMesh && o !== body) o.visible = false; });
   const par = body.parent;
   const col = SK.col(p.team.color, 1.18, 1.0), acc = new THREE.Color(accOf(p)), dark = new THREE.Color(0x11151c);
+  const pope = p.name === 'Justin Faithfull', roo = p.name === 'Joe Faithfull'; if (pope) { col.set(0xf8f5ee); acc.set(0xf8f5ee); } if (roo) { col.set(0xb5733a); acc.set(0xf0d9b0); } if (/^(michael|mike) salvato$/i.test(p.name||'')) { col.set(0xf4f1e8); acc.set(0x2f8fb8); } /* the admin always wears the St. Beer jersey (cream with stained-glass blue) */
   const tone = ((((p.id | 0) * 2654435761) >>> 0)) % 3;
   const bodyMat = body.material.clone(); if (SK.tex) bodyMat.map = SK.tex[tone === 0 ? 'light' : 'dark'] || bodyMat.map; if (tone === 2) bodyMat.color = new THREE.Color(0xd8b08f);
   body.material = bodyMat;
   const C = SK.cloth, cg = new THREE.BufferGeometry();
   cg.setAttribute('position', C.position); cg.setAttribute('normal', C.normal); cg.setAttribute('uv', C.uv); cg.setAttribute('skinIndex', C.skinIndex); cg.setAttribute('skinWeight', C.skinWeight); cg.setIndex(C.index);
-  const table = [col, SK.col(p.team.color, 1.1, 0.5), acc, acc, dark], ca = new Float32Array(C.rid.length * 3);
+  const table = [col, pope ? SK.col('#f8f5ee', 1.1, 0.5) : roo ? SK.col('#8a5226', 1.1, 0.5) : SK.col(p.team.color, 1.1, 0.5), acc, acc, dark], ca = new Float32Array(C.rid.length * 3);
   for (let i = 0; i < C.rid.length; i++) { const c = table[C.rid[i]]; ca[i * 3] = c.r; ca[i * 3 + 1] = c.g; ca[i * 3 + 2] = c.b; }
   cg.setAttribute('color', new THREE.BufferAttribute(ca, 3));
   const cmat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5, metalness: 0, skinning: true });
-  if (!MOB) { cmat.bumpMap = SK.fabric; cmat.bumpScale = 0.1; }
+  if (!MOB) { cmat.bumpMap = SK.fabric; cmat.bumpScale = 0.018; }
   const cloth = new THREE.SkinnedMesh(cg, cmat); cloth.frustumCulled = false; par.add(cloth); cloth.bind(body.skeleton, body.bindMatrix);
   const gk = opts.goalie ? 'g' : 's'; if (!SK.gear[gk]) SK.gear[gk] = SK.buildGear(!!opts.goalie); const G0 = SK.gear[gk];
   const gg = new THREE.BufferGeometry(); ['position', 'normal', 'skinIndex', 'skinWeight'].forEach(k => gg.setAttribute(k, G0.g.attributes[k])); gg.setIndex(G0.g.index);
@@ -204,12 +205,89 @@ SK.make = function (p, opts) {
   const dt = SK.decalTex(p);
   const dm = new THREE.SkinnedMesh(SK.decalGeo, new THREE.MeshBasicMaterial({ map: dt.tex, transparent: true, depthWrite: false, skinning: true, polygonOffset: true, polygonOffsetFactor: -2 }));
   dm.frustumCulled = false; par.add(dm); dm.bind(body.skeleton, body.bindMatrix);
+  if (!opts.goalie && p.name === 'Joe Faithfull') SK.addRoo(body, par);
+  if (!opts.goalie && p.name === 'Justin Faithfull') SK.addSaint(body, par);
   const m = { real: true, fdec: dt, g: new THREE.Group(), root, body, bones: body.skeleton.bones, byName: {}, ph: Math.random() * 6 };
   m.bones.forEach(b => m.byName[b.name] = b);
   m.inner = new THREE.Group(); m.inner.scale.setScalar(SK.S); m.inner.add(root); m.g.add(m.inner);
   m.goalie = !!opts.goalie; if (window.AR && AR.ready) AR.makeStick(m);
+  if (!opts.goalie && p.name === 'Raffi Minassian') SK.wrenchify(m);
   root.traverse(o => { if (o.isMesh) o.frustumCulled = false; });
   return m;
+};
+
+
+/* ---------- novelty costume: kangaroo ears, snout and tail (cosmetic only, rest-pose geometry skinned to the head and hips) ---------- */
+SK.addRoo = function (body, par) {
+  const hc = SK.head.c, hr = (SK.head.top - hc.y) * 0.86 + 0.02, F = SK.F.clone().normalize(), R = new THREE.Vector3(0, 1, 0).cross(F).normalize(), parts = [];
+  const basis = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(R.clone(), new THREE.Vector3(0, 1, 0), F.clone()));
+  const blob = (rx, ry, rz, pos, rotZ, rotX, bone, key) => {
+    const g = new THREE.SphereGeometry(1, 14, 10); g.scale(rx, ry, rz);
+    const q = basis.clone().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(rotX, 0, rotZ)));
+    g.applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(q)); g.translate(pos.x, pos.y, pos.z); parts.push({ geo: g, bone, key });
+  };
+  for (const sd of [-1, 1]) {
+    const base = new THREE.Vector3(hc.x, hc.y + hr * 1.0, hc.z).addScaledVector(R, sd * hr * 0.62).addScaledVector(F, -hr * 0.05);
+    blob(hr * 0.42, hr * 1.55, hr * 0.2, base.clone().add(new THREE.Vector3(0, hr * 1.15, 0)), -sd * 0.28, 0, 'Head', 'roo');
+    blob(hr * 0.24, hr * 1.1, hr * 0.12, base.clone().add(new THREE.Vector3(0, hr * 1.1, 0)).addScaledVector(F, hr * 0.12), -sd * 0.28, 0, 'Head', 'rooIn');
+  }
+  const sn = new THREE.Vector3(hc.x, hc.y - hr * 0.2, hc.z).addScaledVector(F, hr * 1.0);
+  blob(hr * 0.62, hr * 0.5, hr * 0.85, sn, 0, 0.18, 'Head', 'roo');
+  blob(hr * 0.2, hr * 0.17, hr * 0.17, sn.clone().addScaledVector(F, hr * 0.78).add(new THREE.Vector3(0, hr * 0.14, 0)), 0, 0, 'Head', 'rooNose');
+  const b = SK.belt, tb = new THREE.Vector3(0, b.y - 0.06, b.zc).addScaledVector(F, -b.rz * 0.85);
+  const tg = new THREE.CylinderGeometry(0.06, 0.17, 0.95, 12); tg.translate(0, 0.475, 0);
+  const td = F.clone().multiplyScalar(-1).add(new THREE.Vector3(0, -0.85, 0)).normalize();
+  tg.applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), td))); tg.translate(tb.x, tb.y, tb.z); parts.push({ geo: tg, bone: 'spine_01', key: 'roo' });
+  const M = SK.mergeParts(parts), g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(M.P, 3)); g.setAttribute('normal', new THREE.BufferAttribute(M.N, 3));
+  g.setAttribute('skinIndex', new THREE.BufferAttribute(M.SI, 4)); g.setAttribute('skinWeight', new THREE.BufferAttribute(M.SW, 4)); g.setIndex(new THREE.BufferAttribute(M.I, 1));
+  const cols = { roo: new THREE.Color(0xb5733a), rooIn: new THREE.Color(0xf2b6a8), rooNose: new THREE.Color(0x1a1010) }, ca = new Float32Array(M.K.length * 3);
+  for (let k = 0; k < M.K.length; k++) { const c = cols[M.keys[M.K[k]]] || cols.roo; ca[k * 3] = c.r; ca[k * 3 + 1] = c.g; ca[k * 3 + 2] = c.b; }
+  g.setAttribute('color', new THREE.BufferAttribute(ca, 3));
+  const mesh = new THREE.SkinnedMesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0, skinning: true })); mesh.frustumCulled = false; par.add(mesh); mesh.bind(body.skeleton, body.bindMatrix);
+};
+
+/* ---------- novelty: Justin Faithfull = beer pope (mitre + halo), Raffi Minassian = a wrench instead of a body (cosmetic only) ---------- */
+SK.addSaint = function (body, par) {
+  const hc = SK.head.c, hr = (SK.head.top - hc.y) * 0.86 + 0.02, F = SK.F.clone().normalize(), parts = [], top = SK.head.top;
+  const orient = g => { g.applyMatrix4(new THREE.Matrix4().makeRotationY(Math.atan2(F.x, F.z))); return g; };
+  const band = new THREE.CylinderGeometry(hr * 0.92, hr * 0.92, hr * 0.3, 18); band.translate(hc.x, top + hr * 0.1, hc.z); parts.push({ geo: band, bone: 'Head', key: 'gold' });
+  const w = hr * 1.05, h = hr * 3.1, sh = new THREE.Shape(); sh.moveTo(-w, 0); sh.quadraticCurveTo(-w * 1.05, h * 0.62, 0, h); sh.quadraticCurveTo(w * 1.05, h * 0.62, w, 0); sh.lineTo(-w, 0);
+  const mg = new THREE.ExtrudeGeometry(sh, { depth: hr * 0.9, bevelEnabled: true, bevelSize: hr * 0.08, bevelThickness: hr * 0.08, bevelSegments: 2, curveSegments: 10 });
+  mg.translate(0, 0, -hr * 0.45); orient(mg); mg.translate(hc.x, top + hr * 0.22, hc.z); parts.push({ geo: mg, bone: 'Head', key: 'white' });
+  const st = new THREE.BoxGeometry(hr * 0.34, h * 0.78, hr * 1.1); orient(st); st.translate(hc.x, top + hr * 0.25 + h * 0.4, hc.z); parts.push({ geo: st, bone: 'Head', key: 'gold' });
+  const cr = new THREE.BoxGeometry(hr * 0.14, hr * 0.62, hr * 1.14); orient(cr); cr.translate(hc.x, top + hr * 0.25 + h * 0.2, hc.z); parts.push({ geo: cr, bone: 'Head', key: 'red' });
+  for (const sd of [-1, 1]) { const lp = new THREE.BoxGeometry(hr * 0.28, hr * 1.5, hr * 0.06); lp.translate(sd * hr * 0.35, -hr * 0.6, -hr * 0.95); orient(lp); lp.translate(hc.x, top, hc.z); parts.push({ geo: lp, bone: 'Head', key: 'white' }); }
+  const halo = new THREE.TorusGeometry(hr * 1.5, hr * 0.09, 8, 28); halo.rotateX(Math.PI / 2); halo.translate(hc.x, top + hr * 3.7, hc.z); parts.push({ geo: halo, bone: 'Head', key: 'halo' });
+  const cape = new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI * 0.5); cape.scale(hr * 2.3, hr * 0.95, hr * 1.9); cape.translate(hc.x, hc.y - hr * 1.65, hc.z); parts.push({ geo: cape, bone: 'spine_03', key: 'red' });
+  const trim = new THREE.TorusGeometry(1, 0.05, 6, 24); trim.rotateX(Math.PI / 2); trim.scale(hr * 2.3, hr * 1.9, hr * 1); trim.translate(hc.x, hc.y - hr * 1.65, hc.z); parts.push({ geo: trim, bone: 'spine_03', key: 'gold' });
+  const M = SK.mergeParts(parts), g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(M.P, 3)); g.setAttribute('normal', new THREE.BufferAttribute(M.N, 3));
+  g.setAttribute('skinIndex', new THREE.BufferAttribute(M.SI, 4)); g.setAttribute('skinWeight', new THREE.BufferAttribute(M.SW, 4)); g.setIndex(new THREE.BufferAttribute(M.I, 1));
+  const cols = { gold: new THREE.Color(0xe8b923), halo: new THREE.Color(0xfff2a0), white: new THREE.Color(0xf8f5ee), red: new THREE.Color(0xb3121c) }, ca = new Float32Array(M.K.length * 3);
+  for (let k = 0; k < M.K.length; k++) { const c = cols[M.keys[M.K[k]]] || cols.gold; ca[k * 3] = c.r; ca[k * 3 + 1] = c.g; ca[k * 3 + 2] = c.b; }
+  g.setAttribute('color', new THREE.BufferAttribute(ca, 3));
+  const mesh = new THREE.SkinnedMesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.2, emissive: 0x3a2e00, skinning: true, side: THREE.DoubleSide })); mesh.frustumCulled = false; par.add(mesh); mesh.bind(body.skeleton, body.bindMatrix);
+};
+SK.wrenchify = function (m) {
+  m.g.traverse(o => { if (o.isMesh || o.isSkinnedMesh) o.visible = false; });
+  // a short combination wrench: open-end jaw on top, 12-point ring on the bottom, satin chrome (reference photo from the league admin)
+  const mat = new THREE.MeshStandardMaterial({ color: 0xdde3ea, roughness: 0.38, metalness: 0.25, emissive: 0x2b323b }), w = new THREE.Group();
+  const R = 0.34, cy = 1.5, hw = 0.1, nw = 0.15, ny = cy + 0.06, sh = new THREE.Shape(), pts = [];
+  pts.push([hw, 0.45], [hw, cy - Math.sqrt(R * R - hw * hw)]);
+  const a0 = Math.asin(hw / R) - Math.PI / 2, a1 = Math.acos(nw / R), a2 = Math.PI - Math.acos(nw / R), a3 = Math.PI + (Math.PI / 2 - Math.asin(hw / R));
+  for (let a = -(Math.PI / 2 - Math.asin(hw / R)); a <= a1; a += 0.12) pts.push([R * Math.cos(a), cy + R * Math.sin(a)]);
+  pts.push([nw, ny], [-nw, ny]);
+  for (let a = a2; a <= Math.PI + (Math.PI / 2 - Math.asin(hw / R)) + 0.001; a += 0.12) pts.push([R * Math.cos(a), cy + R * Math.sin(a)]);
+  pts.push([-hw, cy - Math.sqrt(R * R - hw * hw)], [-hw, 0.45]);
+  sh.moveTo(pts[0][0], pts[0][1]); for (let k = 1; k < pts.length; k++) sh.lineTo(pts[k][0], pts[k][1]);
+  const ext = { depth: 0.1, bevelEnabled: true, bevelSize: 0.015, bevelThickness: 0.015, bevelSegments: 1, curveSegments: 12 };
+  const head = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, ext), mat); head.position.z = -0.05; w.add(head);
+  const ring = new THREE.Shape(); ring.absarc(0, 0.34, 0.3, 0, Math.PI * 2, false); const hole = new THREE.Path();
+  for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2, r = k % 2 ? 0.2 : 0.17; if (k === 0) hole.moveTo(r * Math.cos(a), 0.34 + r * Math.sin(a)); else hole.lineTo(r * Math.cos(a), 0.34 + r * Math.sin(a)); } hole.closePath(); ring.holes.push(hole);
+  const rg = new THREE.Mesh(new THREE.ExtrudeGeometry(ring, ext), mat); rg.position.z = -0.05; w.add(rg);
+  const F = SK.F.clone().normalize(); w.rotation.y = Math.atan2(F.x, F.z) + Math.PI / 2;
+  w.traverse(o => { if (o.isMesh) o.frustumCulled = false; }); m.inner.add(w); m.wrench = w;
 };
 
 /* ---------- pose ---------- */
@@ -219,6 +297,7 @@ SK.setPose = function (m, pose) {
   for (const name of SK.order) {
     const b = m.byName[name], pn = SK.parent[name], Wp = pn ? W[pn] : null; const t = pose[name];
     let wq = W[name] || (W[name] = new THREE.Quaternion());
+    if (t && t.c) { const lq = SK.restW[name].clone(); if (pn) lq.premultiply(qc.copy(SK.restW[pn]).invert()); qa.setFromAxisAngle(t.c.v, t.c.a); lq.multiply(qa); b.quaternion.copy(lq); if (Wp) wq.copy(Wp).multiply(lq); else wq.copy(lq); continue; }
     if (t) {
       if (t.q) wq.copy(t.q);
       else {

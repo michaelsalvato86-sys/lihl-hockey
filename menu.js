@@ -31,15 +31,19 @@
     attractTimer = setTimeout(() => { $('mh').value = hi; $('ma').value = ai; $('mc').value = 'n'; $('ml').value = 300; newGame(true); document.body.classList.add('inmenu'); document.body.classList.remove('ingame'); }, 120);
   }
   function render(restart) {
-    panel($('tpA'), ai, 'AWAY', i => { if (i === hi) hi = ai; ai = i; render(true); });
-    panel($('tpH'), hi, 'HOME', i => { if (i === ai) ai = hi; hi = i; render(true); });
+    panel($('tpA'), ai, 'AWAY' + (mode === 'a' ? '  ★ YOU CONTROL' : ''), i => { if (i === hi) hi = ai; ai = i; render(true); });
+    panel($('tpH'), hi, 'HOME' + (mode === 'h' ? '  ★ YOU CONTROL' : ''), i => { if (i === ai) ai = hi; hi = i; render(true); });
     seg($('segM'), [['h', 'YOU: HOME'], ['a', 'YOU: AWAY'], ['n', 'WATCH']], mode, v => mode = v);
     seg($('segL'), [[120, '2:00'], [180, '3:00'], [300, '5:00']], plen, v => plen = +v);
+    seg($('segD'), [['easy', 'EASY'], ['normal', 'NORMAL'], ['hard', 'HARD']], DIFFV, v => setDiff(v));
     sync(); if (restart) attract();
   }
   window.onReady = function () { ready = true; const b = $('go'); b.disabled = false; b.textContent = 'PLAY'; attract(); };
+  try { const ios = /iPhone|iPad|iPod/.test(navigator.userAgent), standalone = navigator.standalone || matchMedia('(display-mode: fullscreen)').matches; if (ios && !standalone && !localStorage.getItem('lihl_ios_hint')) { const h = document.getElementById('iosHint'); h.style.display = 'block'; document.getElementById('iosHintX').onclick = () => { h.style.display = 'none'; try { localStorage.setItem('lihl_ios_hint', '1'); } catch (e) { } }; } } catch (e) { }
   $('go').onclick = () => {
     if (AU) AU.init(); sync(); document.body.classList.remove('inmenu'); document.body.classList.add('ingame');
+    try { if (innerWidth < 900 || innerHeight < 500) { const de = document.documentElement; (de.requestFullscreen || de.webkitRequestFullscreen || function () { }).call(de); if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => { }); } } catch (e) { }
+    const rt = document.getElementById('rot'); if (rt) { rt.classList.remove('off'); rt.onclick = () => rt.classList.add('off'); }
     G && (G.attract = false); newGame(false);
   };
   window.showMenu = () => { $('end').style.display = 'none'; $('menu').style.display = 'flex'; document.body.classList.remove('ingame', 'netgame'); document.body.classList.add('inmenu'); attract(); };
@@ -50,6 +54,9 @@
   $('setSnd').onchange = e => { AU.on = e.target.checked; AU.setVol(AU.vol); $('snd').innerHTML = AU.on ? '&#128266;' : '&#128263;'; };
   $('setVol').oninput = e => AU.setVol(e.target.value / 100);
   $('setSay').onchange = e => AU.say = e.target.checked;
+  if ($('setView')) { $('setView').value = VIEWM; $('setView').onchange = e => setView(e.target.value); }
+  if ($('setCol') && window.ANN) { $('setCol').value = ANN.col; $('setCol').onchange = e => ANN.setCol(e.target.value); }
+  if ($('setAnn') && window.ANN) { $('setAnn').value = ANN.mode; $('setAnn').onchange = e => ANN.setMode(e.target.value); }
   $('snd').onclick = () => { const on = AU.toggle(); $('snd').innerHTML = on ? '&#128266;' : '&#128263;'; $('setSnd').checked = on; };
   document.body.classList.add('inmenu');
   render(false);

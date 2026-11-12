@@ -1,0 +1,1 @@
+https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/model-index.json
