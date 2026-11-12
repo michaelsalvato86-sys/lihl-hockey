@@ -15,8 +15,8 @@ sudo docker run -d --name lihl --restart unless-stopped -p 127.0.0.1:8080:8080 \
 printf '%s {\n  reverse_proxy 127.0.0.1:8080\n}\n' "$DOMAIN" | sudo tee /etc/caddy/Caddyfile >/dev/null
 sudo systemctl restart caddy
 # Ubuntu images on Oracle block ports in iptables as well as in the cloud firewall
-sudo iptables -I INPUT 6 -p tcp --dport 80 -j ACCEPT
-sudo iptables -I INPUT 6 -p tcp --dport 443 -j ACCEPT
+sudo iptables -I INPUT 5 -p tcp --dport 80 -j ACCEPT
+sudo iptables -I INPUT 5 -p tcp --dport 443 -j ACCEPT
 sudo sh -c 'iptables-save > /etc/iptables/rules.v4' 2>/dev/null || true
 sleep 3; curl -s "http://127.0.0.1:8080/health"; echo
 echo "Done. Open https://$DOMAIN"

@@ -5,16 +5,27 @@
    Output: leg/torso pose (skating layer), two-hand stick placement with arm IK (stick layer), event layers, blending.
    Nothing here changes gameplay or physics. */
 'use strict';
-const ANIM = { ready: false, debug: false, dur: { shot: 0.55, pass: 0.65, recv: 0.9, check: 0.85, checked: 1.0, poke: 0.45, fall: 1.7, draw: 0.5, gain: 0.25, hitwind: 0.75, hitmiss: 0.9 } };
+const evId0 = p => (p.ae && p.ae.id) | 0;
+const ANIM = { ready: false, debug: false, dur: { shot: 0.55, pass: 0.65, recv: 0.9, check: 0.85, checked: 1.0, poke: 0.45, fall: 1.9, draw: 0.5, gain: 0.25, hitwind: 0.75, hitmiss: 0.9 } };
 const _hv = (id, k) => { let h = (((id | 0) * 2654435761) ^ (k * 40503)) >>> 0; h = ((h ^ (h >>> 15)) * 2246822519) >>> 0; return (h % 10000) / 10000; };
 const _cl = (v, a, b) => Math.max(a, Math.min(b, v));
 const _es = t => t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);
 const _sm = (o, k, t, r, dt) => { o[k] += (t - o[k]) * (1 - Math.exp(-r * dt)); };
 const kf = (u, P) => { if (u <= P[0][0]) return P[0][1]; for (let i = 1; i < P.length; i++) if (u <= P[i][0]) { const a = P[i - 1], b = P[i]; return a[1] + (b[1] - a[1]) * _es((u - a[0]) / (b[0] - a[0])); } return P[P.length - 1][1]; };
+const dsh = x => Math.sign(x) * Math.pow(Math.abs(x), 0.6);   // dwell at the extremes, quick through the middle
 const wrapA = a => ((a + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
 const V3 = () => new THREE.Vector3();
 const X = { Fb: V3(), Sb: V3(), O: V3(), P: V3(), Th: V3(), Bt: V3(), Tt: V3(), Tb: V3(), Ttw: V3(), Tbw: V3(), Hl: V3(), bd: V3(), pole: V3(), tmp: V3(), sh: V3(), pu: V3(), op: V3(), q: new THREE.Quaternion() };
 
+const FALLS = {
+  side: { dur: 1.7, roll: [[0, 0], [0.28, 1.3], [0.9, 1.3], [1.5, 0.35], [1.7, 0]], pitch: [[0, 0], [1.7, 0]], amp: 1, sag: 0 },
+  fwd: { dur: 1.9, roll: [[0, 0], [1.9, 0]], pitch: [[0, 0], [0.22, 1.3], [1.0, 1.3], [1.55, 0.45], [1.9, 0]], amp: 0.9, sag: 0 },
+  back: { dur: 1.9, roll: [[0, 0], [1.9, 0]], pitch: [[0, 0], [0.2, -1.25], [1.0, -1.25], [1.55, -0.4], [1.9, 0]], amp: 0.9, sag: 0 },
+  board: { dur: 1.5, roll: [[0, 0], [0.14, 0.55], [0.6, 0.55], [1.1, 0.15], [1.5, 0]], pitch: [[0, 0], [0.14, 0.28], [0.5, 0.22], [1.5, 0]], amp: 0.7, sag: 0.5 },
+  stumble: { dur: 0.95, roll: [[0, 0], [0.12, 0.3], [0.35, -0.2], [0.6, 0.1], [0.95, 0]], pitch: [[0, 0], [0.15, 0.55], [0.5, 0.3], [0.95, 0]], amp: 0.4, sag: 0 },
+  knees: { dur: 1.5, roll: [[0, 0], [1.5, 0]], pitch: [[0, 0], [0.2, 0.3], [0.9, 0.3], [1.5, 0]], amp: 0.55, sag: 1 }
+};
+ANIM.FALLS = FALLS;
 ANIM.init = function () { ANIM.YL = SK.Ld.x > 0 ? 1 : -1; ANIM.ready = true; };
 
 ANIM.make = function (m, p) {
@@ -22,9 +33,9 @@ ANIM.make = function (m, p) {
   m.an = {
     ph: _hv(id, 7) * 6, tHand: _hv(id, 8) * 6, evId: 0, ev: null, prevVf: 0, dec: 0, cush: 0, recvT: 0, fall: null,
     v: { stride: 0.94 + 0.12 * _hv(id, 1), crouch: -0.04 + 0.08 * _hv(id, 2), sway: 0.7 + 0.6 * _hv(id, 3), carry: 0.8 + 0.4 * _hv(id, 4), topR: _hv(id, 5) > 0.5, stopSide: _hv(id, 6) > 0.5 ? 1 : -1, wind: 0.85 + 0.3 * _hv(id, 9) },
-    s: { pivot: 0, carry: 0, free: 0, stop: 0, crouch: 0.5, faceoff: 0, recv: 0, prot: 0, yaw: 0, lean: 0, acc: 0, charge: 0, flail: 0, back: 0, pre: 0, brace: 0, lunge: 0, shuf: 0, drive: 0, plant: 0, load: 0, fat: 0 },
+    s: { pivot: 0, carry: 0, free: 0, stop: 0, crouch: 0.5, faceoff: 0, recv: 0, prot: 0, yaw: 0, lean: 0, acc: 0, charge: 0, flail: 0, back: 0, pre: 0, brace: 0, lunge: 0, shuf: 0, drive: 0, plant: 0, load: 0, fat: 0, ot: 0 },
     q: { upperarm_l: new THREE.Quaternion(), lowerarm_l: new THREE.Quaternion(), upperarm_r: new THREE.Quaternion(), lowerarm_r: new THREE.Quaternion(), hand_l: new THREE.Quaternion(), hand_r: new THREE.Quaternion() }, pivPh: 0,
-    state: 'ready', metrics: null, gainT: 9, od: -1, clos: 0, pfv: 3, psv: 0
+    otH: 0, spX: 0, spY: 0, spK: 0, spKy: 0, spVx: 0, spVy: 0, state: 'ready', metrics: null, gainT: 9, od: -1, clos: 0, pfv: 3, psv: 0
   };
   return m.an;
 };
@@ -38,19 +49,38 @@ ANIM.apply = function (m, p, c, dt) {
   dt = Math.min(dt, 0.05);
   // ---------- 0. events ----------
   if (p.ae && p.ae.id !== an.evId) {
-    an.evId = p.ae.id; const k = p.ae.k, d = p.ae.d || {};
-    if (k === 'recv') an.recvT = 0.9; else if (k === 'gain') { an.cush = 0.35; an.cq = ({ difficult: 1.6, bobble: 2.2, deflect: 2.4, miss: 2.8 })[d.q] || 1; an.recvT = 0; an.gainT = 0; } else if (k === 'fall') an.fall = { t: 0, side: d.side || 1 };
+    an.evId = p.ae.id; const k = p.ae.k, d = p.ae.d || {}, sp0 = c.speed;
+    if (k === 'shot') an.otT = 0;
+    if (k === 'checked' || k === 'fall') an.boardT = d.board ? 0.8 : an.boardT;
+    if (k === 'recv') an.recvT = 0.9; else if (k === 'otwind') { an.otT = 0.95; an.otEta = d.eta || 0.4; an.otAge = 0; }
+    else if (k === 'shotwind' || k === 'passwind' || k === 'actcancel') { /* wind-up is driven from p.act below */ }
+    else if (k === 'gain') { an.cush = 0.35; an.cq = ({ difficult: 1.6, bobble: 2.2, deflect: 2.4, miss: 2.8 })[d.q] || 1; an.recvT = 0; an.gainT = 0; } else if (k === 'fall') {
+      const hv = _hv(p.id | 0, evId0(p)), kind = d.kind || (d.board ? 'board' : an.boardT > 0 ? 'board' : sp0 < 7 ? (hv > 0.5 ? 'knees' : 'stumble') : d.from === 'behind' ? 'fwd' : d.from === 'front' ? (hv > 0.4 ? 'back' : 'side') : hv < 0.3 ? 'side' : hv < 0.5 ? 'stumble' : hv < 0.75 ? 'fwd' : 'side');
+      an.fall = { t: 0, side: d.side || 1, kind, cfg: FALLS[kind] || FALLS.side }; if (!d.kind) an.fall.pw = d.power; an.spK = (d.power === undefined ? 0.6 : d.power) * 8; an.spKy = (d.side || 1) * 6;
+    }
     else {
       const rel0 = d.rel || 0, sd0 = V.topR ? -1 : 1, kd = d.kind, hk = k === 'hitwind' || k === 'check' || k === 'hitmiss' || k === 'checked';
       let dr = 0; if (typeof d.dir === 'number') dr = -wrapA(d.dir - (p.fa || 0)); else if (d.dir && d.dir.x !== undefined) dr = -wrapA(Math.atan2(d.dir.y, d.dir.x) - (p.fa || 0));   // victim push direction relative to heading, +left
-      an.ev = { k, t: 0, d, dur: (k === 'shot' ? ({ wrist: 0.6, snap: 0.4, slap: 0.9, onetimer: 0.65 }[kd] || 0.6) : k === 'poke' && Math.hypot(an.pfv, an.psv) < 1.9 ? 0.55 : ANIM.dur[k] || 0.5),
+      an.ev = { k, t: 0, t0: 0, d, dur: (k === 'shot' ? ({ wrist: 0.6, snap: 0.4, slap: 0.9, onetimer: 0.65 }[kd] || 0.6) : k === 'poke' && Math.hypot(an.pfv, an.psv) < 1.9 ? 0.55 : ANIM.dur[k] || 0.5),
         bk: ((k === 'shot' && (kd === 'wrist' || kd === 'snap')) || k === 'pass') ? _es((rel0 * sd0 - 0.35) / 0.5) : 0, sub: (k === 'poke' && Math.hypot(an.pfv, an.psv) < 1.9) ? 1 : 0,
         hf: an.pfh === undefined ? an.pfv : an.pfh, hs: an.psh === undefined ? an.psv : an.psh, br: hk ? S.brace : 0, pw: d.power !== undefined ? _cl(d.power, 0, 1) : (k === 'check' ? 0.6 : 0.5), board: !!d.board, dr: dr };
+      if (k === 'shot') { an.ev.t0 = an.ev.t = ({ slap: 0.07, onetimer: 0.07, wrist: 0.05, snap: 0.04 })[kd] || 0.05; an.ev.lof = 0; }
+      if (k === 'pass') { an.ev.t0 = an.ev.t = 0.05; an.ev.lof = (d.len || 0) > 75 ? 1 : 0; }
+      if (k === 'checked') { an.spK += (d.power === undefined ? 0.6 : d.power) * 10 * Math.cos(dr || 0); an.spKy += Math.sin(dr || 0) * 8 * (d.power === undefined ? 0.6 : d.power); }
     }
   }
   if (an.ev) { an.ev.t += dt; if (an.ev.t > an.ev.dur) an.ev = null; }
-  if (an.recvT > 0) an.recvT -= dt; if (an.cush > 0) an.cush -= dt; an.gainT += dt;
-  if (an.fall) { an.fall.t += dt; if (an.fall.t > ANIM.dur.fall) an.fall = null; }
+  if (an.boardT > 0) an.boardT -= dt; if (an.recvT > 0) an.recvT -= dt; if (an.cush > 0) an.cush -= dt; an.gainT += dt;
+  if (an.fall) { an.fall.t += dt; if (an.fall.t > an.fall.cfg.dur) an.fall = null; }
+  // spring-based secondary motion for hits and falls (cosmetic): torso pitch / roll ring after an impulse
+  { an.spX = an.spX || 0; an.spY = an.spY || 0; an.spK = an.spK || 0; an.spKy = an.spKy || 0; an.spVx = an.spVx || 0; an.spVy = an.spVy || 0;
+    an.spVx += an.spK * 0.12; an.spVy += an.spKy * 0.12; an.spK = an.spKy = 0;
+    const kk = 120, cc = 8.5, h = Math.min(dt, 0.02); for (let n = 0; n < Math.ceil(dt / h); n++) { const hh = dt / Math.ceil(dt / h); an.spVx += (-kk * an.spX - cc * an.spVx) * hh; an.spVy += (-kk * an.spY - cc * an.spVy) * hh; an.spX += an.spVx * hh; an.spY += an.spVy * hh; }
+    an.spX = _cl(an.spX, -0.6, 0.6); an.spY = _cl(an.spY, -0.6, 0.6); }
+  // one-timer: otwind holds the cocked stance until contact; if the puck never arrives the swing becomes a whiff
+  if (an.otT > 0) { an.otAge += dt; an.otT -= dt; if (an.otT <= 0 && !an.ev && !an.fall) { an.ev = { k: 'otmiss', t: 0, t0: 0, d: {}, dur: 0.85, bk: 0, sub: 0, hf: an.pfv, hs: an.psv, br: 0, pw: 0.5, board: false, dr: 0 }; } }
+  if (an.ev && an.ev.k === 'otmiss') S.ot = kf(an.ev.t, [[0, 1], [0.15, 0]]); else _sm(S, 'ot', an.otT > 0 && !an.ev && !c.hasPuck ? 1 : 0, an.otT > 0 ? 12 : 16, dt);
+  _sm(an, 'otH', _cl(Math.atan2(an.psv || 0, Math.max(an.pfv || 0, 0.5)), -0.8, 0.8), 8, dt);
   const ek = an.ev ? an.ev.k : '', u = an.ev ? an.ev.t : 0, ed = an.ev ? an.ev.d : null;
 
   // ---------- 1. motion terms ----------
@@ -88,7 +118,9 @@ ANIM.apply = function (m, p, c, dt) {
   const sprintT = (s01 > 0.62 && !c.hasPuck && !ek && !an.recvT && !c.faceoff) ? 1 : 0;
   const freeT = Math.max(sprintT, ek === 'poke' && !an.ev.sub ? kf(u, [[0, 0], [0.08, 1], [0.36, 1], [0.45, 0]]) : 0);
   _sm(S, 'free', freeT, 7, dt);
-  if (ek === 'shot') S.charge = Math.max(0, S.charge - dt / 0.14 * Math.max(S.charge, 0.0001) * 0.9 - dt * 2.2); else _sm(S, 'charge', c.charge || 0, 14, dt);
+  const act = p.act && (p.act.k === 'shot' || p.act.k === 'pass') ? p.act : null;
+  if (act) { const au = _cl(1 - act.t / Math.max(act.T, 0.01), 0, 1); if (!an.actOn) { an.actOn = true; an.holdCh = S.charge; } const sw = au < 0.3 ? 0 : _es((au - 0.3) / 0.7), base = act.k === 'pass' ? 0.3 : Math.max(an.holdCh, 0.55); _sm(S, 'charge', base * (1 - sw), 40, dt); }
+  else { an.actOn = false; if (ek === 'shot') S.charge = Math.max(0, S.charge - dt / 0.14 * Math.max(S.charge, 0.0001) * 0.9 - dt * 2.2); else _sm(S, 'charge', c.charge || 0, 14, dt); }
   const protT = (c.hasPuck && c.opp && c.opp.d < 9 && !ek) ? 1 : 0; _sm(S, 'prot', protT, 6, dt);
   // opponent closing speed -> brace (he comes at me / I carry) or lunge (I close on him without the puck); incoming pass -> shot preload
   const od = c.opp ? c.opp.d : 99; if (an.od < 0) an.od = od; _sm(an, 'clos', _cl((an.od - od) / Math.max(dt, 1e-3), -200, 200), 12, dt); an.od = od;
@@ -169,11 +201,24 @@ ANIM.apply = function (m, p, c, dt) {
   } else if (ek === 'draw') {
     eBf = -0.55 * kf(u, [[0, 0], [0.12, 1], [0.3, 0.4], [0.5, 0]]); eYaw = sgn * 0.3 * kf(u, [[0, 0], [0.12, 1], [0.5, 0]]); eHandPull = 0.2 * kf(u, [[0, 0], [0.12, 1], [0.5, 0]]);
   }
-  if (ek) { const ein = (ek === 'check' || ek === 'checked' || ek === 'hitmiss') ? _es(u / 0.035) : _es(u / 0.09); eYaw *= ein; eBf *= ein; eBs *= ein; eBh *= ein; eHh *= ein; eCr *= ein; ePitch *= ein; eHead *= ein; eHandPull *= ein; eWeight *= ein; eRoll *= ein; eStance *= ein; }
+  if (ek) { const ein = (ek === 'check' || ek === 'checked' || ek === 'hitmiss') ? _es(u / 0.035) : _es((u - evx.t0) / 0.07 + (evx.t0 ? 0.15 : 0)); eYaw *= ein; eBf *= ein; eBs *= ein; eBh *= ein; eHh *= ein; eCr *= ein; ePitch *= ein; eHead *= ein; eHandPull *= ein; eWeight *= ein; eRoll *= ein; eStance *= ein; }
   if (ek !== 'checked' && ek !== 'hitmiss' && !an.fall) _sm(S, 'flail', 0, 8, dt);
   // charging a shot (human) or preloading a one-timer while the pass arrives: visible windup before the release
   const ch = Math.max(S.charge, S.pre);
   if (ch > 0.02) { const slap = _es((S.charge - 0.62) / 0.3); eYaw += sgn * (-0.3 - 0.7 * slap) * ch * V.wind; eBf += (-0.35 - 0.6 * slap) * ch; eBh += (0.15 + 1.0 * slap) * ch; eHh += 0.6 * slap * ch; eCr += 0.15 * ch + 0.25 * slap * ch; eStance += 0.3 * slap * ch + 0.15 * S.pre; eWeight -= 0.5 * ch; }
+  // one-timer stance: shoulders closed, blade cocked high behind the puck line, weight back, low
+  if (S.ot > 0.01) { const o = S.ot; eYaw += sgn * -0.75 * o * V.wind; eBf += -0.5 * o; eBh += 0.85 * o; eHh += 0.4 * o; eCr += 0.3 * o; eStance += 0.35 * o; eWeight -= 0.7 * o; eRoll += -0.1 * o; eHead += an.otH * o; }
+  if (ek === 'otmiss') {
+    const b0 = [eYaw, eBf, eBh, eHh, eCr, eStance, eWeight, eRoll, ePitch, eHead];
+    // whiff: the swing goes through empty air, the body is carried past the line, head snaps to find the puck, then recovery
+    const sw = kf(u, [[0, 0], [0.12, 1], [0.35, 0.6], [0.85, 0]]), wob = Math.sin(u * 10) * Math.exp(-u * 2.5);
+    eYaw += sgn * (0.7 * sw - 0.3) * V.wind * kf(u, [[0, 1], [0.12, 1], [0.85, 0]]); eBf += 0.5 * sw; eBh += 0.9 * kf(u, [[0, 1], [0.08, 0.1], [0.4, 0.3], [0.85, 0]]); eHh += 0.3 * kf(u, [[0, 1], [0.1, 0], [0.85, 0]]);
+    eCr += 0.3 * kf(u, [[0, 1], [0.5, 0.6], [0.85, 0]]); eStance += 0.3 * kf(u, [[0, 1], [0.85, 0]]); eWeight += 0.8 * sw; eRoll += 0.2 * wob; ePitch += 0.25 * kf(u, [[0, 0], [0.15, 1], [0.85, 0]]); eHead += -0.8 * kf(u, [[0, 0], [0.2, 1], [0.85, 0]]);
+    { const oe = _es(u / 0.12); eYaw = b0[0] + (eYaw - b0[0]) * oe; eBf = b0[1] + (eBf - b0[1]) * oe; eBh = b0[2] + (eBh - b0[2]) * oe; eHh = b0[3] + (eHh - b0[3]) * oe; eCr = b0[4] + (eCr - b0[4]) * oe; eStance = b0[5] + (eStance - b0[5]) * oe; eWeight = b0[6] + (eWeight - b0[6]) * oe; eRoll = b0[7] + (eRoll - b0[7]) * oe; ePitch = b0[8] + (ePitch - b0[8]) * oe; eHead = b0[9] + (eHead - b0[9]) * oe; }
+    _sm(S, 'flail', 0.25 * kf(u, [[0, 0], [0.2, 1], [0.85, 0]]), 14, dt);
+  }
+  // pass: saucer / long flick lifts the blade higher through the release
+  if (ek === 'pass' && evx.lof) { eBh += 0.25 * kf(u, [[0, 0], [0.12, 1], [0.4, 0.8], [0.65, 0]]); eHh += 0.08 * kf(u, [[0, 0], [0.2, 1], [0.65, 0]]); }
   // receiving: cushion the puck (hands give, blade drifts back with it), then hand off into stickhandling
   const cush = an.cush > 0 ? kf(an.cush / 0.35, [[0, 0], [0.5, 1], [1, 0.3]]) : 0; { const cq = an.cq || 1; eHandPull += 0.16 * cush * cq; eBf -= 0.2 * cush * (cq > 2 ? -1.2 : 1) * Math.min(cq, 2); eHh -= 0.04 * cush * cq; }
   // incoming pass on the off side (backhand reception): shoulders turn to the puck, hands a touch lower
@@ -182,7 +227,12 @@ ANIM.apply = function (m, p, c, dt) {
   if (S.brace > 0.01) { const os = c.opp && c.opp.s > 0 ? 1 : -1; eCr += 0.25 * S.brace; eStance += 0.25 * S.brace; ePitch += 0.2 * S.brace; eYaw += os * 0.5 * S.brace; eHandPull += 0.1 * S.brace; eHh += 0.04 * S.brace; eRoll += os * 0.12 * S.brace; }
   if (S.lunge > 0.01) { const os = c.opp && c.opp.s > 0 ? 1 : -1; eCr += 0.12 * S.lunge; ePitch += 0.16 * S.lunge; eYaw += os * 0.25 * S.lunge; eBh += 0.2 * S.lunge; eHandPull += 0.08 * S.lunge; }
   // fall layer extras: legs buckle, then a visible getting-up phase (hands to ice, knees, push up)
-  if (an.fall) { const ft = an.fall.t; eCr += 0.5 * kf(ft, [[0, 0], [0.25, 0.3], [0.9, 0.3], [1.2, 1], [1.6, 0.3], [1.7, 0]]); ePitch += 0.45 * kf(ft, [[0, 0], [0.9, 0], [1.2, 1], [1.7, 0]]); _sm(S, 'flail', kf(ft, [[0, 0.3], [0.1, 1], [0.9, 0.6], [1.2, 0.9], [1.7, 0]]), 14, dt); }
+  if (an.fall) { const cf = an.fall.cfg, ft = an.fall.t * 1.7 / cf.dur, am = cf.amp; eCr += 0.5 * am * kf(ft, [[0, 0], [0.25, 0.3], [0.9, 0.3], [1.2, 1], [1.6, 0.3], [1.7, 0]]) + 0.6 * cf.sag * kf(ft, [[0, 0], [0.3, 1], [1.2, 1], [1.7, 0]]); ePitch += 0.45 * am * kf(ft, [[0, 0], [0.9, 0], [1.2, 1], [1.7, 0]]); _sm(S, 'flail', am * kf(ft, [[0, 0.3], [0.1, 1], [0.9, 0.6], [1.2, 0.9], [1.7, 0]]), 14, dt); }
+  // secondary motion (hit ring-down) and protection / pickup posture
+  ePitch += 0.9 * an.spX; eRoll += 0.8 * an.spY; eHead -= 0.5 * an.spX;
+  { const os2 = c.opp && c.opp.s > 0 ? 1 : -1; eRoll -= os2 * 0.14 * S.prot; ePitch += 0.1 * S.prot; }
+  const settle = an.gainT < 0.9 && an.cq !== 2.8 ? kf(an.gainT, [[0, 0], [0.12, 1], [0.5, 0.6], [0.9, 0]]) : 0; eCr += 0.1 * settle * Math.min(an.cq || 1, 2);
+  if (S.recv > 0.01) eHead += _cl(Math.atan2(an.psv, Math.max(an.pfv, 0.5)), -0.8, 0.8) * 0.8 * S.recv;
 
   // ---------- 3. stances ----------
   let crouch = _cl(0.5 + 0.06 * S.stop + 0.25 * S.faceoff + eCr + V.crouch + 0.15 * S.prot + 0.12 * S.shuf + (c.vis ? 0.16 : 0), 0, 1.2);
@@ -224,14 +274,14 @@ ANIM.apply = function (m, p, c, dt) {
   const pit = ePitch + 0.4 * S.faceoff - 0.22 * S.stop + 0.35 * S.acc * (1 - s01) * S.drive; pose.pelvis.p += 0.2 * pit + 0.08 * ex; pose.spine_01.p += 0.35 * pit; pose.spine_02.p += 0.35 * pit; pose.spine_03.p += 0.35 * pit + 0.1 * S.faceoff;
   const Y = S.yaw; pose.pelvis.y = Y * 0.25 + hipOpen; pose.spine_01.y = Y * 0.5 + hipOpen * 0.5; pose.spine_02.y = Y * 0.8; pose.spine_03.y = Y;
   // head: looks at the puck / the target, kept level against the body twist
-    pose.neck_01.y = -Y * 0.3 + eHead * 0.4 * YL; pose.Head.y = -Y * 0.35 + eHead * 0.5 * YL; pose.Head.p = -0.1 + 0.3 * S.faceoff - 0.4 * ePitch;
+    pose.neck_01.y = -Y * 0.3 + eHead * 0.4 * YL; pose.Head.y = -Y * 0.35 + eHead * 0.5 * YL; pose.Head.p = -0.1 + 0.3 * S.faceoff - 0.4 * ePitch - 0.25 * settle - 0.15 * S.recv;
   // whole-model yaw for the hockey stop (skates turn across the direction of travel)
   m.inner.rotation.y = Math.PI / 2 + S.stop * V.stopSide * 1.15;
 
   // fall layer: rotate the whole body about the forward axis, then recover
-  let fallA = 0;
-  if (an.fall) { const t = an.fall.t, side = an.fall.side; fallA = side * kf(t, [[0, 0], [0.28, 1.3], [0.9, 1.3], [1.5, 0.35], [1.7, 0]]); for (const sd of ['l', 'r']) { pose['thigh_' + sd].r *= 1.0 + 1.5 * Math.abs(fallA); } }
-  m.root.rotation.z = fallA;
+  let fallA = 0, fallP = 0;
+  if (an.fall) { const t = an.fall.t, side = an.fall.side, cf = an.fall.cfg; fallA = side * kf(t, cf.roll); fallP = kf(t, cf.pitch); for (const sd of ['l', 'r']) { pose['thigh_' + sd].r *= 1.0 + 1.5 * Math.max(Math.abs(fallA), 0.8 * Math.abs(fallP)); } }
+  m.root.rotation.z = fallA; m.root.rotation.x = fallP;
 
   // ---------- 5. pass 1: legs/torso into the skeleton, ground contact, read shoulders ----------
   SK.setPose(m, pose); SK.ground2(m); m.g.updateMatrixWorld(true);
@@ -269,7 +319,7 @@ ANIM.apply = function (m, p, c, dt) {
   { const bsf = Math.max(S.back, S.shuf); bf += 0.16 * bsf; bs += (0.1 * sgn - bs) * 0.55 * bsf; }   // stick out in front, near the centre line
   // carrying: blade follows the real puck with a stickhandling dangle (puck itself is never moved)
   if (S.carry > 0.01) {
-    const dang = Math.sin(an.tHand) * 0.2 * V.carry * (1 - 0.5 * s01) * (1 - 0.7 * S.prot) * (0.2 + 0.8 * _es(an.gainT / 0.45)), cf = _cl(pf, 0.7, 1.5), cs = _cl(ps + dang - 0.38 * protSide * S.prot, -0.9, 0.9);
+    const dang = dsh(Math.sin(an.tHand)) * 0.2 * V.carry * (1 - 0.5 * s01) * (1 - 0.7 * S.prot) * (0.2 + 0.8 * _es(an.gainT / 0.45)), cf = _cl(pf, 0.7, 1.5), cs = _cl(ps + dang - 0.38 * protSide * S.prot, -0.9, 0.9);
     bf = _cl(bf + (cf - bf) * S.carry, 0.5, 1.6); bs = bs + (cs - bs) * S.carry;
   }
   if (S.recv > 0.01) { const rf = _cl(pf, 0.5, 1.7), rs = _cl(ps, -1.0, 1.0); bf += (rf - bf) * S.recv; bs += (rs - bs) * S.recv; }
@@ -325,10 +375,14 @@ ANIM.apply = function (m, p, c, dt) {
   if (!SK.mobile() && !AR.cal) { AR.cal = {}; m.g.updateMatrixWorld(true); AR.cal[topSide] = AR.calibrate(m, topSide, X.Tt, X.sh); AR.cal[botSide] = AR.calibrate(m, botSide, X.Tb, X.sh); }
   m.stick.shaft.visible = m.stick.blade.visible = !m.wrench;
   // visual puck: sits on the blade while carried (render-only; the simulated puck is untouched)
-  if (S.carry > 0.8 && !ek) { X.pu.copy(X.Hl).addScaledVector(X.bd, 0.2); X.pu.y = iceY + 0.02; an.heelOk = true; if (!an.heelW) an.heelW = V3(); an.heelW.copy(X.pu); m.root.localToWorld(an.heelW); } else an.heelOk = false;
+  if (S.carry > 0.8 && !ek) {
+    // the puck rolls along the blade and across its face with the dangle (trails the blade by ~0.8 rad); pickup bobbles kick it off the blade briefly
+    const gp = an.tHand - 0.8, gt = an.gainT, bob = (an.cq || 1) > 1.5 && gt < 0.7 ? Math.exp(-gt * 6) : 0;
+    const rl = _cl(0.17 + 0.06 * dsh(Math.sin(gp)) + 0.1 * bob * Math.sin(gt * 38), 0.09, 0.27), pl = 0.035 * dsh(Math.cos(gp)) + 0.09 * bob * Math.cos(gt * 31);
+    X.pu.copy(X.Hl).addScaledVector(X.bd, rl); X.tmp.set(-X.bd.z, 0, X.bd.x); X.pu.addScaledVector(X.tmp, pl); X.pu.y = iceY + 0.02; an.heelOk = true; if (!an.heelW) an.heelW = V3(); an.heelW.copy(X.pu); m.root.localToWorld(an.heelW); } else an.heelOk = false;
 
   // ---------- 8. state label (for tests and debugging) ----------
-  an.state = c.celeb ? 'celebrating' : S.pivot > 0.5 ? 'pivoting' : an.fall ? 'falling' : ek === 'checked' ? 'getting_checked' : ek === 'check' ? 'body_check' : ek === 'hitwind' ? 'hit_windup' : ek === 'hitmiss' ? 'hit_miss' : ek === 'shot' ? (bkE > 0.5 ? 'shot_backhand' : 'shot_' + (ed.kind || 'wrist')) : ek === 'pass' ? 'passing' : ek === 'poke' ? (evx.sub ? 'stick_lift' : 'poke_check') : ek === 'draw' ? 'faceoff_draw'
+  an.state = c.celeb ? 'celebrating' : S.pivot > 0.5 ? 'pivoting' : an.fall ? 'falling' : ek === 'otmiss' ? 'one_timer_miss' : (S.ot > 0.5 && !ek) ? 'one_timer_ready' : ek === 'checked' ? 'getting_checked' : ek === 'check' ? 'body_check' : ek === 'hitwind' ? 'hit_windup' : ek === 'hitmiss' ? 'hit_miss' : ek === 'shot' ? (bkE > 0.5 ? 'shot_backhand' : 'shot_' + (ed.kind || 'wrist')) : ek === 'pass' ? 'passing' : ek === 'poke' ? (evx.sub ? 'stick_lift' : 'poke_check') : ek === 'draw' ? 'faceoff_draw'
     : c.faceoff ? 'faceoff_stance' : S.stop > 0.5 ? 'stopping' : S.recv > 0.5 ? 'receiving_pass' : S.charge > 0.1 ? 'preparing_shot' : S.shuf > 0.5 ? 'side_shuffle' : S.brace > 0.5 ? 'bracing' : p.back ? 'backward_skating' : S.carry > 0.6 ? (S.prot > 0.5 ? 'protecting_puck' : 'stickhandling')
       : xo > 0.4 ? 'crossover_turn' : Math.abs(turn) > 1.2 ? (turn > 0 ? 'turning_right' : 'turning_left') : sp < 1 ? 'ready' : S.acc > 0.5 ? 'accelerating' : s01 > 0.8 ? 'sprint_skating' : S.acc < 0.15 && s01 > 0.3 ? 'gliding' : 'skating';
   if (ANIM.debug) { m.g.updateMatrixWorld(true); an.metrics = ANIM.measure(m, X.Tt, X.Tb, topSide, botSide, iceY); }

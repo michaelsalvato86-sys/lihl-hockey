@@ -47,9 +47,10 @@ function netDrop(side){ G.humans = G.humans.filter(h=>h.side!==side); }
 function netInput(side,m){ const h=G.humans.find(x=>x.side===side); if(!h) return; const c=v=>Math.max(-1,Math.min(1,+v||0)); h.inp.x=c(m.x); h.inp.y=c(m.y);
   if(m.sh){ h.ev.sh=1; h.ev.pw=Math.max(.2,Math.min(1,+m.pw||.5)); } if(m.ps) h.ev.ps=1; if(m.hit) h.ev.hit=1; if(m.sw) h.ev.sw=1; h.inp.vs=m.vs?1:0; }
 function r1(v){ return Math.round(v*10)/10; } function r2(v){ return Math.round(v*100)/100; }
+function skq(p){ const e=Math.round((p.edge||0)*3)+3, st=Math.min(7,Math.round((p.stp||0)*7)), f=(p.spray?1:0)|(p.xo?2:0), ph=Math.round(((p.ph||0)%6.2832)/6.2832*31)&31; return e|(st<<3)|(f<<6)|(ph<<8); }
 function teamSnap(t){
   const seats = SL.map(s => t.seats[s] ? pidOf(t.seats[s]) : -1);
-  const pl = []; for (const s of SL){ const p=t.seats[s]; if(p) pl.push([pidOf(p), r1(p.x), r1(p.y), r1(p.vx), r1(p.vy), r2(p.fa), r1(p.turn||0), r2(p.acc01||0), p.back?1:0, r2(p.st===undefined?1:p.st)]); }
+  const pl = []; for (const s of SL){ const p=t.seats[s]; if(p) pl.push([pidOf(p), r1(p.x), r1(p.y), r1(p.vx), r1(p.vy), r2(p.fa), r1(p.turn||0), r2(p.acc01||0), p.back?1:0, r2(p.st===undefined?1:p.st), skq(p)]); }
   const g = t.goalie;
   return { s: seats, pl: pl, g: [r1(g.x), r1(g.y)], pu: t.pull?1:0, pen: t.pen.map(e=>[pidOf(e.p), r1(e.t)]), lb: t.label };
 }

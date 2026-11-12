@@ -134,6 +134,7 @@
         const p = pid2p(e[0]); if (!p) continue; const a = ma.get(e[0]);
         if (a) { p.x = lerp(a[1], e[1], al); p.y = lerp(a[2], e[2], al); p.fa = lerpA(a[5], e[5], Math.min(1, al)); } else { p.x = e[1]; p.y = e[2]; p.fa = e[5]; }
         p.vx = e[3]; p.vy = e[4]; p.turn = e[6]; p.acc01 = e[7]; p.back = e[8]; p.st = e[9];
+        if (e[10] !== undefined) { const q = e[10], qa = a ? a[10] : undefined; p.edge = ((q & 7) - 3) / 3; p.stp = ((q >> 3) & 7) / 7; p.spray = !!(q & 64); p.xo = !!(q & 128); const ph1 = ((q >> 8) & 31) * 0.2027; p.ph = qa === undefined ? ph1 : (lerpA(((qa >> 8) & 31) * 0.2027, ph1, al) + 6.2832) % 6.2832; }
       }
       const ga = A.t[ti].g, gb = B.t[ti].g; t.goalie.x = lerp(ga[0], gb[0], al); t.goalie.y = lerp(ga[1], gb[1], al);
     });
