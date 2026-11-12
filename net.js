@@ -142,7 +142,7 @@
   window.netFrame = function (dt) {
     if (!NET.on || !G) return;
     NET.acc += dt;
-    if (NET.acc >= 1 / 30) { NET.acc = 0; const I = readLocal(); NET.send({ t: 'in', x: +I.nx.toFixed(2), y: +I.ny.toFixed(2), sh: I.sh ? 1 : 0, pw: +(I.pw || .5).toFixed(2), ps: I.ps ? 1 : 0, hit: I.hit ? 1 : 0, sw: I.sw ? 1 : 0 }); }
+    if (NET.acc >= 1 / 30) { NET.acc = 0; const I = readLocal(); NET.send({ t: 'in', x: +I.nx.toFixed(2), y: +I.ny.toFixed(2), sh: I.sh ? 1 : 0, pw: +(I.pw || .5).toFixed(2), ps: I.ps ? 1 : 0, hit: I.hit ? 1 : 0, sw: I.sw ? 1 : 0, vs: I.vs ? 1 : 0 }); }
     { const q = NET.evq; if (q && q.length) { const nowt = performance.now(); while (q.length && q[0].at <= nowt) ev(q.shift().e); } }
     { const nw = performance.now(); if (NET.fT) NET.fps = (NET.fps || 60) * .92 + (1000 / Math.max(4, nw - NET.fT)) * .08; NET.fT = nw; }
     const buf = NET.buf; if (!buf.length) return; const rt = performance.now() - NET.delay;

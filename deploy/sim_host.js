@@ -45,7 +45,7 @@ function netStart(c){ $('mh').value=c.home; $('ma').value=c.away; $('mc').value=
 function netHuman(side){ if(G.humans.find(h=>h.side===side)) return; const h = mkRemote(side===0?H1:A1); h.side=side; G.humans.push(h); }
 function netDrop(side){ G.humans = G.humans.filter(h=>h.side!==side); }
 function netInput(side,m){ const h=G.humans.find(x=>x.side===side); if(!h) return; const c=v=>Math.max(-1,Math.min(1,+v||0)); h.inp.x=c(m.x); h.inp.y=c(m.y);
-  if(m.sh){ h.ev.sh=1; h.ev.pw=Math.max(.2,Math.min(1,+m.pw||.5)); } if(m.ps) h.ev.ps=1; if(m.hit) h.ev.hit=1; if(m.sw) h.ev.sw=1; }
+  if(m.sh){ h.ev.sh=1; h.ev.pw=Math.max(.2,Math.min(1,+m.pw||.5)); } if(m.ps) h.ev.ps=1; if(m.hit) h.ev.hit=1; if(m.sw) h.ev.sw=1; h.inp.vs=m.vs?1:0; }
 function r1(v){ return Math.round(v*10)/10; } function r2(v){ return Math.round(v*100)/100; }
 function teamSnap(t){
   const seats = SL.map(s => t.seats[s] ? pidOf(t.seats[s]) : -1);

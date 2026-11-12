@@ -176,7 +176,7 @@ ANIM.apply = function (m, p, c, dt) {
   if (an.fall) { const ft = an.fall.t; eCr += 0.5 * kf(ft, [[0, 0], [0.25, 0.3], [0.9, 0.3], [1.2, 1], [1.6, 0.3], [1.7, 0]]); ePitch += 0.45 * kf(ft, [[0, 0], [0.9, 0], [1.2, 1], [1.7, 0]]); _sm(S, 'flail', kf(ft, [[0, 0.3], [0.1, 1], [0.9, 0.6], [1.2, 0.9], [1.7, 0]]), 14, dt); }
 
   // ---------- 3. stances ----------
-  let crouch = _cl(0.5 + 0.06 * S.stop + 0.25 * S.faceoff + eCr + V.crouch + 0.15 * S.prot + 0.12 * S.shuf, 0, 1.2);
+  let crouch = _cl(0.5 + 0.06 * S.stop + 0.25 * S.faceoff + eCr + V.crouch + 0.15 * S.prot + 0.12 * S.shuf + (c.vis ? 0.16 : 0), 0, 1.2);
   _sm(S, 'crouch', crouch, 10, dt); crouch = S.crouch;
   const yawTurn = _cl(turn * 0.06 * Math.min(1, sp / 16), -0.35, 0.35) * YL * -1;     // shoulders lead the turn
   const protSide = c.opp ? (c.opp.s > 0 ? 1 : -1) : 0;

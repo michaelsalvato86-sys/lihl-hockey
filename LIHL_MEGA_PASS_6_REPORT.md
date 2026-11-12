@@ -13,10 +13,19 @@ Fix options (owner decision): add a card to the Fly account (this one small mach
 - Multiplayer: server authoritative at 30 Hz, events mirrored to clients, reconnect with grace period.
 
 ## Done this pass
-- Ice spray on hard braking (r3d.js): particles from the skater's feet when speed drops fast. Implemented; automated test only for no breakage; NOT visually verified (a headless close-up showed no visible spray).
+- Ice spray on hard braking (r3d.js). Implemented; not visually verified (a headless close-up showed no visible spray).
+- Vision control: hold Shift, the VIS button (toggle on touch), or left bumper on a pad. Strafe movement, facing tracks the net with the puck or the puck without it, hunched stance. Automated tested (backpedals facing the net, no snap on release). Sent over the network and applied by the server. Not visually verified.
+- Gamepad support (standard mapping). Automated tested with a mocked pad; not tried on a real controller.
+- PWA: service worker (network first for code, cache first for models and data, never photos), add-to-home-screen hint on the second mobile visit. Registration verified locally; offline behavior not tested.
+- Season mode (menu: Season): round robin vs every team, simulated results for other teams, standings table, G/A/P for your team, saved in the browser. Assists are now tracked and shown in the scoring list. Visually verified at phone landscape size.
+- Goalie rebounds are pushed toward the corners. Goals per shot still 0.15 to 0.18.
+- Removed stray game_tmp.html and skater3d.bak.js.
 - Subs fix, post-game summary, skating sound setting, forecheck menu (earlier today).
 
-## Not done
+## Not done (second brief)
+Goal replay, pulling the goalie late, scorebug redesign, zoom-by-location camera, crowd profiling on a phone, mobile layout audit on real devices.
+
+## Not done (first brief)
 Unified animation state machine rewrite, crossovers, hockey-stop animation pose, pivots, stickhandling visuals, puck pickup animation, one-timer animation rework, fall and getup sequence rework, goalie butterfly and recovery rework, AI reactions, faceoff presentation, goal celebration and camera work, rink and puck visuals, audio sync, mobile and input pass, performance profiling. Not tested visually: everything except the frames named above.
 
 ## Tests

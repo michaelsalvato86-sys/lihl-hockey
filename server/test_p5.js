@@ -64,4 +64,8 @@ ck('non-pressing defenders move to cover', c >= 1, String(c));
 { const s = createSim(); s.start({ home: 0, away: 9, plen: 120 }); for (let i = 0; i < 90; i++) s.tick();
   const res = {}; for (const m of ['cons', 'std', 'agg', 'two']) res[m] = ev(s, `(()=>{const t=H1,o=A1;t.fcPref='${m}';G.score=[0,0];const own=o.seats.C;puck.owner=own;own.x=t.oppGX-t.dir*20;own.y=MY;puck.x=own.x;puck.y=own.y;t.rank=new Map(onIce(t).map((p,i)=>[p,i]));let n=0;for(const p of onIce(t)){p.dvx=p.dvy=0;aiPlayer(p,1/60);const dx=own.x-p.x,dy=own.y-p.y,d=hyp(dx,dy)||1;if((p.dvx*dx+p.dvy*dy)/d>.8)n++}return n})()`);
   ck('forecheck modes change pressure (agg or two > cons)', res.agg >= res.cons && res.two >= res.std && (res.agg + res.two) > (res.cons + res.std), JSON.stringify(res)); }
+// 10. vision control: strafe/backpedal while facing the net (with the puck) or the puck (without it); releasing never snaps
+{ const s = createSim(); s.start({ home: 0, away: 9, plen: 120 }); for (let i = 0; i < 90; i++) s.tick();
+  const r = ev(s, `(()=>{const t=H1,p=t.seats.C;p.x=100;p.y=MY;p.vx=p.vy=0;puck.owner=p;const d=t.dir;p.dvx=-d;p.dvy=0;p.vis=true;for(let i=0;i<90;i++){skate(p,1/60,40)}const toNet=Math.atan2(MY-p.y,t.oppGX-p.x);const faceErr=Math.abs(wrapA(p.fa-toNet));const movingBack=(p.vx*d)<-10;const fa0=p.fa;p.vis=false;p.dvx=0;p.dvy=0;skate(p,1/60,40);const snap=Math.abs(wrapA(p.fa-fa0));return[faceErr,movingBack,snap,p.back]})()`);
+  ck('vision control: backpedals facing the net, release has no snap', r[0] < .25 && r[1] && r[2] < .2, JSON.stringify(r.map(x => typeof x === 'number' ? +x.toFixed(2) : x))); }
 console.log(fails ? 'FAILED ' + fails : 'p5 tests pass'); process.exit(fails ? 1 : 0);

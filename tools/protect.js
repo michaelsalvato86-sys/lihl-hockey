@@ -6,7 +6,7 @@ const ROOT = path.resolve(__dirname, '..'), OUT = path.join(ROOT, 'dist');
 const OPT = { compact: true, simplify: true, renameGlobals: false, identifierNamesGenerator: 'hexadecimal', stringArray: true, stringArrayEncoding: [], stringArrayThreshold: 0.7, splitStrings: false, controlFlowFlattening: false, deadCodeInjection: false, selfDefending: false, debugProtection: false, disableConsoleOutput: false, unicodeEscapeSequence: false, target: 'browser' };
 fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true });
 const JS = ['r3d.js', 'skater3d.js', 'costumes.js', 'skater_pose.js', 'anim_rig.js', 'anim_ctrl.js', 'anim_goalie.js', 'audio.js', 'menu.js', 'net.js', 'announcer.js'];
-const COPY = ['manifest.json', 'icon-180.png', 'icon-512.png', 'config.js', 'three.min.js', 'ui_style.css', 'ui_online.css'];
+const COPY = ['manifest.json', 'sw.js', 'icon-180.png', 'icon-512.png', 'config.js', 'three.min.js', 'ui_style.css', 'ui_online.css'];
 let html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 // obfuscate the big inline simulation script (the one holding the roster)
 const m = /<script>\s*const ROSTER=/.exec(html);
