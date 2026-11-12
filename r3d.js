@@ -11,6 +11,7 @@ function iceTex(){const c=document.createElement('canvas');c.width=2000;c.height
  ln(100,'#c8283a',1);ln(11,'#c8283a',.2);ln(189,'#c8283a',.2);ln(75,'#1f5fc8',1);ln(125,'#1f5fc8',1);
  x.strokeStyle='#bd1f31';x.lineWidth=4;x.fillStyle='#bd1f31';
  for(const[a,b]of[[31,22],[31,63],[169,22],[169,63]]){x.beginPath();x.arc(a*k,b*k,150,0,7);x.stroke();x.beginPath();x.arc(a*k,b*k,10,0,7);x.fill()}
+ for(const[a,b]of[[80,22],[80,63],[120,22],[120,63]]){x.fillStyle='#bd1f31';x.beginPath();x.arc(a*k,b*k,10,0,7);x.fill()}
  x.strokeStyle='#1f5fc8';x.beginPath();x.arc(1000,425,150,0,7);x.stroke();x.fillStyle='#1f5fc8';x.beginPath();x.arc(1000,425,10,0,7);x.fill();
  x.fillStyle='rgba(120,190,240,.5)';x.strokeStyle='#c8283a';x.lineWidth=2.5;
  for(const[gx,d]of[[11,1],[189,-1]]){x.beginPath();x.arc(gx*k,425,60,d>0?-Math.PI/2:Math.PI/2,d>0?Math.PI/2:1.5*Math.PI);x.closePath();x.fill();x.stroke()}
