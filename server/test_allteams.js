@@ -7,4 +7,5 @@ for (let i = 0; i < n; i++) {
   try { s.start({ home: i, away: (i + 7) % n, plen: 120 }); for (let k = 0; k < 600; k++) s.tick(); }
   catch (e) { bad++; console.log('FAIL team', i, e.message); }
 }
+if (n !== 27) { console.log('FAIL: expected 27 teams, got ' + n); bad++; }
 console.log(n + ' teams checked, failures: ' + bad); process.exit(bad ? 1 : 0);

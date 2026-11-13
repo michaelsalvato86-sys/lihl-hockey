@@ -1,0 +1,1012 @@
+{
+ "158": {
+  "abbr": "QF",
+  "name": "Queens Finest",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (standard template)",
+    "body": "#0061fe",
+    "trim": "#1a1a1a",
+    "number": "#ffffff",
+    "numberTrim": "#1a1a1a",
+    "yoke": null,
+    "sleeve": "#0061fe",
+    "stripe": "#1a1a1a",
+    "pants": null,
+    "socks": null,
+    "source": "standard-template (logo and colors from site)",
+    "confidence": "low",
+    "logo": "photos/team158.png",
+    "logoPlacement": "chest crest"
+   },
+   {
+    "slot": "away",
+    "name": "Away (standard template, not a real away jersey)",
+    "body": "#ffffff",
+    "trim": "#0061fe",
+    "number": "#0061fe",
+    "numberTrim": null,
+    "yoke": null,
+    "sleeve": "#ffffff",
+    "stripe": "#0061fe",
+    "pants": null,
+    "socks": null,
+    "source": "standard-template (logo and colors from site)",
+    "confidence": "low",
+    "logo": "photos/team158.png",
+    "logoPlacement": "chest crest"
+   },
+   {
+    "slot": "observed-loaner",
+    "name": "Spring 2026 champion photo (team_id 76, white version seen)",
+    "body": "#ffffff",
+    "yoke": "#ffffff",
+    "sleeve": "#ffffff",
+    "stripe": "#f26a21",
+    "trim": "#1f45c8",
+    "number": "#1f45c8",
+    "numberTrim": null,
+    "pants": null,
+    "socks": null,
+    "logo": "HTH cartoon crest (not the team logo)",
+    "source": "site-observed (lihockey.org/championships)",
+    "confidence": "low",
+    "note": "photo showed white with orange/blue Islanders style jerseys and HTH crest"
+   }
+  ]
+ },
+ "159": {
+  "abbr": "BREW",
+  "name": "Brew Crew",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (store single color / reversible, dark side)",
+    "body": "#000000",
+    "yoke": "#fcc808",
+    "sleeve": "#000000",
+    "stripe": "#fcc808",
+    "trim": "#ffffff",
+    "number": "#fcc808",
+    "numberTrim": "#ffffff",
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/uploads/images/8a2af60d-a3c4-4779-9734-dc54e427550e.png",
+    "confidence": "high"
+   },
+   {
+    "slot": "away",
+    "name": "Away (store reversible, light side)",
+    "body": "#faf6e3",
+    "yoke": "#fcc808",
+    "sleeve": "#faf6e3",
+    "stripe": "#000000",
+    "trim": "#fcc808",
+    "number": "#000000",
+    "numberTrim": "#fcc808",
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/uploads/images/8a2af60d-a3c4-4779-9734-dc54e427550e.png",
+    "confidence": "high"
+   }
+  ]
+ },
+ "160": {
+  "abbr": "LIK",
+  "name": "Long Island Kings",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (standard template)",
+    "body": "#4f2e78",
+    "trim": "#f7c945",
+    "number": "#f7c945",
+    "numberTrim": "#ffffff",
+    "yoke": null,
+    "sleeve": "#4f2e78",
+    "stripe": "#f7c945",
+    "pants": null,
+    "socks": null,
+    "source": "standard-template (logo and colors from site)",
+    "confidence": "low",
+    "logo": "photos/team160.png",
+    "logoPlacement": "chest crest"
+   },
+   {
+    "slot": "away",
+    "name": "Away (standard template, not a real away jersey)",
+    "body": "#ffffff",
+    "trim": "#4f2e78",
+    "number": "#4f2e78",
+    "numberTrim": null,
+    "yoke": null,
+    "sleeve": "#ffffff",
+    "stripe": "#4f2e78",
+    "pants": null,
+    "socks": null,
+    "source": "standard-template (logo and colors from site)",
+    "confidence": "low",
+    "logo": "photos/team160.png",
+    "logoPlacement": "chest crest"
+   }
+  ]
+ },
+ "161": {
+  "abbr": "PLT",
+  "name": "Psychedelic Love Toast",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (standard template)",
+    "body": "#fb56ae",
+    "trim": "#ffe224",
+    "number": "#ffffff",
+    "numberTrim": "#ffe224",
+    "yoke": null,
+    "sleeve": "#fb56ae",
+    "stripe": "#ffe224",
+    "pants": null,
+    "socks": null,
+    "source": "standard-template (logo and colors from site)",
+    "confidence": "low",
+    "logo": "photos/team161.png",
+    "logoPlacement": "chest crest"
+   },
+   {
+    "slot": "away",
+    "name": "Away (standard template, not a real away jersey)",
+    "body": "#ffffff",
+    "trim": "#fb56ae",
+    "number": "#fb56ae",
+    "numberTrim": null,
+    "yoke": null,
+    "sleeve": "#ffffff",
+    "stripe": "#fb56ae",
+    "pants": null,
+    "socks": null,
+    "source": "standard-template (logo and colors from site)",
+    "confidence": "low",
+    "logo": "photos/team161.png",
+    "logoPlacement": "chest crest"
+   }
+  ]
+ },
+ "162": {
+  "abbr": "SALT",
+  "name": "Salty Dawgs",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (standard template)",
+    "body": "#b92d5d",
+    "trim": "#ffffff",
+    "number": "#ffffff",
+    "numberTrim": null,
+    "yoke": null,
+    "sleeve": "#b92d5d",
+    "stripe": "#ffffff",
+    "pants": null,
+    "socks": null,
+    "source": "standard-template (logo and colors from site)",
+    "confidence": "low",
+    "logo": "photos/team162.png",
+    "logoPlacement": "chest crest"
+   },
+   {
+    "slot": "away",
+    "name": "Away (standard template, not a real away jersey)",
+    "body": "#ffffff",
+    "trim": "#b92d5d",
+    "number": "#b92d5d",
+    "numberTrim": null,
+    "yoke": null,
+    "sleeve": "#ffffff",
+    "stripe": "#b92d5d",
+    "pants": null,
+    "socks": null,
+    "source": "standard-template (logo and colors from site)",
+    "confidence": "low",
+    "logo": "photos/team162.png",
+    "logoPlacement": "chest crest"
+   }
+  ]
+ },
+ "163": {
+  "abbr": "SCRP",
+  "name": "Scrappers",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (standard template)",
+    "body": "#b51a00",
+    "trim": "#ffffff",
+    "number": "#ffffff",
+    "numberTrim": null,
+    "yoke": null,
+    "sleeve": "#b51a00",
+    "stripe": "#ffffff",
+    "pants": null,
+    "socks": null,
+    "source": "standard-template (logo and colors from site)",
+    "confidence": "low",
+    "logo": "photos/team163.png",
+    "logoPlacement": "chest crest",
+    "note": "site main color is white; home body uses the red accent so the white logo shows"
+   },
+   {
+    "slot": "away",
+    "name": "Away (standard template, not a real away jersey)",
+    "body": "#ffffff",
+    "trim": "#b51a00",
+    "number": "#b51a00",
+    "numberTrim": null,
+    "yoke": null,
+    "sleeve": "#ffffff",
+    "stripe": "#b51a00",
+    "pants": null,
+    "socks": null,
+    "source": "standard-template (logo and colors from site)",
+    "confidence": "low",
+    "logo": "photos/team163.png",
+    "logoPlacement": "chest crest",
+    "note": "site main color is white; home body uses the red accent so the white logo shows"
+   },
+   {
+    "slot": "observed-loaner",
+    "name": "Summer 2026 champion photo (team_id 129)",
+    "body": "#1f45c8",
+    "yoke": "#1f45c8",
+    "sleeve": "#1f45c8",
+    "stripe": "#f26a21",
+    "trim": "#ffffff",
+    "number": "#ffffff",
+    "numberTrim": null,
+    "pants": null,
+    "socks": null,
+    "logo": "HTH cartoon crest (not the team logo)",
+    "source": "site-observed (lihockey.org/championships)",
+    "confidence": "low",
+    "note": "photo showed royal blue home and white away, orange/white trim, HTH crest, C on captain"
+   }
+  ]
+ },
+ "164": {
+  "abbr": "QNS",
+  "name": "Queens Spartans",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (standard template)",
+    "body": "#ffab01",
+    "trim": "#cc0005",
+    "number": "#cc0005",
+    "numberTrim": "#ffffff",
+    "yoke": null,
+    "sleeve": "#ffab01",
+    "stripe": "#cc0005",
+    "pants": null,
+    "socks": null,
+    "source": "standard-template (logo and colors from site)",
+    "confidence": "low",
+    "logo": "photos/team164.png",
+    "logoPlacement": "chest crest"
+   },
+   {
+    "slot": "away",
+    "name": "Away (standard template, not a real away jersey)",
+    "body": "#ffffff",
+    "trim": "#cc0005",
+    "number": "#cc0005",
+    "numberTrim": null,
+    "yoke": null,
+    "sleeve": "#ffffff",
+    "stripe": "#cc0005",
+    "pants": null,
+    "socks": null,
+    "source": "standard-template (logo and colors from site)",
+    "confidence": "low",
+    "logo": "photos/team164.png",
+    "logoPlacement": "chest crest"
+   }
+  ]
+ },
+ "166": {
+  "abbr": "BIRD",
+  "name": "Dirty Birds",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (store single color / reversible, dark side)",
+    "body": "#2a7a86",
+    "yoke": "#391856",
+    "sleeve": "#2a7a86",
+    "stripe": "#9aa3a8",
+    "trim": "#391856",
+    "number": "#ffffff",
+    "numberTrim": "#391856",
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/uploads/images/eef3c25c-3e5c-463e-8fac-6d7a9b9a40e9.png",
+    "confidence": "low"
+   },
+   {
+    "slot": "away",
+    "name": "Away (store reversible, light side)",
+    "body": "#ffffff",
+    "yoke": "#ffffff",
+    "sleeve": "#ffffff",
+    "stripe": "#391856",
+    "trim": "#2a7a86",
+    "number": "#391856",
+    "numberTrim": "#9aa3a8",
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/uploads/images/eef3c25c-3e5c-463e-8fac-6d7a9b9a40e9.png",
+    "confidence": "low"
+   }
+  ]
+ },
+ "168": {
+  "abbr": "KCO",
+  "name": "Kraken Cold Ones",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (store single color / reversible, dark side)",
+    "body": "#080410",
+    "yoke": "#6f3a9d",
+    "sleeve": "#080410",
+    "stripe": "#6f3a9d",
+    "trim": "#6f3a9d",
+    "number": "#6f3a9d",
+    "numberTrim": null,
+    "pants": null,
+    "socks": "#6f3a9d",
+    "source": "https://assets.lihockey.org/store/products/kco-reversible-jersey/0.png",
+    "confidence": "medium"
+   },
+   {
+    "slot": "away",
+    "name": "Away (store reversible, light side)",
+    "body": "#ffffff",
+    "yoke": "#6f3a9d",
+    "sleeve": "#ffffff",
+    "stripe": "#6f3a9d",
+    "trim": "#6f3a9d",
+    "number": "#6f3a9d",
+    "numberTrim": null,
+    "pants": null,
+    "socks": "#ffffff",
+    "source": "https://assets.lihockey.org/store/products/kco-reversible-jersey/0.png",
+    "confidence": "medium"
+   }
+  ]
+ },
+ "169": {
+  "abbr": "SP",
+  "name": "Slashing Pumpkins",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (store single color / reversible, dark side)",
+    "body": "#161714",
+    "yoke": "#161714",
+    "sleeve": "#161714",
+    "stripe": "#d55107",
+    "trim": "#d5c8ba",
+    "number": "#d5c8ba",
+    "numberTrim": "#d55107",
+    "pants": null,
+    "socks": "#161714",
+    "source": "https://assets.lihockey.org/uploads/images/a359f771-edfd-4d6e-b9d6-933b17d3857c.png",
+    "confidence": "high"
+   },
+   {
+    "slot": "away",
+    "name": "Away (store reversible, light side)",
+    "body": "#f3eee6",
+    "yoke": "#f3eee6",
+    "sleeve": "#f3eee6",
+    "stripe": "#d55107",
+    "trim": "#161714",
+    "number": "#161714",
+    "numberTrim": "#d55107",
+    "pants": null,
+    "socks": "#ffffff",
+    "source": "https://assets.lihockey.org/uploads/images/a359f771-edfd-4d6e-b9d6-933b17d3857c.png",
+    "confidence": "high"
+   }
+  ]
+ },
+ "170": {
+  "abbr": "AJ",
+  "name": "Average Joes",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (store single color / reversible, dark side)",
+    "body": "#000c40",
+    "yoke": "#000c40",
+    "sleeve": "#000c40",
+    "stripe": "#d4b24a",
+    "trim": "#ffffff",
+    "number": "#d4b24a",
+    "numberTrim": null,
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/uploads/images/2d27f7fa-0c40-4393-8bf8-3a59c9d70989.png",
+    "confidence": "high"
+   },
+   {
+    "slot": "away",
+    "name": "Away (store reversible, light side)",
+    "body": "#ffffff",
+    "yoke": "#ffffff",
+    "sleeve": "#ffffff",
+    "stripe": "#000c40",
+    "trim": "#d4b24a",
+    "number": "#000c40",
+    "numberTrim": "#d4b24a",
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/uploads/images/2d27f7fa-0c40-4393-8bf8-3a59c9d70989.png",
+    "confidence": "high"
+   }
+  ]
+ },
+ "171": {
+  "abbr": "BAB",
+  "name": "Band-aid Brigade",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (store single color / reversible, dark side)",
+    "body": "#0f1e45",
+    "yoke": "#0f1e45",
+    "sleeve": "#0f1e45",
+    "stripe": "#7ed321",
+    "trim": "#c9d4d6",
+    "number": "#7ed321",
+    "numberTrim": null,
+    "pants": null,
+    "socks": "#0f1e45",
+    "source": "https://assets.lihockey.org/store/products/bab-reversible-jersey/0.png",
+    "confidence": "medium"
+   },
+   {
+    "slot": "away",
+    "name": "Away (store reversible, light side)",
+    "body": "#ffffff",
+    "yoke": "#ffffff",
+    "sleeve": "#ffffff",
+    "stripe": "#7ed321",
+    "trim": "#b9c4c6",
+    "number": "#7ed321",
+    "numberTrim": null,
+    "pants": null,
+    "socks": "#ffffff",
+    "source": "https://assets.lihockey.org/store/products/bab-reversible-jersey/0.png",
+    "confidence": "medium"
+   }
+  ]
+ },
+ "172": {
+  "abbr": "HT",
+  "name": "Hockey Time",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (store single color / reversible, dark side)",
+    "body": "#000002",
+    "yoke": "#f7c029",
+    "sleeve": "#000002",
+    "stripe": "#f7c029",
+    "trim": "#f7c029",
+    "number": "#ffffff",
+    "numberTrim": null,
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/store/products/ht-reversible-jersey/0.png",
+    "confidence": "high"
+   },
+   {
+    "slot": "away",
+    "name": "Away (store reversible, light side)",
+    "body": "#ffffff",
+    "yoke": "#f7c029",
+    "sleeve": "#ffffff",
+    "stripe": "#f7c029",
+    "trim": "#f7c029",
+    "number": "#000002",
+    "numberTrim": null,
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/store/products/ht-reversible-jersey/0.png",
+    "confidence": "high"
+   }
+  ]
+ },
+ "173": {
+  "abbr": "HH",
+  "name": "Hoagie's Heroes",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (store single color / reversible, dark side)",
+    "body": "#183cb4",
+    "yoke": "#183cb4",
+    "sleeve": "#183cb4",
+    "stripe": "#f26a21",
+    "trim": "#ffffff",
+    "number": "#ffffff",
+    "numberTrim": "#f26a21",
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/store/products/hth-reversible-classic-jersey/0.png",
+    "confidence": "medium"
+   },
+   {
+    "slot": "away",
+    "name": "Away (store reversible, light side)",
+    "body": "#ffffff",
+    "yoke": "#ffffff",
+    "sleeve": "#ffffff",
+    "stripe": "#f26a21",
+    "trim": "#183cb4",
+    "number": "#183cb4",
+    "numberTrim": "#f26a21",
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/store/products/hth-reversible-classic-jersey/0.png",
+    "confidence": "medium"
+   }
+  ]
+ },
+ "174": {
+  "abbr": "SGS",
+  "name": "Silly Goose Squad",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (store single color / reversible, dark side)",
+    "body": "#4e344a",
+    "yoke": "#26655d",
+    "sleeve": "#4e344a",
+    "stripe": "#afc8d1",
+    "trim": "#26655d",
+    "number": "#afc8d1",
+    "numberTrim": "#26655d",
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/uploads/images/3db911f1-a542-4121-ae16-08373aaec12a.png",
+    "confidence": "medium"
+   },
+   {
+    "slot": "away",
+    "name": "Away (store reversible, light side)",
+    "body": "#ffffff",
+    "yoke": "#ffffff",
+    "sleeve": "#ffffff",
+    "stripe": "#26655d",
+    "trim": "#4e344a",
+    "number": "#4e344a",
+    "numberTrim": "#26655d",
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/uploads/images/3db911f1-a542-4121-ae16-08373aaec12a.png",
+    "confidence": "medium"
+   }
+  ]
+ },
+ "175": {
+  "abbr": "PSS",
+  "name": "Puck Slinging Slashers",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (store single color / reversible, dark side)",
+    "body": "#0a3ea8",
+    "yoke": "#0a3ea8",
+    "sleeve": "#252324",
+    "stripe": "#89add6",
+    "trim": "#252324",
+    "number": "#ffffff",
+    "numberTrim": "#252324",
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/store/products/pss-reversible-jersey/0.png",
+    "confidence": "medium"
+   },
+   {
+    "slot": "away",
+    "name": "Away (store reversible, light side)",
+    "body": "#ffffff",
+    "yoke": "#ffffff",
+    "sleeve": "#89add6",
+    "stripe": "#252324",
+    "trim": "#252324",
+    "number": "#0a3ea8",
+    "numberTrim": null,
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/store/products/pss-reversible-jersey/0.png",
+    "confidence": "medium"
+   }
+  ]
+ },
+ "176": {
+  "abbr": "MBH",
+  "name": "Meatball Heroes",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (store single color / reversible, dark side)",
+    "body": "#0b3ca4",
+    "yoke": "#b71232",
+    "sleeve": "#b71232",
+    "stripe": "#b71232",
+    "trim": "#ffffff",
+    "number": "#ffffff",
+    "numberTrim": null,
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/store/products/mbh-reversible-jersey/0.png",
+    "confidence": "medium"
+   },
+   {
+    "slot": "away",
+    "name": "Away (store reversible, light side)",
+    "body": "#ffffff",
+    "yoke": "#ffffff",
+    "sleeve": "#ffffff",
+    "stripe": "#0b3ca4",
+    "trim": "#b71232",
+    "number": "#b71232",
+    "numberTrim": "#0b3ca4",
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/store/products/mbh-reversible-jersey/0.png",
+    "confidence": "medium"
+   }
+  ]
+ },
+ "178": {
+  "abbr": "HTV",
+  "name": "Hometown Villains",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (store single color / reversible, dark side)",
+    "body": "#c61d2e",
+    "yoke": "#2b0d11",
+    "sleeve": "#c61d2e",
+    "stripe": "#2b0d11",
+    "trim": "#2b0d11",
+    "number": "#ffffff",
+    "numberTrim": "#2b0d11",
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/uploads/images/dc7e0751-fc37-48e7-85d6-e14475eba79f.png",
+    "confidence": "medium"
+   },
+   {
+    "slot": "away",
+    "name": "Away (store reversible, light side)",
+    "body": "#ffffff",
+    "yoke": "#ffffff",
+    "sleeve": "#ffffff",
+    "stripe": "#c61d2e",
+    "trim": "#2b0d11",
+    "number": "#c61d2e",
+    "numberTrim": "#2b0d11",
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/uploads/images/dc7e0751-fc37-48e7-85d6-e14475eba79f.png",
+    "confidence": "medium"
+   }
+  ]
+ },
+ "181": {
+  "abbr": "WOOL",
+  "name": "Wooly Bullies",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (store single color / reversible, dark side)",
+    "body": "#000000",
+    "yoke": "#000000",
+    "sleeve": "#000000",
+    "stripe": "#8abadb",
+    "trim": "#ffffff",
+    "number": "#ffffff",
+    "numberTrim": "#8abadb",
+    "pants": null,
+    "socks": "#000000",
+    "source": "https://assets.lihockey.org/uploads/images/e92d2b1d-6da0-47a6-8d91-b76b1bffb9fb.png",
+    "confidence": "high"
+   },
+   {
+    "slot": "away",
+    "name": "Away (store reversible, light side)",
+    "body": "#ffffff",
+    "yoke": "#ffffff",
+    "sleeve": "#ffffff",
+    "stripe": "#8abadb",
+    "trim": "#000000",
+    "number": "#000000",
+    "numberTrim": "#8abadb",
+    "pants": null,
+    "socks": "#ffffff",
+    "source": "https://assets.lihockey.org/uploads/images/e92d2b1d-6da0-47a6-8d91-b76b1bffb9fb.png",
+    "confidence": "high"
+   }
+  ]
+ },
+ "182": {
+  "abbr": "GG",
+  "name": "Golden Goons",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (store single color / reversible, dark side)",
+    "body": "#d6a666",
+    "yoke": "#d6a666",
+    "sleeve": "#4a4a4c",
+    "stripe": "#e8e8e8",
+    "trim": "#c8323a",
+    "number": "#403c37",
+    "numberTrim": "#e8e8e8",
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/uploads/images/75b7091b-97c7-4452-88de-373d95465b85.png",
+    "confidence": "low"
+   },
+   {
+    "slot": "away",
+    "name": "Away (store reversible, light side)",
+    "body": "#ffffff",
+    "yoke": "#4a4a4c",
+    "sleeve": "#4a4a4c",
+    "stripe": "#d6a666",
+    "trim": "#ffffff",
+    "number": "#403c37",
+    "numberTrim": "#d6a666",
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/uploads/images/75b7091b-97c7-4452-88de-373d95465b85.png",
+    "confidence": "low"
+   }
+  ]
+ },
+ "183": {
+  "abbr": "PIMP",
+  "name": "Big Pimps",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (store single color; reversible image shows only this side)",
+    "body": "#d40f5c",
+    "yoke": "#020201",
+    "sleeve": "#020201",
+    "stripe": "#d2af74",
+    "trim": "#d2af74",
+    "number": "#d2af74",
+    "numberTrim": null,
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/uploads/images/5c261b05-a950-4120-976b-d44579a2fc14.png",
+    "confidence": "medium"
+   },
+   {
+    "slot": "away",
+    "name": "PIMP away: white version of the pink, user-specified",
+    "body": "#ffffff",
+    "yoke": "#020201",
+    "sleeve": "#020201",
+    "stripe": "#d2af74",
+    "trim": "#d40f5c",
+    "number": "#d40f5c",
+    "numberTrim": "#d2af74",
+    "pants": null,
+    "socks": null,
+    "source": "user-specified",
+    "confidence": "user-specified"
+   }
+  ]
+ },
+ "192": {
+  "abbr": "OTL",
+  "name": "Outlaws",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (store single color / reversible, dark side)",
+    "body": "#000200",
+    "yoke": "#000200",
+    "sleeve": "#000200",
+    "stripe": "#970105",
+    "trim": "#8e908c",
+    "number": "#8e908c",
+    "numberTrim": null,
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/uploads/images/d5a8af01-8083-4573-aa86-48715350e052.png",
+    "confidence": "medium"
+   },
+   {
+    "slot": "away",
+    "name": "Away (store reversible, light side)",
+    "body": "#939592",
+    "yoke": "#939592",
+    "sleeve": "#939592",
+    "stripe": "#970105",
+    "trim": "#000200",
+    "number": "#000200",
+    "numberTrim": null,
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/uploads/images/d5a8af01-8083-4573-aa86-48715350e052.png",
+    "confidence": "medium"
+   }
+  ]
+ },
+ "194": {
+  "abbr": "GAHS",
+  "name": "Greatest American Heroes",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (store single color / reversible, dark side)",
+    "body": "#234086",
+    "yoke": "#ee6a2c",
+    "sleeve": "#234086",
+    "stripe": "#ee6a2c",
+    "trim": "#ffffff",
+    "number": "#ffffff",
+    "numberTrim": "#ee6a2c",
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/store/products/gah-reversible-jersey/0.png",
+    "confidence": "medium"
+   },
+   {
+    "slot": "away",
+    "name": "Away (store reversible, light side)",
+    "body": "#ffffff",
+    "yoke": "#ee6a2c",
+    "sleeve": "#ffffff",
+    "stripe": "#234086",
+    "trim": "#ee6a2c",
+    "number": "#234086",
+    "numberTrim": "#ee6a2c",
+    "pants": null,
+    "socks": null,
+    "source": "https://assets.lihockey.org/store/products/gah-reversible-jersey/0.png",
+    "confidence": "medium"
+   }
+  ]
+ },
+ "196": {
+  "abbr": "PPC",
+  "name": "Paddy’s Pub Crawlers",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (standard template)",
+    "body": "#01a000",
+    "trim": "#fffffa",
+    "number": "#ffffff",
+    "numberTrim": null,
+    "yoke": null,
+    "sleeve": "#01a000",
+    "stripe": "#fffffa",
+    "pants": null,
+    "socks": null,
+    "source": "standard-template (logo and colors from site)",
+    "confidence": "low",
+    "logo": "photos/team196.png",
+    "logoPlacement": "chest crest"
+   },
+   {
+    "slot": "away",
+    "name": "Away (standard template, not a real away jersey)",
+    "body": "#ffffff",
+    "trim": "#01a000",
+    "number": "#01a000",
+    "numberTrim": null,
+    "yoke": null,
+    "sleeve": "#ffffff",
+    "stripe": "#01a000",
+    "pants": null,
+    "socks": null,
+    "source": "standard-template (logo and colors from site)",
+    "confidence": "low",
+    "logo": "photos/team196.png",
+    "logoPlacement": "chest crest"
+   }
+  ]
+ },
+ "197": {
+  "abbr": "C",
+  "name": "Chaos",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (standard template)",
+    "body": "#ff0202",
+    "trim": "#ffffff",
+    "number": "#ffffff",
+    "numberTrim": null,
+    "yoke": null,
+    "sleeve": "#ff0202",
+    "stripe": "#ffffff",
+    "pants": null,
+    "socks": null,
+    "source": "standard-template (logo and colors from site)",
+    "confidence": "low",
+    "logo": "photos/team197.png",
+    "logoPlacement": "chest crest",
+    "note": "site main color is white; home body uses the red accent so the white C logo shows"
+   },
+   {
+    "slot": "away",
+    "name": "Away (standard template, not a real away jersey)",
+    "body": "#ffffff",
+    "trim": "#ff0202",
+    "number": "#ff0202",
+    "numberTrim": null,
+    "yoke": null,
+    "sleeve": "#ffffff",
+    "stripe": "#ff0202",
+    "pants": null,
+    "socks": null,
+    "source": "standard-template (logo and colors from site)",
+    "confidence": "low",
+    "logo": "photos/team197.png",
+    "logoPlacement": "chest crest",
+    "note": "site main color is white; home body uses the red accent so the white C logo shows"
+   }
+  ]
+ },
+ "198": {
+  "abbr": "D5",
+  "name": "District 5",
+  "jerseys": [
+   {
+    "slot": "home",
+    "name": "Home (standard template)",
+    "body": "#009df5",
+    "trim": "#0077cc",
+    "number": "#ffffff",
+    "numberTrim": "#0077cc",
+    "yoke": null,
+    "sleeve": "#009df5",
+    "stripe": "#0077cc",
+    "pants": null,
+    "socks": null,
+    "source": "standard-template (logo and colors from site)",
+    "confidence": "low",
+    "logo": "photos/team198.png",
+    "logoPlacement": "chest crest"
+   },
+   {
+    "slot": "away",
+    "name": "Away (standard template, not a real away jersey)",
+    "body": "#ffffff",
+    "trim": "#0077cc",
+    "number": "#009df5",
+    "numberTrim": null,
+    "yoke": null,
+    "sleeve": "#ffffff",
+    "stripe": "#0077cc",
+    "pants": null,
+    "socks": null,
+    "source": "standard-template (logo and colors from site)",
+    "confidence": "low",
+    "logo": "photos/team198.png",
+    "logoPlacement": "chest crest"
+   }
+  ]
+ }
+}

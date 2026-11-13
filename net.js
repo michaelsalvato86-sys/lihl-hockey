@@ -77,7 +77,10 @@
       el.style.setProperty('--tc', t.color || '#2a6fd6');
       el.innerHTML = `<div class="role">${role}${you ? ' &middot; YOU' : ''}${slot === 0 ? ' &middot; HOST' : ''}</div>
         <div class="who"><span class="dot ${p.conn ? 'on' : 'off'}"></span><b>${esc(p.name)}</b><span class="badge ${p.ready ? 'rdy' : ''}">${p.ready ? 'READY' : 'NOT READY'}</span></div>
-        <div class="tm"><img src="${esc(t.icon || '')}" onerror="this.style.visibility='hidden'"><h3>${esc(t.name)}</h3>${you ? '<div class="nav"><button data-d="-1">&#9664;</button> <button data-d="1">&#9654;</button></div>' : ''}</div>`;
+        <div class="tm"><img src="${esc(t.icon || '')}" onerror="this.style.visibility='hidden'"><h3>${esc(t.name)}</h3>${you ? '<div class="nav"><button data-d="-1">&#9664;</button> <button data-d="1">&#9654;</button></div>' : ''}</div>
+        <div class="jers">${jerseysOf(t).map(j => { const k = JSLOTS.indexOf(j.slot), eff = r.jr ? r.jr[slot] : p.jer; return `<button data-j="${k}" ${you ? '' : 'disabled'} class="${eff === k ? 'on' : ''}"><i style="background:${esc(j.color || '#888')}"></i>${j.slot.toUpperCase()}</button>`; }).join('')}${r.jr && r.jr[slot] !== (p.jer | 0) ? '<small>AUTO: colors clash</small>' : ''}</div>`;
+      if (you) { const want = JP.get(t.abbr); if ((p.jer | 0) !== want && NET.jw !== t.abbr + want + r.code) { NET.jw = t.abbr + want + r.code; NET.send({ t: 'jer', v: want }); } }
+      el.querySelectorAll('[data-j]').forEach(b => b.onclick = () => { const v = +b.dataset.j; JP.set(t.abbr, v); NET.jw = t.abbr + v + r.code; NET.send({ t: 'jer', v }); });
       el.querySelectorAll('[data-d]').forEach(b => b.onclick = () => NET.send({ t: 'team', idx: nextTeam(p.team, +b.dataset.d, other ? other.team : -1) }));
     };
     card(1); card(0);
@@ -99,7 +102,7 @@
   function begin(m) {
     $('cdwin').style.display = 'none'; $('online').style.display = 'none'; $('oend').style.display = 'none'; $('menu').style.display = 'none'; peer('');
     NET.side = m.side; NET.names = m.names || ['', '']; NET.buf = []; NET.cur = null; NET.rematchMe = false; NET.ring = []; NET.goalI = -1; NET.ri = 0; NET.lastS = null; NET.lastK = -1; NET.seen = new Set(); NET.evStat = { applied: 0, dup: 0, stale: 0 }; NET.rbW = 0; NET.inRp = false; if (G && G.rp) G.rp = null; document.body.classList.remove('replay');
-    $('mh').value = m.home; $('ma').value = m.away; $('mc').value = 'n'; $('ml').value = m.plen;
+    window.JNET = Array.isArray(m.jer) ? [m.jer[0] | 0, m.jer[1] | 0] : null; $('mh').value = m.home; $('ma').value = m.away; $('mc').value = 'n'; $('ml').value = m.plen;
     document.body.classList.remove('inmenu'); document.body.classList.add('ingame', 'netgame');
     newGame(false); G.net = 1; G.humans = []; G.hum = null; $('ctl').style.display = 'block'; NET.on = true; AU.init();
     buildChat(); pingUI();

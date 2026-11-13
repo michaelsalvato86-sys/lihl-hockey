@@ -2,7 +2,7 @@
 <style>html,body{margin:0;background:#0b1118;overflow:hidden;font-family:monospace;color:#9fb}canvas{display:block}#hud{position:fixed;left:8px;top:6px;font-size:12px;white-space:pre}</style></head><body>
 <div id="hud"></div>
 <script src="three.min.js"></script><script src="lib/GLTFLoader.js"></script><script src="lib/SkeletonUtils.js"></script>
-<script src="skater3d.js"></script><script src="skater_pose.js"></script><script src="anim_rig.js"></script><script src="anim_ctrl.js"></script><script src="anim_goalie.js"></script><script src="anim_hits.js"></script><script src="anim_events.js"></script><script src="anim_celebrate.js"></script><script src="anim_shots.js"></script><script src="anim_shots_test.js"></script>
+<script src="jerseys.js"></script><script src="skater3d.js"></script><script src="skater_pose.js"></script><script src="anim_rig.js"></script><script src="anim_ctrl.js"></script><script src="anim_goalie.js"></script><script src="anim_hits.js"></script><script src="anim_events.js"></script><script src="anim_celebrate.js"></script><script src="anim_shots.js"></script><script src="anim_shots_test.js"></script>
 <script>
 const qs=new URLSearchParams(location.search);
 function accOf(p){return p.team.accent}
@@ -281,6 +281,7 @@ AT.assertAll=function(){
   AT.animChecks(chk);
   AT.bodyChecks(chk);
   if(window.ANIM_SHOTS_TEST)ANIM_SHOTS_TEST(AT,chk);
+  if(window.JERSEY_TEST)JERSEY_TEST(AT,chk);
   if(window.CEL&&CEL.checks)CEL.checks(AT,sc_,chk);
   if(window.AEV&&AEV.checks)AEV.checks(AT,chk);
   for(const n of AT.goalieScenarios){const r=AT.run(n,1.4,{goalie:true}),seq=r.seq.map(s=>s.replace(/^[0-9.]+:/,''));const miss=(AT.gExpect[n]||[]).filter(e=>!seq.includes(e));chk(n+' state',miss.length===0,'missing '+miss.join(',')+' got '+seq.join('>'));chk(n+' no stick snap',r.maxSnap<0.6,r.maxSnap.toFixed(2))}
@@ -346,4 +347,4 @@ AT.view=function(v){
 // frame at time t of a scenario (re-simulates from 0 so the result is exact)
 AT.frame=function(name,t,view,opts){AT.run(name,t,opts);AT.view(view||'close');document.getElementById('hud').textContent=name+' t='+t.toFixed(2)+'s  state='+AT.m.an.state;return AT.m.an.state};
 SK.load(()=>{if(SK.failed){document.title='FAILED';return}AT.spawn(false);AT.step(sc_.stationary,0,1/60);AT.view('close');document.title='ready'});
-</script><script src="anim_hits_test.js"></script></body></html>
+</script><script src="anim_hits_test.js"></script><script src="jerseys_test.js"></script></body></html>

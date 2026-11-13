@@ -51,6 +51,39 @@ for tid, e in ex.items():
 data = {'teams': teams, 'players': players, 'goalies': gl}
 if os.path.exists('data/league.json'):
     data = json.load(open('data/league.json', encoding='utf-8'))  # full league (all teams in the standings), see tools/build_league.py
+
+# ---- extra (non-API) teams, e.g. Whiskey Stick (data/extra_teams.json) and per-team jerseys (data/jerseys_store.json) ----
+def norm_jersey(j):
+    """store/extra jersey -> {slot,name,color,accent,...style fields}; tolerant of [color,accent] arrays"""
+    if isinstance(j, (list, tuple)): return {'slot': 'home', 'color': j[0], 'accent': j[1] if len(j) > 1 else '#ffffff'}
+    o = {k: v for k, v in j.items() if v is not None and k not in ('source', 'confidence')}
+    o['color'] = o.pop('body', None) or o.get('color')
+    if 'accent' not in o: o['accent'] = o.get('stripe') or o.get('trim') or o.get('yoke') or '#ffffff'
+    return o
+if os.path.exists('data/extra_teams.json'):
+    ex_t = json.load(open('data/extra_teams.json', encoding='utf-8'))
+    for k, v in ex_t['teams'].items():
+        v = dict(v); v['jerseys'] = [norm_jersey(j) for j in v.get('jerseys', [])]
+        if v['jerseys']: v['color'], v['accent'] = v['jerseys'][0]['color'], v['jerseys'][0]['accent']
+        data['teams'][k] = v
+    ids = {p['id'] for p in data['players']}
+    data['players'] += [p for p in ex_t['players'] if p['id'] not in ids]
+    gids = {g['id'] for g in data['goalies']}
+    data['goalies'] += [g for g in ex_t['goalies'] if g['id'] not in gids]
+if os.path.exists('data/jerseys_store.json'):
+    for k, v in json.load(open('data/jerseys_store.json', encoding='utf-8')).items():
+        t = data['teams'].get(k)
+        if t is None or t.get('jerseys'): continue            # never overwrite a team that already has its own jerseys; never invent
+        js = [norm_jersey(j) for j in (v.get('jerseys') if isinstance(v, dict) else v) or []]
+        slots = {j.get('slot', 'home') for j in js}
+        if js and 'home' in slots: t['jerseys'] = js
+if os.path.exists('data/jerseys_user.json'):   # jerseys specified by the user (not from the store); added only where that slot is missing
+    for k, v in json.load(open('data/jerseys_user.json', encoding='utf-8')).items():
+        t = data['teams'].get(k)
+        if t is None or not t.get('jerseys'): continue
+        have = {j.get('slot') for j in t['jerseys']}
+        for j in v.get('jerseys', []):
+            if j.get('slot') not in have: t['jerseys'].append(dict(norm_jersey(j), userSpecified=True))
 json.dump(data, open('data/roster.json', 'w'), separators=(',', ':'))
 html = open('game.html', encoding='utf-8').read()
 html = re.sub(r'const ROSTER=.*?;//ROSTER', lambda m: 'const ROSTER=' + json.dumps(data, separators=(',', ':')) + ';//ROSTER', html, flags=re.S)

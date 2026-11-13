@@ -1,0 +1,320 @@
+{
+ "teams": {
+  "990001": {
+   "abbr": "WSK",
+   "name": "Whiskey Stick",
+   "div": "Weekend D2 (Island Ice Hockey)",
+   "icon": "photos/ws_pinup.png",
+   "color": "#121316",
+   "accent": "#7a1f2d",
+   "jerseys": [
+    {
+     "slot": "home",
+     "name": "Black",
+     "style": "ws_black",
+     "body": "#121316",
+     "accent": "#7a1f2d",
+     "number": "#efe3c3",
+     "numberTrim": "#7a1f2d",
+     "crest": "photos/ws_pinup.png"
+    },
+    {
+     "slot": "away",
+     "name": "White",
+     "style": "ws_white",
+     "body": "#f4f4f2",
+     "accent": "#c4202e",
+     "number": "#111111",
+     "numberTrim": "#c4202e",
+     "crest": "photos/ws_framed.png"
+    },
+    {
+     "slot": "alt",
+     "name": "Purple",
+     "style": "ws_purple",
+     "body": "#4b3d8a",
+     "accent": "#a8714c",
+     "number": "#ede4cf",
+     "numberTrim": "#a8714c",
+     "crest": "photos/ws_island.png"
+    }
+   ]
+  }
+ },
+ "players": [
+  {
+   "id": 990100,
+   "name": "Andrew Schaeffler",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 17,
+   "cap": "A"
+  },
+  {
+   "id": 990101,
+   "name": "Russell Spatafora",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 97
+  },
+  {
+   "id": 990102,
+   "name": "Dan Uglialoro",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 10
+  },
+  {
+   "id": 990103,
+   "name": "Gage Heitner",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 3
+  },
+  {
+   "id": 990104,
+   "name": "Brendan Blitz",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 27,
+   "cap": "C"
+  },
+  {
+   "id": 990105,
+   "name": "Jeff Fallier",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 16
+  },
+  {
+   "id": 990106,
+   "name": "Tim Dolan",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 15
+  },
+  {
+   "id": 990107,
+   "name": "Chris Nichols",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 4
+  },
+  {
+   "id": 990108,
+   "name": "David Schaeffler",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 23
+  },
+  {
+   "id": 990109,
+   "name": "Michael Salvato",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 68
+  },
+  {
+   "id": 990110,
+   "name": "Barry Salomone",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 7
+  },
+  {
+   "id": 990111,
+   "name": "Rob Huhne",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 2
+  },
+  {
+   "id": 990112,
+   "name": "John Andronikides",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 91
+  },
+  {
+   "id": 990113,
+   "name": "David Asner",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 37
+  },
+  {
+   "id": 990114,
+   "name": "Errol Toulon",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 66
+  },
+  {
+   "id": 990115,
+   "name": "Michael LaValle",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 6
+  },
+  {
+   "id": 990116,
+   "name": "Zevi Asner",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 77
+  },
+  {
+   "id": 990117,
+   "name": "Greg Dolan",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 8,
+   "numAssigned": true
+  },
+  {
+   "id": 990118,
+   "name": "Andrew Jardine",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 9,
+   "numAssigned": true
+  },
+  {
+   "id": 990119,
+   "name": "Jake Johner",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 11,
+   "numAssigned": true
+  },
+  {
+   "id": 990120,
+   "name": "John McCann",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 12,
+   "numAssigned": true
+  },
+  {
+   "id": 990121,
+   "name": "Brendan Sullivan",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 13,
+   "numAssigned": true
+  },
+  {
+   "id": 990122,
+   "name": "Errol Toulon III",
+   "rating": 60,
+   "band": "C",
+   "photo": null,
+   "teams": [
+    990001
+   ],
+   "num": 14,
+   "numAssigned": true
+  }
+ ],
+ "goalies": [
+  {
+   "id": 990199,
+   "name": "Alex Andronikides",
+   "gp": 0,
+   "gaa": null,
+   "team": 990001,
+   "num": 1,
+   "photo": null,
+   "rating": 60
+  }
+ ],
+ "note": "Real team of the site admin. Island Ice Hockey league, Weekend D2, Fall 2026, 5-1. Positions are not published (the sim derives lines). Numbers marked numAssigned were not published and were assigned here. Flat rating 60 for everyone."
+}

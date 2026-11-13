@@ -70,6 +70,7 @@ body.inmenu #hud,body.inmenu .side,body.inmenu #vig{display:none}
 .tp .hd small{display:block;font-size:13px;letter-spacing:2px;color:var(--silver);margin-top:4px;opacity:.85}
 .tp .nav{display:flex;gap:8px;margin-left:auto}.tp .nav button{padding:8px 12px;font-size:18px}
 .tp .ov{display:flex;gap:18px;font-size:13px;letter-spacing:2px;color:var(--silver);margin-bottom:8px}.tp .ov b{color:#fff;font-size:20px;margin-right:4px}
+.jers{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 8px}.jers button{min-height:44px;min-width:64px;padding:0 12px;font-size:13px;letter-spacing:2px;display:inline-flex;align-items:center;gap:7px}.jers button.on{background:#fff;color:#0a1220}.jers button i{width:14px;height:14px;border-radius:50%;border:1px solid #fff8}.jers small{font-size:11px;letter-spacing:1px;color:#f2c744}
 .roster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .pl{min-width:0;display:flex;align-items:center;gap:8px;background:#ffffff0d;padding:4px 8px 4px 4px;border-left:3px solid var(--tc,#2a6fd6)}
 .pl img{width:36px;height:36px;border-radius:50%;object-fit:cover;background:#222}.pl span{flex:1;font-size:14px;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pl b{font-size:20px}

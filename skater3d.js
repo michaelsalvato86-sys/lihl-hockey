@@ -160,17 +160,17 @@ SK.buildDecalGeo = function () {
   return g;
 };
 SK.decalTex = function (p) {
-  const c = document.createElement('canvas'); c.width = 256; c.height = 128; const x = c.getContext('2d'), t = new THREE.CanvasTexture(c), lt = isLt(p.team.color), tc = lt ? '#111' : '#fff', oc = lt ? '#fff' : '#000';
+  const c = document.createElement('canvas'); c.width = 256; c.height = 128; const x = c.getContext('2d'), t = new THREE.CanvasTexture(c), lt = isLt(p.team.color), J = p.team.jersey, tc = J && J.number ? J.number : lt ? '#111' : '#fff', oc = J && J.numberTrim ? J.numberTrim : lt ? '#fff' : '#000', crest = J && J.crest ? J.crest : p.team.icon;
   t.anisotropy = 4;
   const draw = () => {
     x.clearRect(0, 0, 256, 128); x.textAlign = 'center'; x.textBaseline = 'middle';
-    const lg = img(p.team.icon);
+    const lg = img(crest);
     if (lg) { const s2 = Math.min(104 / lg.naturalWidth, 72 / lg.naturalHeight), w = lg.naturalWidth * s2, h = lg.naturalHeight * s2; x.save(); x.shadowColor = lt ? '#ffffff' : '#000000'; x.shadowBlur = 12; x.drawImage(lg, 64 - w / 2, 36 - h / 2, w, h); x.drawImage(lg, 64 - w / 2, 36 - h / 2, w, h); x.restore(); }
     x.font = 'bold 56px sans-serif'; if (p.num != null) outlined(x, String(p.num), 64, 101, tc, oc);
     const nm = p.name.split(' ').pop().toUpperCase();
     x.font = 'bold ' + (nm.length > 9 ? 22 : nm.length > 7 ? 27 : 33) + 'px sans-serif'; outlined(x, nm, 192, 28, tc, oc);
     x.font = 'bold 86px sans-serif'; if (p.num != null) outlined(x, String(p.num), 192, 90, tc, oc);
-    t.needsUpdate = true; return !!lg || !p.team.icon;
+    t.needsUpdate = true; return !!lg || !crest;
   };
   const o = { tex: t, done: draw() }; o.draw = () => { if (!o.done) o.done = draw(); }; return o;
 };
@@ -188,12 +188,14 @@ SK.make = function (p, opts) {
   const tone = ((((p.id | 0) * 2654435761) >>> 0)) % 3;
   const bodyMat = body.material.clone(); if (SK.tex) bodyMat.map = SK.tex[tone === 0 ? 'light' : 'dark'] || bodyMat.map; if (tone === 2) bodyMat.color = new THREE.Color(0xd8b08f);
   body.material = bodyMat;
-  const C = SK.cloth, cg = new THREE.BufferGeometry();
+  const J0 = p.team.jersey, styled = !pope && !roo && !/^(michael|mike) salvato$/i.test(p.name || '') && typeof JT !== 'undefined' && JT.styleOf(J0) ? J0 : null;   /* the admin keeps the St. Beer jersey whatever the team wears */
+  const C = styled ? JT.buildCloth() : SK.cloth, cg = new THREE.BufferGeometry();
   cg.setAttribute('position', C.position); cg.setAttribute('normal', C.normal); cg.setAttribute('uv', C.uv); cg.setAttribute('skinIndex', C.skinIndex); cg.setAttribute('skinWeight', C.skinWeight); cg.setIndex(C.index);
-  const table = [col, pope ? SK.col('#f8f5ee', 1.1, 0.5) : roo ? SK.col('#8a5226', 1.1, 0.5) : SK.col(p.team.color, 1.1, 0.5), acc, acc, dark], ca = new Float32Array(C.rid.length * 3);
+  const jst = styled ? JT.styleOf(styled) : null, wh = new THREE.Color(0xffffff), table = styled ? [wh, wh, wh, new THREE.Color(jst.gloves || styled.gloves || accOf(p)), dark] : [col, pope ? SK.col('#f8f5ee', 1.1, 0.5) : roo ? SK.col('#8a5226', 1.1, 0.5) : SK.col(p.team.color, 1.1, 0.5), acc, acc, dark], ca = new Float32Array(C.rid.length * 3);
   for (let i = 0; i < C.rid.length; i++) { const c = table[C.rid[i]]; ca[i * 3] = c.r; ca[i * 3 + 1] = c.g; ca[i * 3 + 2] = c.b; }
   cg.setAttribute('color', new THREE.BufferAttribute(ca, 3));
   const cmat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5, metalness: 0, skinning: true });
+  if (styled) cmat.map = JT.texture(styled, MOB);
   if (!MOB) { cmat.bumpMap = SK.fabric; cmat.bumpScale = 0.018; }
   const cloth = new THREE.SkinnedMesh(cg, cmat); cloth.frustumCulled = false; par.add(cloth); cloth.bind(body.skeleton, body.bindMatrix);
   const gk = opts.goalie ? 'g' : 's'; if (!SK.gear[gk]) SK.gear[gk] = SK.buildGear(!!opts.goalie); const G0 = SK.gear[gk];

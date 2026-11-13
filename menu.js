@@ -8,17 +8,19 @@
   const goalie = t => (ROSTER.goalies || []).filter(g => g.team === t.id).sort((a, b) => b.gp - a.gp)[0];
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-  function panel(el, idx, role, setIdx) {
+  function panel(el, idx, role, setIdx, eff, auto) {
     const t = TEAMS[idx], top = t.players.slice().sort((a, b) => b.rating - a.rating).slice(0, 6), g = goalie(t);
     el.style.setProperty('--tc', t.color || '#2a6fd6');
     el.innerHTML = `<div class="role">${role}</div>
      <div class="hd"><img src="${esc(t.icon || '')}" onerror="this.style.visibility='hidden'"><div><h2>${esc(t.name)}</h2><small>${esc(t.div || '')}</small></div>
       <div class="nav"><button data-d="-1">&#9664;</button><button data-d="1">&#9654;</button></div></div>
      <div class="ov"><span><b>${avg(t)}</b>TEAM</span><span><b>${t.players.length}</b>SKATERS</span><span><b>${g ? esc(g.name.split(' ').pop()) : '-'}</b>GOALIE</span></div>
+     <div class="jers" role="group" aria-label="Jersey">${jerseysOf(t).map(j => `<button data-j="${JSLOTS.indexOf(j.slot)}" class="${eff && eff.slot === j.slot ? 'on' : ''}" title="${esc(j.name || j.slot)}"><i style="background:${esc(j.color || '#888')}"></i>${j.slot.toUpperCase()}</button>`).join('')}${auto ? '<small>AUTO AWAY: colors clash</small>' : ''}</div>
      <div class="roster">${top.map(p => `<div class="pl"><img src="${esc(p.photo || '')}" onerror="this.style.visibility='hidden'"><span>${p.num != null ? '#' + p.num + ' ' : ''}${esc(p.name)}</span><b>${p.rating}</b></div>`).join('')}</div>
      <div class="chips">${TEAMS.map((x, i) => `<i data-i="${i}" class="${i === idx ? 'on' : ''}" style="background-image:url('${esc(x.icon || '')}')" title="${esc(x.name)}"></i>`).join('')}</div>`;
     el.querySelectorAll('[data-d]').forEach(b => b.onclick = () => setIdx((idx + (+b.dataset.d) + TEAMS.length) % TEAMS.length));
     el.querySelectorAll('[data-i]').forEach(c => c.onclick = () => setIdx(+c.dataset.i));
+    el.querySelectorAll('[data-j]').forEach(b => b.onclick = () => { JP.set(t.abbr, +b.dataset.j); render(true); });
   }
   function seg(el, opts, cur, set) {
     el.innerHTML = opts.map(o => `<button data-v="${o[0]}" class="${String(o[0]) === String(cur) ? 'on' : ''}">${o[1]}</button>`).join('');
@@ -31,8 +33,9 @@
     attractTimer = setTimeout(() => { $('mh').value = hi; $('ma').value = ai; $('mc').value = 'n'; $('ml').value = 300; newGame(true); document.body.classList.add('inmenu'); document.body.classList.remove('ingame'); }, 120);
   }
   function render(restart) {
-    panel($('tpA'), ai, 'AWAY' + (mode === 'a' ? '  ★ YOU CONTROL' : ''), i => { if (i === hi) hi = ai; ai = i; render(true); });
-    panel($('tpH'), hi, 'HOME' + (mode === 'h' ? '  ★ YOU CONTROL' : ''), i => { if (i === ai) ai = hi; hi = i; render(true); });
+    window.JNET = null; const jp = jerseyPair(TEAMS[hi], TEAMS[ai]);
+    panel($('tpA'), ai, 'AWAY' + (mode === 'a' ? '  ★ YOU CONTROL' : ''), i => { if (i === hi) hi = ai; ai = i; render(true); }, jp.ja, jp.auto);
+    panel($('tpH'), hi, 'HOME' + (mode === 'h' ? '  ★ YOU CONTROL' : ''), i => { if (i === ai) ai = hi; hi = i; render(true); }, jp.jh, false);
     seg($('segM'), [['h', 'YOU: HOME'], ['a', 'YOU: AWAY'], ['n', 'WATCH']], mode, v => mode = v);
     seg($('segL'), [[120, '2:00'], [180, '3:00'], [300, '5:00']], plen, v => plen = +v);
     seg($('segD'), [['easy', 'EASY'], ['normal', 'NORMAL'], ['hard', 'HARD']], DIFFV, v => setDiff(v));
@@ -96,12 +99,13 @@
   }
   (function () { const b = document.createElement('button'); b.id = 'bseason'; b.textContent = 'Season'; const bo = $('bonline'); if (bo && bo.parentNode) bo.parentNode.insertBefore(b, bo); b.onclick = srender; })();
   $('go').onclick = () => {
+    window.JNET = null;
     if (AU) AU.init(); sync(); document.body.classList.remove('inmenu'); document.body.classList.add('ingame');
     try { if (innerWidth < 900 || innerHeight < 500) { const de = document.documentElement; (de.requestFullscreen || de.webkitRequestFullscreen || function () { }).call(de); if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => { }); } } catch (e) { }
     const rt = document.getElementById('rot'); if (rt) { rt.classList.remove('off'); rt.onclick = () => rt.classList.add('off'); }
     G && (G.attract = false); newGame(false);
   };
-  window.showMenu = () => { $('end').style.display = 'none'; $('menu').style.display = 'flex'; document.body.classList.remove('ingame', 'netgame'); document.body.classList.add('inmenu'); attract(); };
+  window.showMenu = () => { window.JNET = null; $('end').style.display = 'none'; $('menu').style.display = 'flex'; document.body.classList.remove('ingame', 'netgame'); document.body.classList.add('inmenu'); attract(); };
   $('again').onclick = window.showMenu;
   // settings / help
   $('bset').onclick = () => $('mset').style.display = 'flex'; $('setX').onclick = () => $('mset').style.display = 'none';

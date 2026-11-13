@@ -80,6 +80,7 @@ body.replay #rpl{display:block}#rpl{display:none;position:fixed;left:14px;top:62
 .tp .hd small{display:block;font-size:13px;letter-spacing:2px;color:var(--silver);margin-top:4px;opacity:.85}
 .tp .nav{display:flex;gap:8px;margin-left:auto}.tp .nav button{padding:8px 12px;font-size:18px}
 .tp .ov{display:flex;gap:18px;font-size:13px;letter-spacing:2px;color:var(--silver);margin-bottom:8px}.tp .ov b{color:#fff;font-size:20px;margin-right:4px}
+.jers{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 8px}.jers button{min-height:44px;min-width:64px;padding:0 12px;font-size:13px;letter-spacing:2px;display:inline-flex;align-items:center;gap:7px}.jers button.on{background:#fff;color:#0a1220}.jers button i{width:14px;height:14px;border-radius:50%;border:1px solid #fff8}.jers small{font-size:11px;letter-spacing:1px;color:#f2c744}
 .roster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .pl{min-width:0;display:flex;align-items:center;gap:8px;background:#ffffff0d;padding:4px 8px 4px 4px;border-left:3px solid var(--tc,#2a6fd6)}
 .pl img{width:36px;height:36px;border-radius:50%;object-fit:cover;background:#222}.pl span{flex:1;font-size:14px;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pl b{font-size:20px}
@@ -275,7 +276,7 @@ body.tc #iosHint,body.tc #a2hs{display:none!important}
 
 <script src="three.min.js"></script>
 <script src="lib/CopyShader.js"></script><script src="lib/LuminosityHighPassShader.js"></script><script src="lib/EffectComposer.js"></script><script src="lib/RenderPass.js"></script><script src="lib/ShaderPass.js"></script><script src="lib/MaskPass.js"></script><script src="lib/UnrealBloomPass.js"></script>
-<script src="lib/GLTFLoader.js"></script><script src="lib/SkeletonUtils.js"></script><script src="skater3d.js"></script><script src="costumes.js"></script><script src="skater_pose.js"></script><script src="anim_rig.js"></script><script src="anim_ctrl.js"></script><script src="anim_goalie.js"></script><script src="anim_celebrate.js"></script><script src="anim_shots.js"></script><script src="r3d.js"></script>
+<script src="lib/GLTFLoader.js"></script><script src="lib/SkeletonUtils.js"></script><script src="jerseys.js"></script><script src="skater3d.js"></script><script src="costumes.js"></script><script src="skater_pose.js"></script><script src="anim_rig.js"></script><script src="anim_ctrl.js"></script><script src="anim_goalie.js"></script><script src="anim_celebrate.js"></script><script src="anim_shots.js"></script><script src="r3d.js"></script>
 <script src="audio.js"></script><script src="announcer.js"></script>
 <script src="anim_hits.js"></script><script src="anim_events.js"></script>
 <script>
@@ -295,6 +296,19 @@ for(const sel of [$('mh'),$('ma')])TEAMS.forEach((t,i)=>{const o=document.create
 $('ma').value=1;
 function attrs(p){const r0=clamp((p.rating-20)/45,0,1),r=.3+.65*r0,j=k=>((hash(p.id+k)%100)/100-.5)*.22;
 return{r,spd:clamp(.1+.85*r+j('a')*.7,0,1),shot:clamp(r+j('b'),.05,1),pass:clamp(r+j('c'),.05,1),chk:clamp(r+j('d'),.05,1),def:clamp(r+j('e'),.05,1)}}
+// ---------- jerseys (cosmetic only: never read by the sim) ----------
+const JSLOTS=['home','away','alt'],JCLASH=30; // two jerseys clash when their body colors are closer than dE76 30 in CIE Lab (30 = clearly different at a glance, tested on black/black, navy/black, white/cream pairs)
+function jerseysOf(def){const L=(def.jerseys||[]).filter(j=>JSLOTS.includes(j.slot));if(!L.some(j=>j.slot==='home'))L.unshift({slot:'home',color:def.color||'#2a6fd6',accent:def.accent||'#ffffff'});return JSLOTS.map(s=>L.find(j=>j.slot===s)).filter(Boolean)}
+const jerseyAt=(def,i)=>{const L=jerseysOf(def);return L.find(j=>j.slot===JSLOTS[i|0])||L[0]};
+const labOf=h=>{const c=[1,3,5].map(i=>parseInt(String(h||'#808080').substr(i,2),16)/255).map(v=>v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4)),X=(.4124*c[0]+.3576*c[1]+.1805*c[2])/.95047,Y=.2126*c[0]+.7152*c[1]+.0722*c[2],Z=(.0193*c[0]+.1192*c[1]+.9505*c[2])/1.08883,f=t=>t>.008856?Math.cbrt(t):7.787*t+16/116;return[116*f(Y)-16,500*(f(X)-f(Y)),200*(f(Y)-f(Z))]};
+const dE=(a,b)=>{const x=labOf(a),y=labOf(b);return Math.hypot(x[0]-y[0],x[1]-y[1],x[2]-y[2])};
+const JP={m:{},get(ab){return this.m[ab]|0},set(ab,v){this.m[ab]=v|0;try{localStorage.setItem('lihl_jersey',JSON.stringify(this.m))}catch(e){}}};
+try{JP.m=JSON.parse(localStorage.getItem('lihl_jersey')||'{}')||{}}catch(e){JP.m={}}
+/* chosen jerseys for a pairing; the VISITING team switches to its away jersey (then alt, then home) when the two body colors clash. ovr = [homeSlot,awaySlot] (online) */
+function jerseyPair(hd,ad,ovr){const jh=jerseyAt(hd,ovr?ovr[0]:JP.get(hd.abbr));let ja=jerseyAt(ad,ovr?ovr[1]:JP.get(ad.abbr)),auto=false;
+ if(dE(jh.color,ja.color)<JCLASH){for(const s of ['away','alt','home']){const c=jerseysOf(ad).find(j=>j.slot===s);if(c&&c!==ja&&dE(jh.color,c.color)>=JCLASH){ja=c;auto=true;break}}}
+ return{jh,ja,auto,clash:dE(jh.color,ja.color)<JCLASH}}
+const jerseyReal=j=>j.stripe!==undefined||!!j.style;
 const initials=n=>n.split(' ').map(w=>w[0]).join('').slice(0,2);
 // ---------- state ----------
 let G,H1,A1,puck,input={x:0,y:0,shoot:0,pass:0},keys={};
@@ -308,7 +322,7 @@ function mkTeam(def,side,color,human){
  t.F=ch(t.Fs,3);t.D=ch(t.Ds,2);t.seqF=[0,1,2,0,1,2].filter(i=>i<t.F.length);t.seqD=[0,1,2,0,1,2].filter(i=>i<t.D.length);
  const avg=t.roster.reduce((s,p)=>s+p.r,0)/t.roster.length;
  const gs=(ROSTER.goalies||[]).filter(g=>g.team===def.id).sort((a,b)=>b.gp-a.gp),g0=gs[0],sh=g0?(g0.gaa*g0.gp+3.4*4)/(g0.gp+4):null;
- t.goalie={x:t.ownGX+side*3.5,y:MY,gl:g0?clamp(.5+(3.4-sh)/11,.38,.78):.5,team:t,name:g0?g0.name:t.abbr+' Goalie',num:g0&&g0.num!=null?g0.num:(g0?g0.id%99:null),img:g0?g0.photo:null,gaa:g0?g0.gaa:null,rating:g0?'GAA '+g0.gaa:'no data'};
+ t.goalie={x:t.ownGX+side*3.5,y:MY,gl:g0?(g0.rating!=null?clamp(.38+.4*clamp((g0.rating-20)/45,0,1),.38,.78):clamp(.5+(3.4-sh)/11,.38,.78)):.5, /* a goalie with a flat rating (Whiskey Stick, 60) uses the same 20..65 rating scale as skaters */team:t,name:g0?g0.name:t.abbr+' Goalie',num:g0&&g0.num!=null?g0.num:(g0?g0.id%99:null),img:g0?g0.photo:null,gaa:g0?g0.gaa:null,rating:g0?(g0.rating!=null?'RTG '+g0.rating:'GAA '+g0.gaa):'no data'};
  return t}
 function newGame(att){if(window.AEV)AEV.reset();
  const hi=+$('mh').value,ai=+$('ma').value,mode=$('mc').value;
@@ -316,13 +330,13 @@ function newGame(att){if(window.AEV)AEV.reset();
  const dist=(a,b)=>{const f=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));const x=f(a),y=f(b);return Math.abs(x[0]-y[0])+Math.abs(x[1]-y[1])+Math.abs(x[2]-y[2])};
  const lum=h=>(.3*parseInt(h.substr(1,2),16)+.59*parseInt(h.substr(3,2),16)+.11*parseInt(h.substr(5,2),16))/255;
  const dk=h=>'#'+[1,3,5].map(i=>Math.round(parseInt(h.substr(i,2),16)*.62).toString(16).padStart(2,'0')).join('');
- const TH=TEAMS[hi],TA=TEAMS[ai];let c1=TH.color||hue(h1),c2=TA.color||hue(h2),w1=false,w2=false;
- if(c1[0]==='#'&&lum(c1)>.78){w1=true;c1=(TH.accent&&lum(TH.accent)<.78)?TH.accent:dk(c1)}
- if(c2[0]==='#'&&lum(c2)>.78){w2=true;c2=(TA.accent&&lum(TA.accent)<.78)?TA.accent:dk(c2)}
- if(c1[0]==='#'&&c2[0]==='#'&&dist(c1,c2)<150){ // keep every team's own main color wherever possible; change the white-ish team first
+ const TH0=TEAMS[hi],TA0=TEAMS[ai],JR=jerseyPair(TH0,TA0,window.JNET),jh=JR.jh,ja=JR.ja,TH={...TH0,color:jh.color||TH0.color,accent:jh.accent||TH0.accent},TA={...TA0,color:ja.color||TA0.color,accent:ja.accent||TA0.accent};let c1=TH.color||hue(h1),c2=TA.color||hue(h2),w1=false,w2=false;
+ if(!jerseyReal(jh)&&c1[0]==='#'&&lum(c1)>.78){w1=true;c1=(TH.accent&&lum(TH.accent)<.78)?TH.accent:dk(c1)}
+ if(!jerseyReal(ja)&&c2[0]==='#'&&lum(c2)>.78){w2=true;c2=(TA.accent&&lum(TA.accent)<.78)?TA.accent:dk(c2)}
+ if(JR.clash&&c1[0]==='#'&&c2[0]==='#'&&dist(c1,c2)<150){ // keep every team's own main color wherever possible; change the white-ish team first
   if(w1&&!w2)c1=dk(TH.color);else if(w2&&!w1)c2=dk(TA.color);else if(TA.accent&&lum(TA.accent)<.78)c2=TA.accent;else if(TH.accent&&lum(TH.accent)<.78)c1=TH.accent;
   if(dist(c1,c2)<150&&TH.accent&&!w1&&lum(TH.accent)<.78&&dist(TH.accent,c2)>=150)c1=TH.accent}
- H1=mkTeam(TEAMS[hi],1,c1,mode==='h');A1=mkTeam(TEAMS[ai],-1,c2,mode==='a');H1.opp=A1;A1.opp=H1;
+ H1=mkTeam(TEAMS[hi],1,c1,mode==='h');A1=mkTeam(TEAMS[ai],-1,c2,mode==='a');H1.jersey=jh;A1.jersey=ja;H1.accent=TH.accent;A1.accent=TA.accent;H1.opp=A1;A1.opp=H1;
  puck={x:W/2,y:MY,vx:0,vy:0,z:0,vz:0,spin:0,bn:0,owner:null,target:null,last:null,cool:0,shot:null};
  G={diff:DIFFV,ev:{},period:1,plen:+$('ml').value,clock:+$('ml').value,score:[0,0],pause:0.01,over:false,ctlT:0,ot:false,hum:mode==='h'?H1:mode==='a'?A1:null,goals:[],shots:[0,0],saves:[0,0],hits:[0,0],pims:[0,0],fow:[0,0],passes:[0,0],poss:[0,0],pst:{}};G.humans=G.hum?[{team:G.hum,local:true,ctlT:0,sel:null,ctl:null}]:[];
  $('na').textContent=A1.abbr;$('nh').textContent=H1.abbr;document.documentElement.style.setProperty('--ca',A1.color);document.documentElement.style.setProperty('--ch',H1.color);$('ia').src=A1.icon||'';$('ih').src=H1.icon||'';

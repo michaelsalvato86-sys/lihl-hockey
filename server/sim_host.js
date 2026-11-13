@@ -65,7 +65,8 @@ function netSnap(){
 }
 function netRbOn(v){ G.rbOn = v?1:0; } function netRbResume(){ G.rbWait = 0; }
 function netTick(){ G.tick++; step(1/30); const o = JSON.stringify({ s: netSnap(), ev: EVQ }); EVQ.length = 0; return o; }
-function netSummary(){ return JSON.stringify({ n: TEAMS.length, teams: TEAMS.map(t=>({abbr:t.abbr,name:t.name,color:t.color,n:t.players.length})) }); }
+function netJerPair(h,a,sh,sa){ const R = jerseyPair(TEAMS[h], TEAMS[a], [sh|0, sa|0]); return JSON.stringify([JSLOTS.indexOf(R.jh.slot), JSLOTS.indexOf(R.ja.slot), R.auto?1:0]); }
+function netSummary(){ return JSON.stringify({ n: TEAMS.length, teams: TEAMS.map(t=>({abbr:t.abbr,name:t.name,color:t.color,n:t.players.length,jn:jerseysOf(t).map(j=>JSLOTS.indexOf(j.slot))})) }); }
 `;
 
 function createSim() {
@@ -76,6 +77,7 @@ function createSim() {
   return {
     ctx,
     summary: () => JSON.parse(vm.runInContext('netSummary()', ctx)),
+    jerPair: (h, a, sh, sa) => JSON.parse(vm.runInContext(`netJerPair(${h | 0},${a | 0},${sh | 0},${sa | 0})`, ctx)),
     start: c => vm.runInContext(`netStart(${JSON.stringify(c)})`, ctx),
     human: s => vm.runInContext(`netHuman(${s})`, ctx),
     drop: s => vm.runInContext(`netDrop(${s})`, ctx),

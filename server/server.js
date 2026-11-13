@@ -18,7 +18,10 @@ const CHAT = ['Good game', 'Nice shot', 'Nice save', 'Ready?', 'Rematch?', 'One 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 // team list from the shipped game data (same file the browser loads)
-const TEAMS = (() => { const s = createSim(); return s.summary(); })();
+const JSIM = createSim(), TEAMS = JSIM.summary();
+/* jersey choice is cosmetic: a small int per player (0 home, 1 away, 2 alt), validated against the team's own slots; the SERVER resolves a colour clash (visitor goes to away/alt/home) and sends the final pair */
+function jerOk(team, v) { const jn = TEAMS.teams[team] && TEAMS.teams[team].jn; v = +v; return Number.isInteger(v) && v >= 0 && v <= 2 && jn && jn.includes(v) ? v : 0; }
+function jerPair(r) { const [a, b] = r.players; return a && b ? JSIM.jerPair(a.team, b.team, a.jer | 0, b.jer | 0) : null; }
 
 const rooms = new Map(), clients = new Map(), tokens = new Map(), queue = [];
 const send = (c, o) => { try { if (c && c.ws && c.ws.readyState === 1) c.ws.send(JSON.stringify(o)); } catch (e) { } };
@@ -28,7 +31,7 @@ function newCode() { for (let k = 0; k < 50; k++) { let c = 'LIHL-'; for (let i 
 
 function roomView(r, slot) {
   return { t: 'room', code: r.code, pub: r.pub, host: 0, plen: r.plen, state: r.state, you: slot, paused: !!r.paused,
-    players: r.players.map(p => p ? { name: p.name, team: p.team, ready: p.ready, conn: p.conn } : null) };
+    players: r.players.map(p => p ? { name: p.name, team: p.team, jer: p.jer | 0, ready: p.ready, conn: p.conn } : null), jr: jerPair(r) };
 }
 function pushRoom(r) { r.players.forEach((p, i) => p && send(p, roomView(r, i))); r.touch = Date.now(); }
 
@@ -41,7 +44,7 @@ function createRoom(owner, pub) {
 function seat(r, c, slot) {
   const other = r.players[1 - slot];
   let team = Math.floor(Math.random() * TEAMS.n); if (other && other.team === team) team = (team + 1) % TEAMS.n;
-  c.room = r; c.slot = slot; c.team = team; c.ready = false; c.conn = true; r.players[slot] = c; pushRoom(r);
+  c.room = r; c.slot = slot; c.team = team; c.jer = 0; c.ready = false; c.conn = true; r.players[slot] = c; pushRoom(r);
 }
 function leaveRoom(c, permanent) {
   const r = c.room; if (!r) return; const slot = c.slot;
@@ -72,7 +75,7 @@ function startGame(r, rejoinOnly) {
     r.sim.human(0); r.sim.human(1); r.state = 'playing'; r.rematch = [false, false]; r.paused = false; r.rb = null; r.rbFlag = undefined; r.t0 = Date.now(); track('game_start', { room: r.code, n: r.players.map(p => p && p.name).join(' vs '), teams: a.team + '-' + b.team, plen: r.plen });
   }
   syncRb(r);
-  r.players.forEach((p, i) => p && send(p, { t: 'start', home: r.players[0].team, away: r.players[1].team, plen: r.plen, side: i, rejoin: !!rejoinOnly, names: [r.players[0].name, r.players[1].name] }));
+  r.players.forEach((p, i) => p && send(p, { t: 'start', home: r.players[0].team, away: r.players[1].team, jer: (jerPair(r) || [0, 0]).slice(0, 2), plen: r.plen, side: i, rejoin: !!rejoinOnly, names: [r.players[0].name, r.players[1].name] }));
   if (rejoinOnly) { let ev = []; try { ev = r.sim.rejoinEv(); } catch (e) { } if (ev.length) r.players.forEach(p => p && send(p, { t: 'evx', ev })); } // celebration in progress survives a reconnect
   pushRoom(r);
 }
@@ -202,7 +205,8 @@ function handle(c, m) {
     case 'list': send(c, { t: 'list', rooms: [...rooms.values()].filter(x => x.pub && x.state === 'lobby' && (!x.players[0] || !x.players[1])).slice(0, 20).map(x => ({ code: x.code, host: (x.players[0] || x.players[1]).name, team: (x.players[0] || x.players[1]).team })) }); break;
     case 'queue': if (r || queue.includes(c)) break; queue.push(c); send(c, { t: 'queued', n: queue.length }); tryMatch(); break;
     case 'unqueue': { const i = queue.indexOf(c); if (i >= 0) queue.splice(i, 1); send(c, { t: 'unqueued' }); break; }
-    case 'team': if (!r || (r.state !== 'lobby' && r.state !== 'ended')) break; { const i = Math.floor(+m.idx); if (!(i >= 0 && i < TEAMS.n)) break; const o = r.players[1 - c.slot]; if (o && o.team === i) return send(c, { t: 'err', m: 'That team is already taken by your opponent.' }); c.team = i; c.ready = false; pushRoom(r); } break;
+    case 'team': if (!r || (r.state !== 'lobby' && r.state !== 'ended')) break; { const i = Math.floor(+m.idx); if (!(i >= 0 && i < TEAMS.n)) break; const o = r.players[1 - c.slot]; if (o && o.team === i) return send(c, { t: 'err', m: 'That team is already taken by your opponent.' }); c.team = i; c.jer = jerOk(i, c.jer); c.ready = false; pushRoom(r); } break;
+    case 'jer': if (!r || (r.state !== 'lobby' && r.state !== 'ended')) break; { const v = +m.v; if (!(Number.isInteger(v) && v >= 0 && v <= 2)) break; c.jer = jerOk(c.team, v); c.ready = false; pushRoom(r); } break;
     case 'ready': if (!r || (r.state !== 'lobby' && r.state !== 'ended')) break; c.ready = !!m.v; pushRoom(r); maybeStart(r); break;
     case 'plen': if (!r || c.slot !== 0 || r.state === 'playing') break; if ([120, 180, 300].includes(+m.v) || (process.env.LIHL_TEST && +m.v >= 5 && +m.v <= 60)) { r.plen = +m.v; r.players.forEach(p => p && (p.ready = false)); pushRoom(r); } break;
     case 'leave': if (r) { clearTimeout(r.grace[c.slot]); leaveRoom(c, true); } break;
