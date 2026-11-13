@@ -38,7 +38,7 @@ const out = vm.runInContext(`(function(){
     }
     // no extras: nothing outside cur is drawn (draw set == cur)
     const gl=A.pl.filter(e=>e[0].gl).length; if(gl!==2) fails.push('goalies@'+i+'='+gl);
-    const sk=A.pl.length-gl; if(sk!==10) fails.push('skaters@'+i+'='+sk);
+    const sk=A.pl.length-gl; if(sk!==live.length-2) fails.push('skaters@'+i+'='+sk);
   }
   endReplay();
   return {frames,compared,fails:fails.slice(0,10),nfail:fails.length,live:live.length};

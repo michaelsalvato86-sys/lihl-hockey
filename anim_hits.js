@@ -310,6 +310,24 @@ HITS.pen = function (t, p, why) {
   } catch (e) { }
 };
 
+/* Online: the server sim has no HITS, so callPenalty never reached HITS.pen there. The client reads the penalty banner the server already sends
+   ("PENALTY ABBR" / "Name - Why - m:ss") and plays the same victim reaction locally (cosmetic, no server code, no extra bytes). */
+HITS.penBanner = function (a, b) {
+  try {
+    const g = sg2(); if (!g || typeof a !== 'string' || typeof b !== 'string') return false;
+    const m = /^PENALTY\s+(\S+)/.exec(a); if (!m) return false;
+    const parts = b.split(' - '); if (parts.length < 3) return false;
+    const why = parts[parts.length - 2], name = parts.slice(0, -2).join(' - ');
+    for (const t of [H1, A1]) {
+      if (!t || t.abbr !== m[1] || !t.roster) continue;
+      const p = t.roster.find(q => q.name === name); if (!p) continue;
+      if ((g.aeid || 0) < 1000000) g.aeid = 1000000;   // local ids stay clear of server ids
+      HITS.pen(t, p, why); return true;
+    }
+  } catch (e) { }
+  return false;
+};
+
 /* ---------- render hook: linesmen and the walk to the box (called once per frame from r3d refDraw) ---------- */
 HITS.fx = { lines: [], ghosts: [] };
 HITS.lines = function (R, dt) {

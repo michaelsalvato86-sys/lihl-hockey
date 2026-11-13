@@ -38,9 +38,11 @@ var EVQ = [];
 AU = { sfx: function(n){ EVQ.push({e:'sfx', n:n}); }, crowd: function(){}, speak: function(){}, skate: function(){}, init: function(){} };
 function pidOf(p){ if(!p) return -1; const ti = p.team===H1?0:1; const i = p.team.roster.indexOf(p); return ti*100 + (i<0?99:i); }
 showBanner = function(im,a,b,secs,col){ EVQ.push({e:'bn', im: im||'', a: String(a||''), b: String(b||''), secs: secs||2, col: col||''}); };
-AEHOOK = function(p,k,d){ EVQ.push({e:'ae', p: pidOf(p), k: k, d: d}); };
+AEHOOK = function(p,k,d){ EVQ.push({e:'ae', i: (p.ae&&p.ae.id)|0, p: pidOf(p), k: k, d: d}); };
 var _goal = goal;
-goal = function(t,s){ _goal(t,s); EVQ.push({e:'goal', tm: t===H1?0:1, p: pidOf(s)}); };
+var LASTGOAL = null;
+goal = function(t,s){ _goal(t,s); LASTGOAL = {e:'goal', n: G.score[0]+G.score[1], tm: t===H1?0:1, p: pidOf(s), k: G.tick}; EVQ.push(LASTGOAL); };
+function netRejoinEv(){ return JSON.stringify(LASTGOAL && G.pause>0 && G.tick-LASTGOAL.k<150 ? [LASTGOAL] : []); }
 function netStart(c){ $('mh').value=c.home; $('ma').value=c.away; $('mc').value='n'; $('ml').value=c.plen; newGame(false); G.humans=[]; G.net=1; G.tick=0; return true; }
 function netHuman(side){ if(G.humans.find(h=>h.side===side)) return; const h = mkRemote(side===0?H1:A1); h.side=side; G.humans.push(h); }
 function netDrop(side){ G.humans = G.humans.filter(h=>h.side!==side); }
@@ -78,6 +80,7 @@ function createSim() {
     human: s => vm.runInContext(`netHuman(${s})`, ctx),
     drop: s => vm.runInContext(`netDrop(${s})`, ctx),
     input: (s, m) => { ctx.__m = m; vm.runInContext(`netInput(${s}, __m)`, ctx); },
+    rejoinEv: () => JSON.parse(vm.runInContext('netRejoinEv()', ctx)),
     tick: () => vm.runInContext('netTick()', ctx),
     rbOn: v => vm.runInContext(`netRbOn(${v ? 1 : 0})`, ctx),
     rbResume: () => vm.runInContext('netRbResume()', ctx),

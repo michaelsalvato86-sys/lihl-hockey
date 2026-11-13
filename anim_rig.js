@@ -5,7 +5,7 @@
 const AR = { ready: false, Lg: 1.3 };
 const _v = () => new THREE.Vector3();
 AR.t = { a: _v(), b: _v(), c: _v(), d: _v(), e: _v(), f: _v(), g: _v(), h: _v(), i: _v(), j: _v() };
-AR.qa = new THREE.Quaternion(); AR.mm = new THREE.Matrix4();
+AR.qa = new THREE.Quaternion(); AR.qb = new THREE.Quaternion(); AR.mm = new THREE.Matrix4();
 
 AR.init = function () {
   AR.len = {}; AR.dir = {};
@@ -97,11 +97,19 @@ AR.legs = function (m, an, pose, D, iceY) {
     T.copy(A).add(d);
     // planted foot: hold its world xz while the skater is (nearly) still
     const st = pl[s];
+    r.hold = 0;
     if (d.pw > 0.5 && !st.on) { W.copy(A); m.root.localToWorld(W); st.w.copy(W); st.on = true; } else if (d.pw < 0.25) st.on = false;
-    if (st.on) { W.copy(st.w); m.root.worldToLocal(W); const kk = Math.max(0, Math.min(1, (d.pw - 0.25) / 0.5)); const kk2 = kk * kk * (3 - 2 * kk); T.x += (W.x - T.x) * kk2; T.z += (W.z - T.z) * kk2; }
+    if (st.on) {
+      W.copy(st.w); m.root.worldToLocal(W); const kk = Math.max(0, Math.min(1, (d.pw - 0.25) / 0.5)); let kk2 = kk * kk * (3 - 2 * kk);
+      // soft release: as the body slides away from the pinned blade the hold fades (sliding stop tail) instead of stretching the leg until it snaps loose
+      const dd = Math.hypot(W.x - A.x, W.z - A.z), fade = Math.max(0, Math.min(1, (dd - 0.12) / 0.2)); kk2 *= 1 - fade * fade * (3 - 2 * fade); r.hold = kk2; T.y += 0.05 * 4 * fade * (1 - fade);   // the foot is picked up as it steps along
+      T.x += (W.x - T.x) * kk2; T.z += (W.z - T.z) * kk2;
+      if (dd > 0.34) st.on = false;
+    }
     // ice contact: ankle and toe-ball may not sink below their rest heights above the ice
     const minA = iceY + SK.footRestY, minB = iceY + AR.ballRestY;
     let lift = Math.max(0, minA - T.y, minB - (T.y + Bo.y)); r.lift = lift; T.y += lift;
+    if (window.ANIM && ANIM.debug) { const Wd = r.dbg || (r.dbg = new THREE.Vector3()); Wd.copy(T); m.root.localToWorld(Wd); r.dbgA = r.dbgA || new THREE.Vector3(); r.dbgA.copy(A); m.root.localToWorld(r.dbgA); }
     const e = AR.elbow(H, T, L.l1, L.l2, P, AR.t.a2 || (AR.t.a2 = new THREE.Vector3()));
     r.reach = Math.max(0, H.distanceTo(T) - (L.l1 + L.l2));
     if (st.on && out[s].reach > 0.04) st.on = false;               // stretched too far (body travelled on): release, the next frame re-plants at the FK foot = a step
@@ -109,6 +117,8 @@ AR.legs = function (m, an, pose, D, iceY) {
     d1.copy(e).sub(H).normalize(); q[th] = q[th] || new THREE.Quaternion(); AR.qa.setFromUnitVectors(AR.dir[th], d1); q[th].copy(AR.qa).multiply(SK.restW[th]);
     // if the leg is fully stretched the ankle lands short of T along the line; calf still points at T
     d2.copy(T).sub(e).normalize(); q[ca] = q[ca] || new THREE.Quaternion(); AR.qa.setFromUnitVectors(AR.dir[ca], d2); q[ca].copy(AR.qa).multiply(SK.restW[ca]);
+    // rate limit: a replant step, a stop-side switch or an IK branch change must never rotate a leg bone more than lim rad in one frame (events and falls pass free)
+    if (!D.free) { const pq = an.pq || (an.pq = {}), lim = (D.lim || 0.17); for (const k of [th, ca]) { const p0 = pq[k]; if (p0) { const ang = 2 * Math.acos(Math.min(1, Math.abs(p0.dot(q[k])))); if (ang > lim) { if (p0.dot(q[k]) < 0) { q[k].x = -q[k].x; q[k].y = -q[k].y; q[k].z = -q[k].z; q[k].w = -q[k].w; } AR.qb.copy(q[k]); q[k].copy(p0).slerp(AR.qb, lim / ang); } } (pq[k] || (pq[k] = new THREE.Quaternion())).copy(q[k]); } } else { const pq = an.pq || (an.pq = {}); for (const k of [th, ca]) (pq[k] || (pq[k] = new THREE.Quaternion())).copy(q[k]); }
     pose[th] = { q: q[th] }; pose[ca] = { q: q[ca] };
   }
   return out;

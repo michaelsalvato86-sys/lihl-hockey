@@ -2,7 +2,7 @@
 <style>html,body{margin:0;background:#0b1118;overflow:hidden;font-family:monospace;color:#9fb}canvas{display:block}#hud{position:fixed;left:8px;top:6px;font-size:12px;white-space:pre}</style></head><body>
 <div id="hud"></div>
 <script src="three.min.js"></script><script src="lib/GLTFLoader.js"></script><script src="lib/SkeletonUtils.js"></script>
-<script src="skater3d.js"></script><script src="skater_pose.js"></script><script src="anim_rig.js"></script><script src="anim_ctrl.js"></script><script src="anim_goalie.js"></script><script src="anim_hits.js"></script><script src="anim_celebrate.js"></script><script src="anim_shots.js"></script><script src="anim_shots_test.js"></script>
+<script src="skater3d.js"></script><script src="skater_pose.js"></script><script src="anim_rig.js"></script><script src="anim_ctrl.js"></script><script src="anim_goalie.js"></script><script src="anim_hits.js"></script><script src="anim_events.js"></script><script src="anim_celebrate.js"></script><script src="anim_shots.js"></script><script src="anim_shots_test.js"></script>
 <script>
 const qs=new URLSearchParams(location.search);
 function accOf(p){return p.team.accent}
@@ -78,6 +78,8 @@ const sc_={
  lift:(t,p,c,pk)=>{p.vx=14;p.vy=0;p.acc01=.2;pk.x=p.x+4;pk.y=p.y+1;if(t>=.3&&!p.ae)p.ae={id:1,k:'poke',d:{a:.1}}},
  hit:(t,p,c)=>{p.vx=22;p.vy=0;p.acc01=.4;if(t>=.1&&!p.ae)p.ae={id:1,k:'hitwind',d:{a:.5,d:9}};if(t>=.7&&p.ae.id===1)p.ae={id:2,k:'check',d:{a:.5,board:true,power:.9}}},
  hitmiss:(t,p,c)=>{p.vx=22;p.vy=0;p.acc01=.4;if(t>=.1&&!p.ae)p.ae={id:1,k:'hitwind',d:{a:-.4,d:9}};if(t>=.7&&p.ae.id===1)p.ae={id:2,k:'hitmiss',d:{}}},
+ checked_behind:(t,p,c)=>{p.vx=20;p.vy=0;if(t<.02&&!p.ae)p.ae={id:1,k:'checked',d:{power:.8,side:1,dir:0,from:'behind'}}},
+ checked_side:(t,p,c)=>{p.vx=20;p.vy=0;if(t<.02&&!p.ae)p.ae={id:1,k:'checked',d:{power:.8,side:1,dir:Math.PI/2,from:'side'}}},
  checked_board:(t,p,c)=>{p.vx=18;p.vy=0;if(t>=.1&&!p.ae)p.ae={id:1,k:'checked',d:{power:.9,board:true,dir:Math.PI*.8,side:1}}},
  transition_carry_to_defend:(t,p,c,pk)=>{p.vx=22;p.vy=0;c.hasPuck=t<1;pk.x=p.x+4;pk.y=p.y}
 };
@@ -107,6 +109,9 @@ window.GV={
  peek:['peek',{},'goalie_peek'],play:['play',{side:'l'},'goalie_play_puck'],pull:['pull',{dx:-6,dz:30,dur:1.8},'goalie_skate_bench'],return_:['return',{dx:-6,dz:30,dur:1.8},'goalie_skate_return']};
 for(const n in GV){const q=GV[n];GS['v_'+n]=(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:q[0],d:Object.assign({},q[1])}}}
 AT.sc=sc_;
+// real-sim traces (anim_traces.json: recorded from the shipped skate() with scripted inputs): stop_fwd, stop_back, tight_turn, back_to_fwd, fwd_to_back, backskate, crossover, stop_left
+try{const xr=new XMLHttpRequest();xr.open('GET','anim_traces.json?'+Date.now(),false);xr.send();AT.traces=JSON.parse(xr.responseText);
+ for(const n in AT.traces){const T=AT.traces[n];sc_['tr_'+n]=(t,p)=>{const f=T[Math.min(T.length-1,Math.round(t*60))];p.x=f[0];p.y=f[1];p.vx=f[2];p.vy=f[3];p.fa=f[4];p.turn=f[5];p.acc01=f[6];p.back=!!f[7];p.edge=f[8];p.stp=f[9];p.ph=f[10];p.xo=!!f[11]};}}catch(e){AT.traces=null}
 // min knee flexion (rad, 0 = straight) per leg over a scenario, and pelvis lateral travel (root space, m)
 AT.limbStat=function(fn,secs,t0){const v=[new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3()],dt=1/60,mn=[9,9],R={pelMin:9,pelMax:-9,pelY:[9,-9]};AT.spawn(false);ANIM.debug=true;t0=t0===undefined?.4:t0;
  for(let t=0;t<=secs+1e-6;t+=dt){AT.step(fn,t,dt);if(t<t0)continue;AT.m.inner.updateMatrixWorld(true);
@@ -116,7 +121,7 @@ AT.limbStat=function(fn,secs,t0){const v=[new THREE.Vector3(),new THREE.Vector3(
 // planted foot: world xz drift while the plant is on (ft), frames planted, and min hip-to-ankle vertical drop (fraction of leg length)
 AT.plantStat=function(fn,secs){AT.spawn(false);ANIM.debug=true;const dt=1/60,v=new THREE.Vector3(),H=new THREE.Vector3(),lat={l:null,r:null},R={drift:0,frames:0,minDrop:9,maxReach:0};
  for(let t=0;t<=secs+1e-6;t+=dt){AT.step(fn,t,dt);const an=AT.m.an,pl=an.plant;AT.m.g.updateMatrixWorld(true);
-  for(const s of ['l','r']){AT.m.byName['foot_'+s].getWorldPosition(v);const on=pl&&pl[s].on&&an.legD[s].pw>0.7;if(on){if(!lat[s])lat[s]=v.clone();else R.drift=Math.max(R.drift,Math.hypot(v.x-lat[s].x,v.z-lat[s].z));R.frames++;if(AT.p.vx>1.2)R.moving=(R.moving||0)+1}else lat[s]=null;
+  for(const s of ['l','r']){AT.m.byName['foot_'+s].getWorldPosition(v);const on=pl&&pl[s].on&&an.legD[s].pw>0.7&&(!an.legRes||an.legRes[s].hold===undefined||an.legRes[s].hold>0.9);if(on){if(!lat[s])lat[s]=v.clone();else R.drift=Math.max(R.drift,Math.hypot(v.x-lat[s].x,v.z-lat[s].z));R.frames++;if(AT.p.vx>1.2)R.moving=(R.moving||0)+1}else lat[s]=null;
    if(t>.4){AR.pos(AT.m,'thigh_'+s,H);AR.pos(AT.m,'foot_'+s,v);R.minDrop=Math.min(R.minDrop,(H.y-v.y)/(AR.llen[s].l1+AR.llen[s].l2))}}
   if(an.legRes)R.maxReach=Math.max(R.maxReach,an.legRes.l.reach,an.legRes.r.reach)}
  return R};
@@ -197,7 +202,7 @@ AT.animChecks=function(chk){
  {const R=AT.plantStat(AT.sc.backskate,2),K=AT.limbStat(AT.sc.backskate,2);AT.bkStat={drop:R.minDrop,flex:K.flex};chk('backskate: foot at least 0.4 leg-lengths below the hip',R.minDrop>0.4,R.minDrop.toFixed(2));chk('backskate: knees stay bent (min flex rad)',Math.min(...K.flex)>0.8,K.flex.map(x=>x.toFixed(2)).join('/'))}
  // planted-foot lock in slow stops and slow pivots
  {const a=AT.plantStat(AT.sc.stop_slow,1.6),b=AT.plantStat(AT.sc.pivot,1.6);AT.plantS={stop:a,piv:b};
-  chk('slow stop: a foot locks while sliding to rest',a.frames>=20&&a.drift<0.03,a.frames+' frames drift '+a.drift.toFixed(3));chk('slow stop: IK still reaches',a.maxReach<0.03,a.maxReach.toFixed(3));
+  chk('slow stop: a foot locks (hold weight above 0.9) while sliding to rest',a.frames>=10&&a.drift<0.03,a.frames+' frames drift '+a.drift.toFixed(3));chk('slow stop: IK still reaches',a.maxReach<0.03,a.maxReach.toFixed(3));
   chk('slow pivot: ground foot locked',b.frames>=40&&b.drift<0.03,b.frames+' frames drift '+b.drift.toFixed(3));
   ANIM.noLock=true;const c0=AT.plantStat(AT.sc.pivot,1.6);ANIM.noLock=false;chk('pivot lock switch matters (planted frames with vs without the new lock)',c0.frames<b.frames-30,c0.frames+' vs '+b.frames)}
  // backward hockey stop pose
@@ -212,6 +217,45 @@ AT.animChecks=function(chk){
  {AT.run('stop_sim',.4);chk('stop produces spray intensity',AT.m.an.spray>0.5,(AT.m.an.spray||0).toFixed(2));AT.run('stationary',.3);chk('no spray standing',(AT.m.an.spray||0)<0.05,'');
   AT.spawn(false);let sc=0,pv=0;for(let t=0;t<=1.2;t+=dt){AT.step(sc_.checked,t,dt);const x=AT.m.an.spX||0;if(t>.1&&pv*x<0)sc++;pv=x||pv}
   chk('hit spring rings and settles',sc>=1&&Math.abs(AT.m.an.spX)<0.02,'crossings '+sc+' end '+(AT.m.an.spX||0).toFixed(3))}
+};
+
+// ---- pass 9 body mechanics: real-sim traces (hockey stops, tight turns, backward skating), planted blade, stride, check from behind vs side ----
+AT.bodyChecks=function(chk){
+ if(!AT.traces){chk('body: anim_traces.json loaded',false,'missing');return}
+ const dt=1/60,names=['pelvis','spine_01','spine_03','Head','thigh_l','calf_l','foot_l','thigh_r','calf_r','foot_r'],jn=['pelvis','Head','thigh_l','calf_l','foot_l','ball_l','thigh_r','calf_r','foot_r','ball_r','hand_l','hand_r','spine_03'];
+ AT.bodyStat={};
+ for(const n of Object.keys(AT.traces)){
+  AT.spawn(false);ANIM.debug=true;const m=AT.m,T=AT.traces[n],fn=sc_['tr_'+n],prev={},cur=new THREE.Quaternion(),rq=new THREE.Quaternion(),v=new THREE.Vector3(),pv={l:null,r:null},H=new THREE.Vector3(),F=new THREE.Vector3(),Kk=new THREE.Vector3();
+  const R={deg:0,reach:0,minY:9,step:0,planted:0,ext:0,minKnee:9,worst:''};
+  for(let i=0;i<T.length;i++){AT.step(fn,i/60,dt);m.g.updateMatrixWorld(true);const an=m.an,sp=Math.hypot(T[i][2],T[i][3]);if(i<3)continue;
+   R.reach=Math.max(R.reach,an.legRes.l.reach,an.legRes.r.reach);
+   for(const nm of names){m.byName[nm].getWorldQuaternion(cur);m.root.getWorldQuaternion(rq);cur.premultiply(rq.invert());if(prev[nm]){const d=2*Math.acos(Math.min(1,Math.abs(prev[nm].dot(cur))))*180/Math.PI;if(d>R.deg){R.deg=d;R.worst=nm+'@'+(i/60).toFixed(2)}}(prev[nm]||(prev[nm]=new THREE.Quaternion())).copy(cur)}
+   for(const nm of jn){m.byName[nm].getWorldPosition(v);R.minY=Math.min(R.minY,v.y)}
+   for(const s of ['l','r']){m.byName['foot_'+s].getWorldPosition(v);const on=an.plant[s].on&&an.legRes[s].hold>0.9;if(pv[s]&&on&&sp<1.5&&i>5){R.step=Math.max(R.step,Math.hypot(v.x-pv[s].x,v.z-pv[s].z));R.planted++}pv[s]=v.clone();
+    AR.pos(m,'thigh_'+s,H);AR.pos(m,'calf_'+s,Kk);AR.pos(m,'foot_'+s,F);R.ext=Math.max(R.ext,H.distanceTo(F)/(AR.llen[s].l1+AR.llen[s].l2));const a=H.clone().sub(Kk).normalize(),b=F.clone().sub(Kk).normalize();R.minKnee=Math.min(R.minKnee,Math.PI-Math.acos(Math.max(-1,Math.min(1,a.dot(b)))))}}
+  AT.bodyStat[n]=R;
+  chk('trace '+n+': max joint change per frame under '+AT.popMax+' deg (no leg flip)',R.deg<AT.popMax,R.deg.toFixed(1)+' '+R.worst);
+  chk('trace '+n+': leg IK reaches (no stretched leg)',R.reach<0.03&&R.ext<0.985,'reach '+R.reach.toFixed(3)+' ext '+R.ext.toFixed(2));
+  chk('trace '+n+': no joint through the ice',R.minY>-0.05,R.minY.toFixed(3));
+  chk('trace '+n+': planted foot does not slide while the body is nearly still (ft/frame)',R.step<0.05,R.step.toFixed(3)+' over '+R.planted+' frames');
+ }
+ // backward skating metrics vs forward
+ {const st=(fn)=>{AT.spawn(false);ANIM.debug=true;const m=AT.m,P=new THREE.Vector3(),F=new THREE.Vector3(),H=new THREE.Vector3(),Kk=new THREE.Vector3(),rg={l:[9,-9],r:[9,-9]},o={kn:9,ext:0,pel:9,lift:0};
+   for(let t=0;t<=2;t+=dt){AT.step(fn,t,dt);if(t<.6)continue;m.g.updateMatrixWorld(true);AR.pos(m,'pelvis',P);const iy=-m.root.position.y;o.pel=Math.min(o.pel,P.y-iy);
+    for(const s of ['l','r']){AR.pos(m,'foot_'+s,F);AR.pos(m,'thigh_'+s,H);AR.pos(m,'calf_'+s,Kk);const d=F.clone().sub(P).dot(SK.F);rg[s][0]=Math.min(rg[s][0],d);rg[s][1]=Math.max(rg[s][1],d);o.ext=Math.max(o.ext,H.distanceTo(F)/(AR.llen[s].l1+AR.llen[s].l2));const a=H.clone().sub(Kk).normalize(),b=F.clone().sub(Kk).normalize();o.kn=Math.min(o.kn,Math.PI-Math.acos(Math.max(-1,Math.min(1,a.dot(b)))));o.lift=Math.max(o.lift,F.y-iy)}}
+   o.range=Math.max(rg.l[1]-rg.l[0],rg.r[1]-rg.r[0]);return o};
+  const B=st(AT.traces?sc_.tr_backskate:sc_.backskate),Fw=st(sc_.skate);AT.bkM=B;AT.fwM=Fw;
+  chk('backskate: foot fore-aft excursion per stride (m) is a short C-cut, not a long lunge',B.range<0.5,B.range.toFixed(2)+' (forward '+Fw.range.toFixed(2)+')');
+  chk('backskate: knees well bent but not a deep squat (min flex rad)',B.kn>0.9&&B.kn<1.55,B.kn.toFixed(2));
+  chk('backskate: trailing leg never stretched (hip-foot / leg length)',B.ext<0.86,B.ext.toFixed(2));
+  chk('backskate: hips stay above 0.4 m',B.pel>0.4,B.pel.toFixed(2));
+  chk('backskate: not forward skating in reverse (knees more bent than forward)',B.kn>Fw.kn+0.2,B.kn.toFixed(2)+' vs '+Fw.kn.toFixed(2))}
+ // check from behind differs from check from the side (victim)
+ {const sig=(from)=>{AT.spawn(false);ANIM.debug=true;const fn=(t,p)=>{p.vx=20;p.vy=0;if(t<.02&&!p.ae)p.ae={id:1,k:'checked',d:{power:.8,side:1,dir:from==='behind'?0:Math.PI/2,from}}};
+   for(let t=0;t<=.35;t+=dt)AT.step(fn,t,dt);const o=[],w=new THREE.Vector3();for(const n of ['Head','spine_03','pelvis','foot_l','foot_r','hand_l','hand_r'])AR.pos(AT.m,n,w),o.push(w.x,w.y,w.z);return {o,pitch:AT.m.root.rotation.x,roll:AT.m.root.rotation.z,st:AT.m.an.state}};
+  const a=sig('behind'),b=sig('side'),c=sig('front'),L1=(x,y)=>x.o.reduce((q,v,i)=>q+Math.abs(v-y.o[i]),0);
+  chk('check from behind differs from a hit from the side (pose L1 m)',L1(a,b)>0.25,L1(a,b).toFixed(2));chk('check from the front differs from behind',L1(a,c)>0.25,L1(a,c).toFixed(2));
+  chk('checked victims all play getting_checked',a.st==='getting_checked'&&b.st==='getting_checked'&&c.st==='getting_checked',a.st+' '+b.st+' '+c.st)}
 };
 AT.popMax=12;AT.gPopMax=14;
 AT.assertAll=function(){
@@ -235,8 +279,10 @@ AT.assertAll=function(){
   }
   AT.legChecks(chk);
   AT.animChecks(chk);
+  AT.bodyChecks(chk);
   if(window.ANIM_SHOTS_TEST)ANIM_SHOTS_TEST(AT,chk);
   if(window.CEL&&CEL.checks)CEL.checks(AT,sc_,chk);
+  if(window.AEV&&AEV.checks)AEV.checks(AT,chk);
   for(const n of AT.goalieScenarios){const r=AT.run(n,1.4,{goalie:true}),seq=r.seq.map(s=>s.replace(/^[0-9.]+:/,''));const miss=(AT.gExpect[n]||[]).filter(e=>!seq.includes(e));chk(n+' state',miss.length===0,'missing '+miss.join(',')+' got '+seq.join('>'));chk(n+' no stick snap',r.maxSnap<0.6,r.maxSnap.toFixed(2))}
 
   { // goalie animation checks (pass 7 goalie anim)
@@ -289,6 +335,9 @@ AT.view=function(v){
   else if(v==='side'){cam.position.set(px+2,4.5,pz+16);cam.lookAt(px+2,3.2,pz);cam.fov=30}
   else if(v==='wide'){cam.position.set(px+1,3.2,pz+20);cam.lookAt(px+1,1.6,pz);cam.fov=36}
   else if(v==='wideF'){cam.position.set(px+20,3.2,pz+1);cam.lookAt(px,1.6,pz);cam.fov=36}
+  else if(v==='sidew'){cam.position.set(px+2,3.4,pz+23);cam.lookAt(px+2,2.5,pz);cam.fov=38}
+  else if(v==='followw'){cam.position.set(px+12,5,pz+15);cam.lookAt(px,2.4,pz);cam.fov=36}
+  else if(v==='follow'){cam.position.set(px+9,4.5,pz+11);cam.lookAt(px,2.6,pz);cam.fov=34}
   else if(v==='front'){cam.position.set(px+17,4.5,pz+1);cam.lookAt(px,3.3,pz);cam.fov=32}
   else if(v==='top'){cam.position.set(px+2,26,pz+.1);cam.lookAt(px+2,0,pz);cam.fov=34}
   else if(v==='back'){cam.position.set(px-14,5,pz-4);cam.lookAt(px+2,3.3,pz);cam.fov=34}

@@ -4,7 +4,7 @@
 # Needs: the deploy/ folder copied to ~/lihl (see docs/ORACLE_FREE_HOSTING.md).
 set -e
 DOMAIN="$1"; [ -z "$DOMAIN" ] && { echo "usage: bash oracle_setup.sh yourname.duckdns.org"; exit 1; }
-sudo apt-get update -y && sudo apt-get install -y docker.io caddy
+if ! command -v docker >/dev/null || ! command -v caddy >/dev/null; then sudo apt-get update -y && sudo apt-get install -y docker.io caddy; fi
 sudo systemctl enable --now docker
 cd ~/lihl
 sudo docker build -t lihl .

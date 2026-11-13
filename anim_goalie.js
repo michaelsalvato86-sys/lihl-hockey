@@ -108,6 +108,7 @@
     const latT = cl(-an.vy * dir / 25, -1, 1); an.lat += (latT - an.lat) * (1 - Math.exp(-10 * dt));
     an.ph += dt * (3 + Math.abs(an.lat) * 8);
     // events: save kinds carry hold + recovery (rc = sim g.recov) so the rise matches the sim's slowed recovery
+    if (g.ae && g.ae.id !== an.evId && window.AEV && !AEV.admit(an, g, g.ae.k, g.ae.d || {}, 'g')) an.evId = g.ae.id;   // priority / interruption table (anim_events.js)
     if (g.ae && g.ae.id !== an.evId) { an.evId = g.ae.id; const dd = g.ae.d || {}; an.ev = mkEv(an, g.ae.k, dd, g.ae.id); const ev = an.ev, kd = g.ae.k === 'save' ? dd.kind : '';
       if (kd) { const lk = LV[kd]; an.sdk[lk] = dd.side === 'l' ? 1 : -1; if (an.lv[lk] < 0.15) an.sd[lk] = an.sdk[lk]; an.hT = dd.h != null ? cl(dd.h / 2, 0, 1) : 0.5; }
       if (dd.side) an.vsT = dd.side === 'l' ? 1 : -1; else if (ev.V && !kd) an.vsT = hash(g.ae.id * 5 + 1) < 0.5 ? 1 : -1;
@@ -121,8 +122,8 @@
     const pspd = Math.hypot(vf, vl), wf = worldFlags(g, c, dir);
     if (!an.ev) {   // auto behaviours when nothing else is running
       const calmNow = Math.abs(an.lat) < 0.15 && an.lastEnd > 0.4;
-      if (calmNow && an.pokCd <= 0 && pf > 7 && pf < 20 && vf < -3 && vf > -30 && Math.abs(pl) < 8 && g.windT <= 0 && hash(an.v.id * 11 + (an.nAuto = (an.nAuto || 0) + 1)) < 0.003 * 60 * dt * 10) { an.ev = mkEv(an, 'poke', { side: pl > 0 ? 'l' : 'r' }, an.evId * 7 + an.nAuto); an.vsT = pl > 0 ? 1 : -1; an.pokCd = 5; }
-      else if (calmNow && wf.stop) { an.idleT += dt; if (an.idleT > 1.1 + 1.4 * hash(an.v.id + an.idleN * 3)) { an.idleT = 0; const L = ['adjust', 'sip', 'stretch', 'shake', 'tap']; an.ev = mkEv(an, 'idle', { v: L[(an.idleN++ + Math.floor(hash(an.v.id) * 5)) % 5] }, an.evId * 9 + an.idleN); an.vsT = hash(an.idleN * 13 + an.v.id) < 0.5 ? 1 : -1; } }
+      // (the poke check used to start here whenever the puck was near; it now only plays from the sim's poke event, see game.html goalieStep)
+      if (calmNow && wf.stop) { an.idleT += dt; if (an.idleT > 1.1 + 1.4 * hash(an.v.id + an.idleN * 3)) { an.idleT = 0; const L = ['adjust', 'sip', 'stretch', 'shake', 'tap']; an.ev = mkEv(an, 'idle', { v: L[(an.idleN++ + Math.floor(hash(an.v.id) * 5)) % 5] }, an.evId * 9 + an.idleN); an.vsT = hash(an.idleN * 13 + an.v.id) < 0.5 ? 1 : -1; } }
       else if (calmNow && pf > 110 && pspd < 40) { an.idleT += dt * 0.35; if (an.idleT > 7) { an.idleT = 0; const L = ['shake', 'tap', 'adjust']; an.ev = mkEv(an, 'idle', { v: L[(an.idleN++) % 3] }, an.evId * 9 + an.idleN); } }
       else if (!wf.stop) an.idleT = Math.max(0, an.idleT - dt);
     }

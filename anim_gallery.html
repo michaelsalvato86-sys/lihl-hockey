@@ -1,0 +1,32 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Animation gallery</title>
+<!-- Dev tool, not shipped (not in tools/protect.js COPY). Drives the anim_test.html harness (AT.frame / AT.pairFrame / AT.view) in an iframe. Serve over http. -->
+<style>html,body{margin:0;height:100%;background:#0b1118;color:#cde;font:12px monospace}#side{position:fixed;left:0;top:0;bottom:0;width:250px;overflow:auto;background:#101a24;padding:6px;box-sizing:border-box}
+#main{position:fixed;left:250px;right:0;top:0;bottom:0}iframe{width:100%;height:100%;border:0}#bar{position:fixed;right:8px;top:6px;background:#000a;padding:6px;border-radius:4px;z-index:5}
+button,select{font:12px monospace;margin:1px}.g{margin-top:8px;color:#8fc;font-weight:bold}.it{cursor:pointer;padding:1px 3px}.it:hover,.it.on{background:#245}</style></head><body>
+<div id="side"></div><div id="bar">view <select id="view"><option>front</option><option>side</option><option>broadcast</option></select>
+speed <select id="spd"><option value="1">normal</option><option value="0.25">slow 0.25x</option></select>
+<button id="pp">pause</button> <span id="cur"></span><br>transition: A <select id="ta"></select> B <select id="tb"></select> <button id="tgo">preview</button></div>
+<div id="main"><iframe id="f" src="anim_test.html"></iframe></div>
+<script>
+const $=id=>document.getElementById(id),F=$('f');let A,cur=null,t=0,paused=false,last=performance.now(),dur=2.4,mode='sk';
+const VIEW={front:'front',side:'side',broadcast:'broadcast'};
+function boot(){const w=F.contentWindow;if(!w.AT||w.document.title!=='ready'){setTimeout(boot,300);return}A=w;build();requestAnimationFrame(loop)}
+function groups(){const AT=A.AT,out={};
+  const add=(g,n,k)=>{(out[g]=out[g]||[]).push({n,k})};
+  for(const n of AT.scenarios){if(n.startsWith('cel_'))add('celebration',n,'sk');else if(/^(sh_|ps_|rc_|pk_|dk_|stick_battle)/.test(n))add('shots/passes/receptions',n,'sk');else if(/^(fall|check|hit|brace|lift|poke)/.test(n))add('physical',n,'sk');else add('movement/puck',n,'sk')}
+  for(const n of AT.goalieScenarios)add('goalie',n,'g');
+  for(const n of (AT.hitScenarios||[]))add('contact pairs (two skaters)',n,'pair');
+  return out}
+function build(){const G=groups(),s=$('side');let h='',opts='';for(const g in G){h+='<div class="g">'+g+' ('+G[g].length+')</div>';for(const i of G[g]){h+='<div class="it" data-n="'+i.n+'" data-k="'+i.k+'">'+i.n+'</div>';if(i.k!=='pair')opts+='<option value="'+i.k+':'+i.n+'">'+i.n+'</option>'}}
+  s.innerHTML=h;$('ta').innerHTML=opts;$('tb').innerHTML=opts;s.onclick=e=>{const d=e.target.closest('.it');if(!d)return;pick(d.dataset.n,d.dataset.k)}}
+function pick(n,k){cur={n,k};t=0;mode=k;dur=k==='g'?2.6:k==='pair'?1.6:2.4;document.querySelectorAll('.it').forEach(x=>x.classList.toggle('on',x.dataset.n===n));$('cur').textContent=n}
+function trScen(a,b){const sc=A.AT.sc,gs=A.GS,fa=(a.k==='g'?gs:sc)[a.n],fb=(b.k==='g'?gs:sc)[b.n];let sw=false;const TA=1.4;
+  return (tt,p,c,pk)=>{if(tt<=1/60)sw=false;if(tt<TA)fa(tt,p,c,pk);else{if(!sw){sw=true;p.ae=null;if(A.AT.m&&A.AT.m.an)A.AT.m.an.evId=0}fb(tt-TA,p,c,pk)}}}
+$('tgo').onclick=()=>{const a=$('ta').value.split(':'),b=$('tb').value.split(':');if(a[0]!==b[0]){alert('pick two animations of the same kind (skater or goalie)');return}
+  const A_={k:a[0],n:a[1]},B_={k:b[0],n:b[1]};A.AT.sc.__tr=trScen(A_,B_);A.GS.__tr=A.AT.sc.__tr;cur={n:'__tr',k:a[0]};t=0;dur=3.0;mode=a[0];$('cur').textContent='transition '+a[1]+' > '+b[1]};
+$('pp').onclick=()=>{paused=!paused;$('pp').textContent=paused?'play':'pause'};
+function loop(now){const dt=Math.min(.1,(now-last)/1000)*(+$('spd').value);last=now;if(cur&&!paused){t+=dt;if(t>dur)t=0}
+  if(cur){const v=$('view').value,AT=A.AT;try{if(cur.k==='pair')AT.pairFrame(cur.n,t,v==='front'?'close':v==='broadcast'?'wide':'side');else{AT.frame(cur.n,t,v==='broadcast'?'broadcast':v==='front'?'front':'side',{goalie:cur.k==='g'});}}catch(e){$('cur').textContent=cur.n+' ERR '+e.message}}
+  requestAnimationFrame(loop)}
+F.onload=boot;
+</script></body></html>

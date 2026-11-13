@@ -50,6 +50,7 @@
       case 'cd': $('cdwin').style.display = 'flex'; $('cdn').textContent = m.n > 0 ? m.n : 'GO'; break;
       case 'start': begin(m); break;
       case 's': snap(m); break;
+      case 'evx': { const now = performance.now(); NET.evq = NET.evq || []; for (const e of (m.ev || [])) NET.evq.push({ at: now, k: NET.lastK, e }); break; }
       case 'rb': rbStart(m); break;
       case 'rbend': rbEnd(); break;
       case 'peer': if (m.left) { peer('OPPONENT LEFT - CPU TAKES OVER'); setTimeout(() => peer(''), 4000); } else if (m.conn === false) { let t = Math.round(m.grace / 1000); peer('OPPONENT DISCONNECTED - WAITING ' + t + 's'); clearInterval(NET.pi); NET.pi = setInterval(() => { t--; if (t <= 0) { clearInterval(NET.pi); peer(''); } else peer('OPPONENT DISCONNECTED - WAITING ' + t + 's'); }, 1000); } else { clearInterval(NET.pi); peer(''); toast('Opponent reconnected'); } break;
@@ -97,7 +98,7 @@
   // ---------------- match ----------------
   function begin(m) {
     $('cdwin').style.display = 'none'; $('online').style.display = 'none'; $('oend').style.display = 'none'; $('menu').style.display = 'none'; peer('');
-    NET.side = m.side; NET.names = m.names || ['', '']; NET.buf = []; NET.cur = null; NET.rematchMe = false; NET.ring = []; NET.goalI = -1; NET.ri = 0; NET.lastS = null; NET.rbW = 0; NET.inRp = false; if (G && G.rp) G.rp = null; document.body.classList.remove('replay');
+    NET.side = m.side; NET.names = m.names || ['', '']; NET.buf = []; NET.cur = null; NET.rematchMe = false; NET.ring = []; NET.goalI = -1; NET.ri = 0; NET.lastS = null; NET.lastK = -1; NET.seen = new Set(); NET.evStat = { applied: 0, dup: 0, stale: 0 }; NET.rbW = 0; NET.inRp = false; if (G && G.rp) G.rp = null; document.body.classList.remove('replay');
     $('mh').value = m.home; $('ma').value = m.away; $('mc').value = 'n'; $('ml').value = m.plen;
     document.body.classList.remove('inmenu'); document.body.classList.add('ingame', 'netgame');
     newGame(false); G.net = 1; G.humans = []; G.hum = null; $('ctl').style.display = 'block'; NET.on = true; AU.init();
@@ -106,9 +107,11 @@
   function pid2p(pid) { if (pid < 0) return null; const t = pid < 100 ? H1 : A1, i = pid % 100; return i === 99 ? t.goalie : t.roster[i]; }
   const lerp = (a, b, k) => a + (b - a) * k;
   function snap(m) {
+    if (m.s && m.s.k <= NET.lastK && NET.lastK - m.s.k < 300) return; /* late/duplicate snapshot: the server clock only moves forward */
+    NET.lastK = m.s.k;
     const now = performance.now(); NET.buf.push({ rt: now, s: m.s }); if (NET.buf.length > 40) NET.buf.shift();
     if (NET.lastSnap) { const gp = now - NET.lastSnap; NET.gm = (NET.gm || 33) * .95 + gp * .05; NET.gd = (NET.gd || 5) * .95 + Math.abs(gp - NET.gm) * .05; NET.delay = Math.max(100, Math.min(230, 66 + 4 * NET.gd)); } NET.lastSnap = now;
-    NET.evq = NET.evq || []; for (const e of m.ev) NET.evq.push({ at: now + NET.delay, e });
+    NET.evq = NET.evq || []; for (const e of m.ev) NET.evq.push({ at: now + NET.delay, k: m.s.k, e });
     // replay ring: last 200 snapshots (+ their animation events) so a goal can be replayed locally
     const ri = NET.ri = (NET.ri || 0) + 1, ae = []; for (const e of m.ev) { if (e.e === 'ae') ae.push(e); else if (e.e === 'goal') { NET.goalI = ri; NET.goalTm = e.tm; } }
     (NET.ring = NET.ring || []).push({ i: ri, s: m.s, ae }); if (NET.ring.length > 200) NET.ring.shift(); NET.lastS = m.s;
@@ -136,12 +139,20 @@
     if (r.k !== k) { r.k = k; discrete(B.s); r.cur = []; for (const t of [H1, A1]) { for (const p of onIce(t)) r.cur.push(p); if (!t.pull) r.cur.push(t.goalie); } }
     positions(A.s, B.s, al);
   }
+  /* every sim event is applied once (ae id / goal number), at its snapshot's interpolated time; events that arrive far too late (background tab) are dropped except the goal */
+  function evGate(q, nowt) {
+    const e = q.e, S = NET.seen || (NET.seen = new Set()), st = NET.evStat || (NET.evStat = { applied: 0, dup: 0, stale: 0 });
+    const key = e.e === 'ae' ? 'a' + e.i : e.e === 'goal' ? 'g' + (e.n || q.k) : null;
+    if (key) { if (S.has(key)) { st.dup++; return; } S.add(key); if (S.size > 600) S.delete(S.values().next().value); }
+    if (e.e !== 'goal' && nowt - q.at > 700) { st.stale++; return; }
+    st.applied++; if (NET.onEv) NET.onEv(e, q.k); ev(e);
+  }
   function ev(e) {
     if (e.e === 'sfx') { AU.sfx(e.n); if (e.n === 'horn') AU.crowd(1); if (e.n === 'hit') { shakeT = .3; G.excite = Math.max(G.excite || 0, .4); } }
-    else if (e.e === 'ae') { const q = pid2p(e.p); if (q) { q.ae = { id: (G.aeid = (G.aeid || 0) + 1), k: e.k, d: e.d || {} }; if (e.k === 'shotwind') { const T = (e.d && e.d.t) || .2; q.act = { k: 'shot', t: T, T }; } else if (e.k === 'passwind') { const T = (e.d && e.d.t) || .12; q.act = { k: 'pass', t: T, T }; } else if (e.k === 'actcancel' || e.k === 'shot' || e.k === 'pass') q.act = null; if (window.ANN && !NET.inRp) ANN.ev(q, e.k, e.d || {}); } }
-    else if (e.e === 'bn') showBanner(e.im || null, e.a, e.b, e.secs, e.col || null);
+    else if (e.e === 'ae') { const q = pid2p(e.p); const r_ = q ? (window.AEV ? AEV.route(q, e.k, e.d || (e.d = {})) : 1) : 0; if (q && r_) { if (r_ === 1) { q.ae = { id: e.i || (G.aeid = (G.aeid || 0) + 1), k: e.k, d: e.d || {} }; if (window.AEV) AEV.mark(q); if (window.HITS) try { HITS.onEvent(q, e.k, q.ae.d); } catch (_) { } } if (e.k === 'shotwind') { const T = (e.d && e.d.t) || .2; q.act = { k: 'shot', t: T, T }; } else if (e.k === 'passwind') { const T = (e.d && e.d.t) || .12; q.act = { k: 'pass', t: T, T }; } else if (e.k === 'actcancel' || e.k === 'shot' || e.k === 'pass') q.act = null; if (window.ANN && !NET.inRp) ANN.ev(q, e.k, e.d || {}); } }
+    else if (e.e === 'bn') { showBanner(e.im || null, e.a, e.b, e.secs, e.col || null); if (window.HITS && HITS.penBanner && !NET.inRp) HITS.penBanner(e.a, e.b); }
     else if (e.e === 'goal') {
-      const t = e.tm === 0 ? H1 : A1, p = pid2p(e.p); G.cele = { p: p, t: 2.6 }; if (p) { p.celeb = 2.6; for (const m of onIce(t)) if (m !== p) m.celeb = 2.4; } if (window.CEL) CEL.onGoal(t, p, onIce, G.score ? G.score[0] + G.score[1] : 0); G.gfx = { d: t.dir > 0 ? -1 : 1, t: 3.2 }; G.excite = 1; shakeT = .7;
+      const t = e.tm === 0 ? H1 : A1, p = pid2p(e.p); if (window.AEV) AEV.noteGoal(); G.cele = { p: p, t: 2.6 }; if (p) { p.celeb = 2.6; for (const m of onIce(t)) if (m !== p) m.celeb = 2.4; } if (window.CEL) CEL.onGoal(t, p, onIce, G.score ? G.score[0] + G.score[1] : 0); G.gfx = { d: t.dir > 0 ? -1 : 1, t: 3.2 }; G.excite = 1; shakeT = .7;
       const f = $('flash'); f.style.background = t.color; f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); if (window.ANN && ANN.mode !== 'off') ANN.goal(p, t); else AU.speak('Goal! ' + (p ? p.name : t.name));
     }
   }
@@ -170,10 +181,12 @@
   }
   window.netFrame = function (dt) {
     if (!NET.on || !G) return;
+    if (window.AEV) AEV.tick(dt);
     if (G.rp && G.rp.net) { rbFrame(dt); return; }
     NET.acc += dt;
     if (NET.acc >= 1 / 30) { NET.acc = 0; const I = readLocal(); NET.send({ t: 'in', x: +I.nx.toFixed(2), y: +I.ny.toFixed(2), sh: I.sh ? 1 : 0, pw: +(I.pw || .5).toFixed(2), ps: I.ps ? 1 : 0, hit: I.hit ? 1 : 0, sw: I.sw ? 1 : 0, vs: I.vs ? 1 : 0 }); }
-    { const q = NET.evq; if (q && q.length) { const nowt = performance.now(); while (q.length && q[0].at <= nowt) ev(q.shift().e); } }
+    { const q = NET.evq; if (q && q.length) { const nowt = performance.now(); while (q.length && q[0].at <= nowt) evGate(q.shift(), nowt); } }
+    { for (const t of [H1, A1]) for (const p of t.roster) { const a = p.act; if (a && typeof a === 'object') { a.t -= dt; if (a.t < -.6) p.act = null; /* wind-up timer runs here (no sim); a lost release event cannot freeze the pose */ } } }
     { const nw = performance.now(); if (NET.fT) NET.fps = (NET.fps || 60) * .92 + (1000 / Math.max(4, nw - NET.fT)) * .08; NET.fT = nw; }
     const buf = NET.buf; if (!buf.length) return; const rt = performance.now() - NET.delay;
     let a = buf[0], b = buf[buf.length - 1];
@@ -193,7 +206,9 @@
     tg.onclick = () => list.style.display = list.style.display === 'none' ? 'flex' : 'none'; c.appendChild(list); c.appendChild(tg);
   }
   function showEnd(m) {
+    try { const a = m.sc[0], b = m.sc[1]; if (window.CEL && a !== b && G && !G.ot) CEL.onEnd(a > b ? H1 : A1, a > b ? A1 : H1, onIce, false); } catch (e) { } /* win/lose pose on both clients, same as offline finish() */
     NET.on = false; const my = m.sc[NET.side], opp = m.sc[1 - NET.side];
+    try { if (window.CEL && G && m.sc[0] !== m.sc[1] && !G.ot) { G.over = true; const hw = m.sc[0] > m.sc[1]; CEL.onEnd(hw ? H1 : A1, hw ? A1 : H1, onIce, false); } } catch (_) { }
     $('oet').textContent = my > opp ? 'VICTORY' : my < opp ? 'DEFEAT' : 'FINAL (TIE)';
     $('oes').textContent = `${TEAMS[m.away] ? TEAMS[m.away].abbr : ''} ${m.sc[1]} - ${m.sc[0]} ${TEAMS[m.home] ? TEAMS[m.home].abbr : ''}`;
     $('oesub').textContent = `SHOTS ${m.sh[1]} - ${m.sh[0]}  ·  ${NET.names[1]} (AWAY) vs ${NET.names[0]} (HOME)`;

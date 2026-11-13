@@ -27,15 +27,15 @@ SH.on = function (an, p, c, k, d, V) {
   } else if (k === 'pass') {
     const len = +d.len || 0, y = p.y, Hh = typeof H === 'number' ? H : 85, nearWall = Math.min(y, Hh - y) < 9 && d.a !== undefined && Math.abs(Math.sin(d.a)) < 0.45 && len > 12 && len < 70;
     link = true; t0 = 0.05; dur = 0.65;
-    if (Math.abs(rel) > 1.9) v = 'pass_drop'; else if (rel * sgn > 0.55) v = 'pass_backhand'; else if (nearWall) { v = 'pass_bank'; extra = { wr: -wrapA((y < Hh / 2 ? -Math.PI / 2 : Math.PI / 2) - (p.fa || 0)) }; }
+    if (d.kd === 's') v = 'pass_saucer'; else if (d.kd === 'b') { v = 'pass_bank'; const wl = y < Hh / 2 ? -Math.PI / 2 : Math.PI / 2; extra = { wr: -wrapA(wl - (p.fa || 0)) }; } else if (d.kd === 'd') v = 'pass_drop'; else if (Math.abs(rel) > 1.9) v = 'pass_drop'; else if (rel * sgn > 0.55) v = 'pass_backhand'; else if (nearWall) { v = 'pass_bank'; extra = { wr: -wrapA((y < Hh / 2 ? -Math.PI / 2 : Math.PI / 2) - (p.fa || 0)) }; }
     else if (len > 55 && (c.charge > 0.5 || h < 0.28)) v = 'pass_slap'; else if (len > 60 && (len > 78 || h < 0.7)) v = 'pass_saucer'; else if (len > 0 && len < 30 && (len < 22 || h < 0.5)) v = 'pass_onehand';
     SH.last = { t: performance.now(), tilt: v === 'pass_saucer' ? 0.28 : 0, id };
   } else if (k === 'gain') {
     const z = +d.z || 0, q = d.q, pf = an.pfv || 0, ps = an.psv || 0;
     dur = 0.6;
-    if (q === 'miss') v = ''; else if (z > 1.3) { v = 'recv_glove'; extra = { z, ps }; } else if (q === 'deflect') { v = 'recv_tip'; dur = 0.45; extra = { ps }; }
+    if (q === 'miss') v = ''; else if (d.bk) { v = 'recv_backhand'; dur = 0.5; } else if (z > 1.3) { v = 'recv_glove'; extra = { z, ps }; } else if (q === 'deflect') { v = 'recv_tip'; dur = 0.45; extra = { ps }; }
     else if (q === 'bobble' || (z > 0.35 && z <= 1.3)) { v = 'recv_cradle'; dur = 0.7; } else if (q === 'difficult' && pf < 0.6) { v = 'recv_kick'; extra = { ps }; }
-    else if (Math.abs(ps) > 0.95 && pf > 0.2) { v = 'recv_reach'; dur = 0.55; extra = { ps }; } else if (ps * sgn < -0.45 && q !== 'miss') { v = 'recv_backhand'; dur = 0.5; }
+    else if (Math.abs(ps) > 0.95 && pf > 0.2) { v = 'recv_reach'; dur = 0.55; extra = { ps }; } else if ((d.bk || ps * sgn < -0.45) && q !== 'miss') { v = 'recv_backhand'; dur = 0.5; }
   } else if (k === 'poke') {
     if ((an.pfv || 0) > 2.1) { v = 'poke_dive'; dur = 0.6; }
   } else return;

@@ -11,3 +11,10 @@
 
 ## Goalie wind-up
 Team snapshot `g:[x,y]` gets a third element `1` only while the sim's `goalie.windT>0`. Client sets `goalie.windT=.4` from it. Cost is about 0.01 percent of snapshot bytes.
+
+## Event parity (pass 9)
+- Snapshot `ev` entries: `{e:'ae', i:<sim event id>, p, k, d}` and `{e:'goal', n:<goal number>, tm, p, k:<sim tick>}`. The id is the sim's own `p.ae.id`, so variant hashes (goalie side, pump, celebration pick) match on both clients.
+- Client applies each event once (dedupe by ae id / goal number), at its snapshot's interpolated time; non-goal events more than 0.7 s late are dropped; snapshots with a tick not newer than the last are ignored.
+- Client wind-up timer (`p.act.t`) runs locally and expires, so a lost release event cannot freeze a pose.
+- server -> client `{t:'evx', ev:[goal]}` after `start rejoin` when a goal celebration is in progress.
+- `showEnd` calls `CEL.onEnd` (win/lose pose) as offline `finish()` does.

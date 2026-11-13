@@ -190,6 +190,7 @@ CEL.tick = function (m, p, c, an, dt) {
   const cv = +p.celeb || 0, legacy = c.celeb && !cv, active = (cv > 0) || legacy || cv < -0.1;
   if (!CEL.S) { CEL.S = SK.S || 3; }
   if (!active) { if (an.cel) { an.cel = null; } return; }
+  if (!an.cel && window.AEV && !legacy && !AEV.celebAllowed(p)) { p.celeb = 0; return; }   // celebration only after a confirmed goal / game end
   if (cv < -0.1) { p.celeb = cv + dt; if (p.celeb >= -0.1) p.celeb = 0; }   // dejected counts up to zero (the game only counts positive values down)
   if (an.cel && !legacy && an.cel.sad !== (cv < 0)) an.cel = null;
   if (!an.cel) { CEL.start(m, p, c, an, legacy && CEL.force ? 2.6 : cv); an.cel.sad = an.cel.role === 'sad'; }

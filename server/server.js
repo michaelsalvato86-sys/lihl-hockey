@@ -73,6 +73,7 @@ function startGame(r, rejoinOnly) {
   }
   syncRb(r);
   r.players.forEach((p, i) => p && send(p, { t: 'start', home: r.players[0].team, away: r.players[1].team, plen: r.plen, side: i, rejoin: !!rejoinOnly, names: [r.players[0].name, r.players[1].name] }));
+  if (rejoinOnly) { let ev = []; try { ev = r.sim.rejoinEv(); } catch (e) { } if (ev.length) r.players.forEach(p => p && send(p, { t: 'evx', ev })); } // celebration in progress survives a reconnect
   pushRoom(r);
 }
 function maybeStart(r) {

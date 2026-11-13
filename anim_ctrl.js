@@ -33,7 +33,7 @@ ANIM.make = function (m, p) {
   m.an = {
     ph: _hv(id, 7) * 6, tHand: _hv(id, 8) * 6, evId: 0, ev: null, prevVf: 0, dec: 0, cush: 0, recvT: 0, fall: null,
     v: { stride: 0.94 + 0.12 * _hv(id, 1), crouch: -0.04 + 0.08 * _hv(id, 2), sway: 0.7 + 0.6 * _hv(id, 3), carry: 0.8 + 0.4 * _hv(id, 4), topR: _hv(id, 5) > 0.5, stopSide: _hv(id, 6) > 0.5 ? 1 : -1, wind: 0.85 + 0.3 * _hv(id, 9) },
-    s: { pivot: 0, carry: 0, free: 0, stop: 0, crouch: 0.5, faceoff: 0, recv: 0, prot: 0, yaw: 0, lean: 0, acc: 0, charge: 0, flail: 0, back: 0, pre: 0, brace: 0, lunge: 0, shuf: 0, drive: 0, plant: 0, wsh: 0, load: 0, fat: 0, ot: 0 },
+    s: { pivot: 0, carry: 0, free: 0, stop: 0, crouch: 0.5, faceoff: 0, recv: 0, prot: 0, yaw: 0, lean: 0, acc: 0, charge: 0, flail: 0, back: 0, pre: 0, brace: 0, lunge: 0, shuf: 0, drive: 0, xo: 0, beta: 0, plant: 0, wsh: 0, load: 0, fat: 0, ot: 0 },
     q: { upperarm_l: new THREE.Quaternion(), lowerarm_l: new THREE.Quaternion(), upperarm_r: new THREE.Quaternion(), lowerarm_r: new THREE.Quaternion(), hand_l: new THREE.Quaternion(), hand_r: new THREE.Quaternion() }, pivPh: 0,
     otH: 0, spX: 0, spY: 0, spK: 0, spKy: 0, spVx: 0, spVy: 0, state: 'ready', metrics: null, gainT: 9, od: -1, clos: 0, pfv: 3, psv: 0
   };
@@ -49,6 +49,7 @@ ANIM.apply = function (m, p, c, dt) {
   dt = Math.min(dt, 0.05);
   if (window.CEL) CEL.tick(m, p, c, an, dt);   // celebration / dejection state (anim_celebrate.js)
   // ---------- 0. events ----------
+  if (p.ae && p.ae.id !== an.evId && window.AEV && !AEV.admit(an, p, p.ae.k, p.ae.d || {}, 's')) an.evId = p.ae.id;   // priority / interruption table (anim_events.js)
   if (p.ae && p.ae.id !== an.evId) {
     an.evId = p.ae.id; const k = p.ae.k, d = p.ae.d || {}, sp0 = c.speed; if (ANIM.shots) ANIM.shots.on(an, p, c, k, d, V);
     if (k === 'shot') an.otT = 0;
@@ -96,7 +97,10 @@ ANIM.apply = function (m, p, c, dt) {
   const stp = +p.stp > 0 ? _cl(+p.stp, 0, 1) : 0;                 // sim stop intensity (Agent A), 0 if absent
   const stopT = (an.stopHold > 0.035 || (stp > 0.3 && sp > 8)) ? 1 : 0; _sm(S, 'stop', stopT, stopT ? 22 : 5, dt);
   an.spray = S.stop * _cl(sp / 18, 0, 1) * Math.max(0.5, stp);   // render hook: ice spray intensity 0..1 (nothing consumes it yet)
-  const turn = p.turn || 0, xo = _cl((Math.abs(turn) - 1.4) / 1.2, 0, 1) * (sp > 10 ? 1 : 0);
+  const turn = p.turn || 0;
+  // crossover amount: sim flag p.xo (never set during a hockey stop) when present, else from the turn rate; smoothed so a stop's 14 rad/s yaw spike cannot flip the legs in one frame
+  const xoT = (typeof p.xo === 'boolean' ? (p.xo ? 1 : 0) : 1) * _cl((Math.abs(turn) - 1.4) / 1.2, 0, 1) * (sp > 10 ? 1 : 0) * (1 - _cl(stp * 1.5, 0, 1)) * (1 - S.stop);
+  _sm(S, 'xo', xoT, xoT > S.xo ? 7 : 12, dt); const xo = S.xo < 0.02 ? 0 : S.xo;
   const edgeIn = typeof p.edge === 'number' && isFinite(p.edge) ? _cl(p.edge, -1, 1) : null;   // sim edge (-1..1, same sign as turn); fallback derives from turn
   _sm(S, 'lean', -(edgeIn !== null ? _cl(edgeIn * 0.8, -0.8, 0.8) * Math.min(1, sp / 12) : _cl(turn * 0.11 * Math.min(1, sp / 18), -0.8, 0.8)), 9, dt);
   _sm(S, 'acc', p.acc01 || 0, 10, dt);
@@ -266,7 +270,8 @@ ANIM.apply = function (m, p, c, dt) {
     pose['thigh_' + sd].r += SK.abd[sd] * (trail ? 0.38 : 0.1) * S.shuf; pose['calf_' + sd].r = pose['thigh_' + sd].r; pose['thigh_' + sd].p -= 0.2 * lift; pose['calf_' + sd].p += 0.3 * lift; } }
   // pivot: low speed, fast heading change: alternating steps that rotate the skates toward the turn
   const pivT = (sp < 9 && Math.abs(turn) > 1.9 && !an.fall) ? 1 : 0; _sm(S, 'pivot', pivT, 10, dt); an.pivPh += dt * 8 * S.pivot;
-  const beta = sp > 4 ? (1 - S.shuf) * _cl(Math.atan2(c.vlat || 0, Math.max(c.vf, 2)) * YL * 0.85, -0.6, 0.6) : 0, edge = SK.rollLeft * lean * 0.55;
+  // blade slip angle: velocity vs the skate's line (backward travel measured against the reversed axis, so a tiny sideways speed cannot swing the feet 0.6 rad); smoothed
+  const betaT = sp > 4 ? (1 - S.shuf) * _cl((c.vf >= 0 ? Math.atan2(c.vlat || 0, Math.max(c.vf, 2)) : Math.atan2(-(c.vlat || 0), Math.max(-c.vf, 2))) * YL * 0.85, -0.6, 0.6) : 0; _sm(S, 'beta', betaT, 14, dt); const beta = S.beta, edge = SK.rollLeft * lean * 0.55;
   for (const sd of ['l', 'r']) {
     const lift = Math.max(0, Math.sin(an.pivPh + (sd === 'l' ? 0 : Math.PI))) * S.pivot;
     pose['thigh_' + sd].p -= 0.35 * lift; pose['calf_' + sd].p += 0.5 * lift;
@@ -281,7 +286,7 @@ ANIM.apply = function (m, p, c, dt) {
   // head: looks at the puck / the target, kept level against the body twist
     pose.neck_01.y = -Y * 0.3 + eHead * 0.4 * YL; pose.Head.y = -Y * 0.35 + eHead * 0.5 * YL; pose.Head.p = -0.1 + 0.3 * S.faceoff - 0.4 * ePitch - 0.25 * settle - 0.15 * S.recv;
   // weight shift: the pelvis slides sideways over the stance (gliding) leg while the other leg pushes; the feet stay where they were (compensated in the leg IK)
-  { const wsT = -Math.sin(an.ph) * S.drive * (ANIM.wsAmp === undefined ? 0.03 : ANIM.wsAmp) * (1 - 0.4 * S.carry) * Math.min(1, sp / 14) * (1 - 0.35 * S.back) * (an.fall ? 0 : 1) * (1 - S.pivot); _sm(S, 'wsh', wsT, 14, dt);
+  { const wsT = -Math.sin(an.ph) * S.drive * (ANIM.wsAmp === undefined ? 0.05 : ANIM.wsAmp) * (1 - 0.4 * S.carry) * Math.min(1, sp / 14) * (1 - 0.35 * S.back) * (an.fall ? 0 : 1) * (1 - S.pivot); _sm(S, 'wsh', wsT, 14, dt);
     an.wsv = an.wsv || V3(); an.wsv.copy(SK.Ld).multiplyScalar(S.wsh); pose.pelvis.t = an.wsv; }
   // whole-model yaw for the hockey stop (skates turn across the direction of travel)
   m.inner.rotation.y = Math.PI / 2 + S.stop * V.stopSide * 1.15;
@@ -312,7 +317,7 @@ ANIM.apply = function (m, p, c, dt) {
       const lobe = Math.max(0, sd === 'l' ? sl : -sl) * dv, other = Math.max(0, sd === 'l' ? -sl : sl) * dv, out = sd === 'l' ? 1 : -1;   // push lobe / recovery lobe
       const d = an.legD[sd].set(0, 0, 0), k = Math.min(1, sp * 0.25);
       // forward: push leg drives back and out (diagonal C-cut), recovery leg swings forward under the body; backward skating mirrors the push
-      d.addScaledVector(Fq, k * (-0.075 * lobe * accP * (1 - 2 * bk) + 0.07 * other * (1 - 2 * bk)));
+      d.addScaledVector(Fq, k * (-0.075 * lobe * accP + 0.07 * other) * (1 - 1.4 * bk));
       d.addScaledVector(Lq, out * k * (0.005 * lobe * accP * (1 + 0.8 * bk) - 0.003 * other));
       d.y += k * 0.07 * other * (1 - 0.5 * bk);                        // recovery foot clears the ice
       // turn: loaded outside leg is pushed wide and the inside foot tucks under
@@ -325,8 +330,10 @@ ANIM.apply = function (m, p, c, dt) {
         const stopL = S.stop * (1 - _es((sp - 3) / 3.5)), pLift = Math.max(0, Math.sin(an.pivPh + (sd === 'l' ? 0 : Math.PI))) * S.pivot, pivL = S.pivot * (1 - _es((sp - 1.8) / 1)) * (1 - _es(pLift * 3));
         d.pw = ANIM.noLock ? S.plant : Math.max(S.plant, stopL, pivL); if (an.cel && an.cel.noPlant) d.pw *= 1 - an.cel.noPlant; }
     }
+    an.legD.free = !!(an.fall || an.cel || ek === 'checked' || ek === 'check'); an.legD.lim = 0.17 * Math.max(1, dt * 60);
     AR.legs(m, an, pose, an.legD, ice0);
     SK.setPose(m, pose); SK.ground2(m); if (an.cel) CEL.ground(m, an); m.g.updateMatrixWorld(true);
+    if (ANIM.debug) { an.dbgF = an.dbgF || V3(); m.byName.foot_l.getWorldPosition(an.dbgF); }
   }
   const iceY = -m.root.position.y;
   AR.pos(m, 'pelvis', X.O); X.O.y = iceY;
