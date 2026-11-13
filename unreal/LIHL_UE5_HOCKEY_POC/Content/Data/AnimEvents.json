@@ -1,0 +1,593 @@
+{
+ "note": "Generated from anim_events.js by tools/export_unreal_data.py. Not consumed by Unreal yet.",
+ "events": [
+  {
+   "id": "shotwind",
+   "who": "s",
+   "class": "windup",
+   "priority": 70,
+   "payload": [
+    "t",
+    "kind"
+   ],
+   "anims": [
+    "preparing_shot"
+   ],
+   "dedupeSec": 0.08,
+   "src": "startAct (human shot press, AI shot decision)",
+   "note": "drives p.act; the windup pose reads p.act, not this event"
+  },
+  {
+   "id": "passwind",
+   "who": "s",
+   "class": "windup",
+   "priority": 70,
+   "payload": [
+    "t",
+    "kind"
+   ],
+   "anims": [
+    "passing"
+   ],
+   "dedupeSec": 0.08,
+   "src": "startAct (pass)",
+   "note": "drives p.act"
+  },
+  {
+   "id": "actcancel",
+   "who": "s",
+   "class": "cancel",
+   "priority": 200,
+   "payload": [],
+   "anims": [],
+   "dedupeSec": 0.08,
+   "src": "tickAct when stunned, possession lost or game over",
+   "note": "only way a windup is cancelled"
+  },
+  {
+   "id": "shot",
+   "who": "s",
+   "class": "release",
+   "priority": 75,
+   "payload": [
+    "kind",
+    "pw",
+    "a",
+    "z",
+    "len"
+   ],
+   "anims": [
+    "shot_wrist",
+    "shot_snap",
+    "shot_slap",
+    "shot_onetimer",
+    "shot_backhand",
+    "shot_quick",
+    "shot_volley"
+   ],
+   "dedupeSec": 0.08,
+   "src": "shoot() at puck release",
+   "note": ""
+  },
+  {
+   "id": "pass",
+   "who": "s",
+   "class": "release",
+   "priority": 75,
+   "payload": [
+    "a",
+    "len",
+    "sp"
+   ],
+   "anims": [
+    "passing",
+    "pass_saucer",
+    "pass_drop",
+    "pass_slap",
+    "pass_onehand",
+    "pass_bank",
+    "pass_backhand"
+   ],
+   "dedupeSec": 0.08,
+   "src": "pass() at puck release",
+   "note": ""
+  },
+  {
+   "id": "recv",
+   "who": "s",
+   "class": "recv",
+   "priority": 50,
+   "payload": [],
+   "anims": [
+    "receiving_pass"
+   ],
+   "dedupeSec": 0.08,
+   "src": "pass() for the intended receiver",
+   "note": ""
+  },
+  {
+   "id": "gain",
+   "who": "s",
+   "class": "recv",
+   "priority": 50,
+   "payload": [
+    "q",
+    "z",
+    "sp"
+   ],
+   "anims": [
+    "recv_glove",
+    "recv_tip",
+    "recv_cradle",
+    "recv_kick",
+    "recv_reach",
+    "recv_backhand"
+   ],
+   "dedupeSec": 0.08,
+   "src": "puck pickup / reception resolution (clean, difficult, bobble, deflect, miss)",
+   "note": ""
+  },
+  {
+   "id": "otwind",
+   "who": "s",
+   "class": "windup",
+   "priority": 70,
+   "payload": [
+    "eta"
+   ],
+   "anims": [
+    "one_timer_ready"
+   ],
+   "dedupeSec": 0.08,
+   "src": "AI one-timer detect; human one-timer press",
+   "note": ""
+  },
+  {
+   "id": "poke",
+   "who": "s",
+   "class": "contact",
+   "priority": 80,
+   "payload": [
+    "a"
+   ],
+   "anims": [
+    "poke_check",
+    "stick_lift",
+    "poke_dive"
+   ],
+   "dedupeSec": 0.08,
+   "src": "step() poke-check strip of the carrier",
+   "note": ""
+  },
+  {
+   "id": "hitwind",
+   "who": "s",
+   "class": "contact",
+   "priority": 80,
+   "payload": [
+    "a",
+    "d"
+   ],
+   "anims": [
+    "hit_windup"
+   ],
+   "dedupeSec": 0.08,
+   "src": "human hit press (builds the lunge)",
+   "note": ""
+  },
+  {
+   "id": "hitcommit",
+   "who": "s",
+   "class": "contact",
+   "priority": 80,
+   "payload": [
+    "a"
+   ],
+   "anims": [
+    "body_check"
+   ],
+   "dedupeSec": 0.08,
+   "src": "step() hit contact frame (human lunge reaches target)",
+   "note": ""
+  },
+  {
+   "id": "hitmiss",
+   "who": "s",
+   "class": "contact",
+   "priority": 80,
+   "payload": [],
+   "anims": [
+    "hit_miss"
+   ],
+   "dedupeSec": 0.08,
+   "src": "step() hit lunge ends with no contact",
+   "note": ""
+  },
+  {
+   "id": "check",
+   "who": "s",
+   "class": "contact",
+   "priority": 80,
+   "payload": [
+    "a",
+    "board",
+    "power",
+    "from",
+    "nf"
+   ],
+   "anims": [
+    "body_check",
+    "hit_*"
+   ],
+   "dedupeSec": 0.3,
+   "src": "step() hit resolution; fight exchanges",
+   "note": ""
+  },
+  {
+   "id": "checked",
+   "who": "s",
+   "class": "victim",
+   "priority": 92,
+   "payload": [
+    "power",
+    "board",
+    "dir",
+    "side",
+    "from",
+    "nf"
+   ],
+   "anims": [
+    "getting_checked",
+    "hit_*_victim"
+   ],
+   "dedupeSec": 0.3,
+   "src": "step() hit resolution; fight exchanges",
+   "note": ""
+  },
+  {
+   "id": "fall",
+   "who": "s",
+   "class": "fall",
+   "priority": 100,
+   "payload": [
+    "side",
+    "kind",
+    "power",
+    "from",
+    "dir",
+    "board",
+    "wrestle"
+   ],
+   "anims": [
+    "falling"
+   ],
+   "dedupeSec": 0.35,
+   "src": "step() hit (hard), injury, fight loser, trip penalty reaction",
+   "note": ""
+  },
+  {
+   "id": "hookv",
+   "who": "s",
+   "class": "foul",
+   "priority": 78,
+   "payload": [
+    "a",
+    "dir",
+    "side"
+   ],
+   "anims": [
+    "hit_hookv_victim"
+   ],
+   "dedupeSec": 0.08,
+   "src": "HITS.pen on a Hooking call (offline sim and client only)",
+   "note": ""
+  },
+  {
+   "id": "holdv",
+   "who": "s",
+   "class": "foul",
+   "priority": 78,
+   "payload": [
+    "a",
+    "dir",
+    "side"
+   ],
+   "anims": [
+    "hit_holdv_victim"
+   ],
+   "dedupeSec": 0.08,
+   "src": "HITS.pen on a Holding call",
+   "note": ""
+  },
+  {
+   "id": "slashv",
+   "who": "s",
+   "class": "foul",
+   "priority": 78,
+   "payload": [
+    "a",
+    "dir",
+    "side"
+   ],
+   "anims": [
+    "hit_slashv_victim"
+   ],
+   "dedupeSec": 0.08,
+   "src": "HITS.pen on a Slashing call",
+   "note": ""
+  },
+  {
+   "id": "interfv",
+   "who": "s",
+   "class": "foul",
+   "priority": 78,
+   "payload": [
+    "a",
+    "dir",
+    "side",
+    "power"
+   ],
+   "anims": [
+    "hit_interfv_victim"
+   ],
+   "dedupeSec": 0.08,
+   "src": "HITS.pen on an Interference call",
+   "note": ""
+  },
+  {
+   "id": "liftv",
+   "who": "s",
+   "class": "foul",
+   "priority": 78,
+   "payload": [
+    "a",
+    "dir",
+    "side"
+   ],
+   "anims": [
+    "hit_liftv_victim"
+   ],
+   "dedupeSec": 0.08,
+   "src": "HITS.onEvent after a poke that strips the carrier",
+   "note": ""
+  },
+  {
+   "id": "draw",
+   "who": "s",
+   "class": "misc",
+   "priority": 30,
+   "payload": [],
+   "anims": [
+    "faceoff_draw"
+   ],
+   "dedupeSec": 0.08,
+   "src": "faceoff drop",
+   "note": ""
+  },
+  {
+   "id": "save",
+   "who": "g",
+   "class": "save",
+   "priority": 90,
+   "payload": [
+    "kind",
+    "side",
+    "dy",
+    "h",
+    "rc",
+    "z"
+   ],
+   "anims": [
+    "goalie_butterfly",
+    "goalie_glove_save",
+    "goalie_blocker_save",
+    "goalie_pad_save",
+    "goalie_stick_save",
+    "goalie_stack_pads",
+    "goalie_split_save",
+    "goalie_post_slide_vh",
+    "goalie_butterfly_slide",
+    "goalie_paddle_down",
+    "goalie_glove_squeeze",
+    "goalie_scramble"
+   ],
+   "dedupeSec": 0.25,
+   "src": "step() save resolution",
+   "note": ""
+  },
+  {
+   "id": "cover",
+   "who": "g",
+   "class": "cover",
+   "priority": 60,
+   "payload": [],
+   "anims": [
+    "goalie_cover"
+   ],
+   "dedupeSec": 0.5,
+   "src": "step() save followed by a freeze; deferred until the save animation is over",
+   "note": ""
+  },
+  {
+   "id": "goalagainst",
+   "who": "g",
+   "class": "react",
+   "priority": 55,
+   "payload": [
+    "v"
+   ],
+   "anims": [
+    "goalie_goal_against",
+    "goalie_bang_post",
+    "goalie_tap_pads"
+   ],
+   "dedupeSec": 1,
+   "src": "goal() for the scored-on goalie",
+   "note": ""
+  },
+  {
+   "id": "poke_g",
+   "who": "g",
+   "class": "gpoke",
+   "priority": 66,
+   "payload": [
+    "side",
+    "tx",
+    "ty"
+   ],
+   "anims": [
+    "goalie_poke_check"
+   ],
+   "dedupeSec": 0.08,
+   "src": "goalieStep poke check at a close carrier (sent as AE kind poke on the goalie)",
+   "note": ""
+  },
+  {
+   "id": "pull",
+   "who": "g",
+   "class": "bench",
+   "priority": 45,
+   "payload": [
+    "dx",
+    "dz",
+    "dur"
+   ],
+   "anims": [
+    "goalie_skate_bench"
+   ],
+   "dedupeSec": 0.08,
+   "src": "step() when the coach pulls the goalie",
+   "note": ""
+  },
+  {
+   "id": "return",
+   "who": "g",
+   "class": "bench",
+   "priority": 45,
+   "payload": [
+    "dx",
+    "dz",
+    "dur"
+   ],
+   "anims": [
+    "goalie_skate_return"
+   ],
+   "dedupeSec": 0.08,
+   "src": "step() when the goalie is put back",
+   "note": ""
+  },
+  {
+   "id": "idle",
+   "who": "g",
+   "class": "idle",
+   "priority": 10,
+   "payload": [
+    "v"
+   ],
+   "anims": [
+    "goalie_adjust_mask",
+    "goalie_water_bottle",
+    "goalie_stretch",
+    "goalie_shake_out",
+    "goalie_tap_pads"
+   ],
+   "dedupeSec": 0.08,
+   "src": "not emitted by the sim; anim_goalie auto-generates during stoppage (c.gw.stop)",
+   "note": "ambient"
+  },
+  {
+   "id": "celebrate",
+   "who": "s",
+   "class": "celebrate",
+   "priority": 20,
+   "payload": [
+    "p.celeb>0"
+   ],
+   "anims": [
+    "celebrating"
+   ],
+   "dedupeSec": 0.08,
+   "src": "goal() / net goal event -> CEL.onGoal sets p.celeb",
+   "note": "state driven (p.celeb), not an AE"
+  },
+  {
+   "id": "dejected",
+   "who": "s",
+   "class": "celebrate",
+   "priority": 20,
+   "payload": [
+    "p.celeb<0"
+   ],
+   "anims": [
+    "dejected"
+   ],
+   "dedupeSec": 0.08,
+   "src": "CEL.onGoal (scored-on skaters) / CEL.onEnd (losers)",
+   "note": "state driven"
+  },
+  {
+   "id": "win",
+   "who": "s",
+   "class": "celebrate",
+   "priority": 20,
+   "payload": [
+    "p.celeb=6.5"
+   ],
+   "anims": [
+    "celebrating"
+   ],
+   "dedupeSec": 0.08,
+   "src": "finish() / net showEnd -> CEL.onEnd",
+   "note": "state driven"
+  }
+ ],
+ "priorities": {
+  "fall": 100,
+  "victim": 92,
+  "save": 90,
+  "contact": 80,
+  "foul": 78,
+  "release": 75,
+  "windup": 70,
+  "gpoke": 66,
+  "cover": 60,
+  "react": 55,
+  "recv": 50,
+  "bench": 45,
+  "misc": 30,
+  "celebrate": 20,
+  "idle": 10,
+  "cancel": 200
+ },
+ "dedupe": {
+  "default": 0.08,
+  "fall": 0.35,
+  "checked": 0.3,
+  "check": 0.3,
+  "save": 0.25,
+  "goalagainst": 1,
+  "cover": 0.5
+ },
+ "rules": [
+  "fall interrupts everything (including check recovery) except a fall already in its first 0.35 s",
+  "checked / check interrupt skating, carrying and receiving; a victim animation is not restarted while the fall is running",
+  "a shot or pass release (t < contact) cannot be interrupted except by fall, checked or actcancel (the sim cancels with actcancel)",
+  "while a fall is running only fall events start (nothing plays on a skater who is on the ice)",
+  "while a celebration or dejection runs only fall starts; celebration only starts once the goal is confirmed",
+  "goalie save interrupts ready, idle, play, peek, poke and bench; goalagainst never cuts a running save",
+  "goalie cover is deferred until the save animation ends (route)",
+  "incompatible layers never overlap on one player: fall x event, celebration x event, bench trip x save"
+ ],
+ "goalieKinds": [
+  "save",
+  "cover",
+  "goalagainst",
+  "poke",
+  "pull",
+  "return",
+  "idle",
+  "pump",
+  "peek",
+  "play"
+ ]
+}

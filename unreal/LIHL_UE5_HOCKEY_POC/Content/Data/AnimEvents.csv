@@ -1,0 +1,32 @@
+Name,EventId,Who,PriorityClass,Priority,PayloadFields,AnimStates,DedupeSec,Source,Note
+shotwind,shotwind,s,windup,70,t|kind,preparing_shot,0.08,"startAct (human shot press, AI shot decision)","drives p.act; the windup pose reads p.act, not this event"
+passwind,passwind,s,windup,70,t|kind,passing,0.08,startAct (pass),drives p.act
+actcancel,actcancel,s,cancel,200,,,0.08,"tickAct when stunned, possession lost or game over",only way a windup is cancelled
+shot,shot,s,release,75,kind|pw|a|z|len,shot_wrist|shot_snap|shot_slap|shot_onetimer|shot_backhand|shot_quick|shot_volley,0.08,shoot() at puck release,
+pass,pass,s,release,75,a|len|sp,passing|pass_saucer|pass_drop|pass_slap|pass_onehand|pass_bank|pass_backhand,0.08,pass() at puck release,
+recv,recv,s,recv,50,,receiving_pass,0.08,pass() for the intended receiver,
+gain,gain,s,recv,50,q|z|sp,recv_glove|recv_tip|recv_cradle|recv_kick|recv_reach|recv_backhand,0.08,"puck pickup / reception resolution (clean, difficult, bobble, deflect, miss)",
+otwind,otwind,s,windup,70,eta,one_timer_ready,0.08,AI one-timer detect; human one-timer press,
+poke,poke,s,contact,80,a,poke_check|stick_lift|poke_dive,0.08,step() poke-check strip of the carrier,
+hitwind,hitwind,s,contact,80,a|d,hit_windup,0.08,human hit press (builds the lunge),
+hitcommit,hitcommit,s,contact,80,a,body_check,0.08,step() hit contact frame (human lunge reaches target),
+hitmiss,hitmiss,s,contact,80,,hit_miss,0.08,step() hit lunge ends with no contact,
+check,check,s,contact,80,a|board|power|from|nf,body_check|hit_*,0.3,step() hit resolution; fight exchanges,
+checked,checked,s,victim,92,power|board|dir|side|from|nf,getting_checked|hit_*_victim,0.3,step() hit resolution; fight exchanges,
+fall,fall,s,fall,100,side|kind|power|from|dir|board|wrestle,falling,0.35,"step() hit (hard), injury, fight loser, trip penalty reaction",
+hookv,hookv,s,foul,78,a|dir|side,hit_hookv_victim,0.08,HITS.pen on a Hooking call (offline sim and client only),
+holdv,holdv,s,foul,78,a|dir|side,hit_holdv_victim,0.08,HITS.pen on a Holding call,
+slashv,slashv,s,foul,78,a|dir|side,hit_slashv_victim,0.08,HITS.pen on a Slashing call,
+interfv,interfv,s,foul,78,a|dir|side|power,hit_interfv_victim,0.08,HITS.pen on an Interference call,
+liftv,liftv,s,foul,78,a|dir|side,hit_liftv_victim,0.08,HITS.onEvent after a poke that strips the carrier,
+draw,draw,s,misc,30,,faceoff_draw,0.08,faceoff drop,
+save,save,g,save,90,kind|side|dy|h|rc|z,goalie_butterfly|goalie_glove_save|goalie_blocker_save|goalie_pad_save|goalie_stick_save|goalie_stack_pads|goalie_split_save|goalie_post_slide_vh|goalie_butterfly_slide|goalie_paddle_down|goalie_glove_squeeze|goalie_scramble,0.25,step() save resolution,
+cover,cover,g,cover,60,,goalie_cover,0.5,step() save followed by a freeze; deferred until the save animation is over,
+goalagainst,goalagainst,g,react,55,v,goalie_goal_against|goalie_bang_post|goalie_tap_pads,1.0,goal() for the scored-on goalie,
+poke_g,poke_g,g,gpoke,66,side|tx|ty,goalie_poke_check,0.08,goalieStep poke check at a close carrier (sent as AE kind poke on the goalie),
+pull,pull,g,bench,45,dx|dz|dur,goalie_skate_bench,0.08,step() when the coach pulls the goalie,
+return,return,g,bench,45,dx|dz|dur,goalie_skate_return,0.08,step() when the goalie is put back,
+idle,idle,g,idle,10,v,goalie_adjust_mask|goalie_water_bottle|goalie_stretch|goalie_shake_out|goalie_tap_pads,0.08,not emitted by the sim; anim_goalie auto-generates during stoppage (c.gw.stop),ambient
+celebrate,celebrate,s,celebrate,20,p.celeb>0,celebrating,0.08,goal() / net goal event -> CEL.onGoal sets p.celeb,"state driven (p.celeb), not an AE"
+dejected,dejected,s,celebrate,20,p.celeb<0,dejected,0.08,CEL.onGoal (scored-on skaters) / CEL.onEnd (losers),state driven
+win,win,s,celebrate,20,p.celeb=6.5,celebrating,0.08,finish() / net showEnd -> CEL.onEnd,state driven

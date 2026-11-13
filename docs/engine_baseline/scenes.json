@@ -1,0 +1,88 @@
+{
+ "viewport": [
+  1280,
+  720
+ ],
+ "scenes": {
+  "broadcast_side": {
+   "pos_ft": [
+    0,
+    23,
+    38
+   ],
+   "look_ft": [
+    0,
+    0,
+    0
+   ],
+   "fov": 40,
+   "note": "default broadcast follow cam (r3d.js line 244: hgt 23, dist 38, fov 40) at centre ice",
+   "bytes": 306124
+  },
+  "wide_high": {
+   "pos_ft": [
+    0,
+    60,
+    70
+   ],
+   "look_ft": [
+    0,
+    0,
+    0
+   ],
+   "fov": 40,
+   "note": "whole-rink overview",
+   "bytes": 240155
+  },
+  "top_down": {
+   "pos_ft": [
+    0,
+    120,
+    0.01
+   ],
+   "look_ft": [
+    0,
+    0,
+    0
+   ],
+   "fov": 40,
+   "note": "orthogonal-ish top view, checks markings and dimensions",
+   "bytes": 241054
+  },
+  "goal_end": {
+   "pos_ft": [
+    -55,
+    9,
+    0
+   ],
+   "look_ft": [
+    -89,
+    3,
+    0
+   ],
+   "fov": 45,
+   "note": "home goal and goalie from the slot (goal line x=-89)",
+   "bytes": 205787
+  },
+  "skater_close": {
+   "pos_ft": [
+    3.5,
+    4.5,
+    11
+   ],
+   "look_ft": [
+    -3.5,
+    3,
+    0
+   ],
+   "fov": 38,
+   "note": "camera 7 ft right, 4.5 ft up, 11 ft toward viewer of the first home skater, looking at his chest (player scale and team colors)",
+   "bytes": 384047
+  }
+ },
+ "teams": {
+  "home": "Band-aid Brigade",
+  "away": "Average Joes"
+ },
+ "git": "fdffede"
+}

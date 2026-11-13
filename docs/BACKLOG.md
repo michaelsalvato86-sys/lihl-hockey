@@ -1,6 +1,6 @@
 # LIHL backlog (do when there is a free block of tokens)
 
-## 1. Add Michael's team: the Whiskey Sticks (queued 2026-11-13)
+## 1. DONE 2026-11-13: Michael's team, the Whiskey Sticks (27th team, 3 jerseys, home/away/alt picker for all teams; deployed). Notes below kept for reference.
 Goal: Michael's regular team plays in the game as a real team with real roster and jerseys.
 - League: Island Ice Hockey (islandicehockey.com), weekend D2 division.
 - Roster page (from Michael, 2026-11-13): https://www.islandicehockey.com/leagues/stats_1team.cfm?leagueID=6195&teamID=683802&clientID=2495 (Whiskey Sticks team stats and roster). Start here; fetch it with the browser or WebFetch, check names, numbers, positions, goalies. Find the Whiskey Sticks roster there (names, numbers, positions, goalies). Not LIHL, so this is a second league source.

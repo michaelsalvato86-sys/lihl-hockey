@@ -1,0 +1,28 @@
+Name,TeamId,Abbr,DisplayName,Division,IconPath,IconAssetPath,Color,Accent,HomeJersey,AwayJersey,AltJersey,PlayerCount,GoalieId
+T158,158,QF,Queens Finest,Premier - Tier 1,photos/team158.png,/Game/Textures/TeamIcons/T_Team158,#0061fe,#1a1a1a,T158_home,T158_away,,15,970
+T159,159,BREW,Brew Crew,Premier - Tier 2,photos/team159.png,/Game/Textures/TeamIcons/T_Team159,#101010,#fccc0c,T159_home,T159_away,,17,1157
+T160,160,LIK,Long Island Kings,Premier - Tier 1,photos/team160.png,/Game/Textures/TeamIcons/T_Team160,#4f2e78,#f7c945,T160_home,T160_away,,20,1190
+T161,161,PLT,Psychedelic Love Toast,Premier - Tier 1,photos/team161.png,/Game/Textures/TeamIcons/T_Team161,#fb56ae,#ffe224,T161_home,T161_away,,17,1204
+T162,162,SALT,Salty Dawgs,Premier - Tier 1,photos/team162.png,/Game/Textures/TeamIcons/T_Team162,#b92d5d,#ffffff,T162_home,T162_away,,15,1254
+T163,163,SCRP,Scrappers,Premier - Tier 1,photos/team163.png,/Game/Textures/TeamIcons/T_Team163,#ffffff,#b51a00,T163_home,T163_away,,21,773
+T164,164,QNS,Queens Spartans,Premier - Tier 1,photos/team164.png,/Game/Textures/TeamIcons/T_Team164,#ffab01,#cc0005,T164_home,T164_away,,10,900164
+T166,166,BIRD,Dirty Birds,Premier - Tier 2,photos/team166.png,/Game/Textures/TeamIcons/T_Team166,#2a8f8f,#3c1a5c,T166_home,T166_away,,16,1048
+T168,168,KCO,Kraken Cold Ones,Weekend E / D,photos/team168.png,/Game/Textures/TeamIcons/T_Team168,#151515,#7a46b0,T168_home,T168_away,,15,212
+T169,169,SP,Slashing Pumpkins,Weekend E / D,photos/team169.png,/Game/Textures/TeamIcons/T_Team169,#111111,#e0560e,T169_home,T169_away,,15,215
+T170,170,AJ,Average Joes,Weekend E / D,photos/team170.png,/Game/Textures/TeamIcons/T_Team170,#101a4a,#f3c61a,T170_home,T170_away,,15,235
+T171,171,BAB,Band-aid Brigade,Weekend E / D,photos/team171.png,/Game/Textures/TeamIcons/T_Team171,#0f2a4a,#8fd02a,T171_home,T171_away,,15,237
+T172,172,HT,Hockey Time,Weeknight E,photos/team172.png,/Game/Textures/TeamIcons/T_Team172,#111111,#fcb424,T172_home,T172_away,,15,949
+T173,173,HH,Hoagie's Heroes,Weeknight E,photos/team173.png,/Game/Textures/TeamIcons/T_Team173,#1f45c8,#f26a21,T173_home,T173_away,,14,449
+T174,174,SGS,Silly Goose Squad,Weeknight E,photos/team174.png,/Game/Textures/TeamIcons/T_Team174,#4f1230,#3a9a86,T174_home,T174_away,,15,1062
+T175,175,PSS,Puck Slinging Slashers,Weeknight E,photos/team175.png,/Game/Textures/TeamIcons/T_Team175,#1f4fd8,#111111,T175_home,T175_away,,14,545
+T176,176,MBH,Meatball Heroes,Weeknight D,photos/team176.png,/Game/Textures/TeamIcons/T_Team176,#2a52b0,#cc2a3c,T176_home,T176_away,,15,1211
+T178,178,HTV,Hometown Villains,Weeknight D,photos/team178.png,/Game/Textures/TeamIcons/T_Team178,#b5202e,#2a0a10,T178_home,T178_away,,15,34
+T181,181,WOOL,Wooly Bullies,Weeknight D,photos/team181.png,/Game/Textures/TeamIcons/T_Team181,#101820,#8cb9cf,T181_home,T181_away,,14,1107
+T182,182,GG,Golden Goons,Weeknight D,photos/team182.png,/Game/Textures/TeamIcons/T_Team182,#d9b36a,#222222,T182_home,T182_away,,15,464
+T183,183,PIMP,Big Pimps,Weeknight D,photos/team183.png,/Game/Textures/TeamIcons/T_Team183,#e8337f,#111111,T183_home,T183_away,,15,423
+T192,192,OTL,Outlaws,Premier - Tier 2,photos/team192.png,/Game/Textures/TeamIcons/T_Team192,#111111,#b01010,T192_home,T192_away,,16,188
+T194,194,GAHS,Greatest American Heroes,Premier - Tier 2,photos/team194.png,/Game/Textures/TeamIcons/T_Team194,#1f4fc8,#ff6a00,T194_home,T194_away,,17,1017
+T196,196,PPC,Paddy’s Pub Crawlers,Weeknight D,photos/team196.png,/Game/Textures/TeamIcons/T_Team196,#01a000,#fffffa,T196_home,T196_away,,15,250
+T197,197,C,Chaos,Premier - Tier 2,photos/team197.png,/Game/Textures/TeamIcons/T_Team197,#ffffff,#ff0202,T197_home,T197_away,,15,103
+T198,198,D5,District 5,Premier - Tier 2,photos/team198.png,/Game/Textures/TeamIcons/T_Team198,#009df5,#0077cc,T198_home,T198_away,,16,221
+T990001,990001,WSK,Whiskey Stick,Weekend D2 (Island Ice Hockey),photos/ws_pinup.png,/Game/Textures/TeamIcons/T_Team990001,#121316,#7a1f2d,T990001_home,T990001_away,T990001_alt,23,990199

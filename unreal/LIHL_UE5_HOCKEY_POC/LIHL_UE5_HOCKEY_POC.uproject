@@ -1,0 +1,19 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.8",
+	"Category": "Samples",
+	"Description": "LIHL Hockey UE5 proof of concept scaffold. NOT COMPILED, NOT OPENED in Unreal. EngineAssociation is 5.8 (Epic docs and release news show 5.8 released June 2026, 5.8.1 exists); change it to the installed version when you open the project (right click the .uproject, Switch Unreal Engine version).",
+	"Modules": [
+		{
+			"Name": "LIHL_UE5_HOCKEY_POC",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [ "Engine" ]
+		}
+	],
+	"Plugins": [
+		{ "Name": "ModelingToolsEditorMode", "Enabled": true, "TargetAllowList": [ "Editor" ] },
+		{ "Name": "PythonScriptPlugin", "Enabled": true },
+		{ "Name": "EditorScriptingUtilities", "Enabled": true }
+	]
+}
