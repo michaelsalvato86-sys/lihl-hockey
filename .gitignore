@@ -6,3 +6,4 @@ pub/
 *.log
 __pycache__/
 .admin_key_local
+audio_samples/

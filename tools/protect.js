@@ -18,6 +18,6 @@ html = html.slice(0, s0) + ob + html.slice(s1);
 fs.writeFileSync(path.join(OUT, 'index.html'), html);
 for (const f of JS) { fs.writeFileSync(path.join(OUT, f), JO.obfuscate(fs.readFileSync(path.join(ROOT, f), 'utf8'), OPT).getObfuscatedCode()); }
 for (const f of COPY) fs.copyFileSync(path.join(ROOT, f), path.join(OUT, f));
-for (const d of ['models', 'photos', 'lib']) fs.cpSync(path.join(ROOT, d), path.join(OUT, d), { recursive: true });
+for (const d of ['models', 'photos', 'lib', 'audio']) fs.cpSync(path.join(ROOT, d), path.join(OUT, d), { recursive: true });
 const kb = p => (fs.statSync(p).size / 1024) | 0;
 console.log('dist built: index.html', kb(path.join(OUT, 'index.html')), 'KB; r3d.js', kb(path.join(OUT, 'r3d.js')), 'KB');

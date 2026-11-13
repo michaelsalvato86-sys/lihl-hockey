@@ -115,7 +115,23 @@
     if (en.length) ANN.voices = { a: male[0] || en[0], b: fem[0] || male[1] || en[1] || en[0], m2: male[1] || male[0] || en[0] };
     return ANN.voices || { a: null, b: null, m2: null };
   }
+  // Pre-recorded clips (audio/ann, made with tools/gen_announcer_audio.js). Falls back to browser speech when no clip exists.
+  ANN.idx = null; try { fetch('audio/ann/index.json').then(r => r.ok ? r.json() : null).then(j => { ANN.idx = j; }).catch(() => { }); } catch (e) { }
+  ANN.playClip = function (txt, done) {
+    try {
+      const k = ANN.ck && ANN.ck[txt], f = k && ANN.idx && ANN.idx[k]; if (!f || typeof Audio === 'undefined') return false;
+      const a = new Audio('audio/ann/' + f); a.volume = Math.min(1, (AU.vol || .7) * 1.1); let fin = false;
+      const end = () => { if (fin) return; fin = true; done && done(); };
+      a.onended = end; a.onerror = () => { if (fin) return; fin = true; ANN.speakSynth(txt, ANN.ckwho, done); };
+      const p = a.play(); if (p && p.catch) p.catch(() => { if (fin) return; fin = true; ANN.speakSynth(txt, ANN.ckwho, done); });
+      return true;
+    } catch (e) { return false; }
+  };
   ANN.speakLine = function (txt, who, done) {
+    if (typeof AU !== 'undefined' && AU.on && AU.say) { ANN.ckwho = who; if (ANN.playClip(txt, done)) return; }
+    ANN.speakSynth(txt, who, done);
+  };
+  ANN.speakSynth = function (txt, who, done) {
     if (!window.speechSynthesis || typeof AU === 'undefined' || !AU.on || !AU.say) { done && done(); return; }
     try {
       const v = voices(), u = new SpeechSynthesisUtterance(txt), vv = who === 'col' ? (ANN.col === 'm' ? v.m2 : v.b) : v.a;
@@ -147,6 +163,7 @@
     const tpl = pick(pool.length ? pool : arr);
     const txt = tpl.replace(/\{(\w+)\}/g, (m, k) => (vars && vars[k] != null ? vars[k] : ''));
     ANN.hist.push(tpl); if (ANN.hist.length > HN) ANN.hist.shift();
+    ANN.ck = ANN.ck || {}; ANN.ck[txt] = ANN.mode + '|' + who + '|' + tpl;
     return txt;
   }
   function pick(a) { return a[Math.floor(Math.random() * a.length)]; }

@@ -14,7 +14,7 @@ mkdir -p ~/lihl-data && sudo chown 1000:1000 ~/lihl-data
 [ -f ~/lihl-admin-key ] || (head -c 18 /dev/urandom | base64 | tr -d '/+=' > ~/lihl-admin-key)
 sudo docker run -d --name lihl --restart unless-stopped -p 127.0.0.1:8080:8080 \
   -v ~/lihl-data:/data -e STATS_DIR=/data -e ADMIN_KEY="$(cat ~/lihl-admin-key)" -e STATS_SALT="$(cat ~/lihl-admin-key)" \
-  -e GRACE_MS=45000 -e MAX_ROOMS=40 lihl
+  -e GRACE_MS=45000 -e MAX_ROOMS=${LIHL_MAX_ROOMS:-3} lihl
 # Caddy gives free HTTPS and passes websockets through (sslip.io name works without any account)
 printf '%s, 129-80-91-142.sslip.io {\n  reverse_proxy 127.0.0.1:8080\n}\n' "$DOMAIN" | sudo tee /etc/caddy/Caddyfile >/dev/null
 sudo systemctl restart caddy

@@ -177,6 +177,27 @@ function init3D(){try{if(!window.THREE||qs.get('2d'))return;
  R3.pring=new THREE.Mesh(new THREE.RingGeometry(2.2,3.1,28),new THREE.MeshBasicMaterial({color:0xffe27a,transparent:true,opacity:0,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));R3.pring.rotation.x=-Math.PI/2;R3.pring.visible=false;sc.add(R3.pring);R3.ring.rotation.x=-Math.PI/2;R3.ring.position.y=.1;sc.add(R3.ring);
  addEventListener('resize',()=>{if(R3.composer)R3.composer.setSize(innerWidth,innerHeight);r.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()});
  gfxInit();cv.style.display='none';THREE_OK=true}catch(e){console.log('3D init failed',e);THREE_OK=false}}
+/* ---- Showman Ref (cosmetic only): client-side render object, not in the sim or snapshots, never touches gameplay. Trails the puck along the far boards, stops and faces the net on whistles and faceoffs, points on a goal or penalty. Hidden during the instant replay (offline and online both use G.rp). 3 draw calls, no shadow caster, no blob, no per-frame allocation. ---- */
+const REF_Q=new THREE.Quaternion(),REF_AX=new THREE.Vector3(1,0,0);
+function refDraw(R,dt){let f=R.ref;
+ if(f===undefined){if(!(typeof SK!=="undefined"&&SK.ready&&window.ANIM&&ANIM.ready&&SK.makeShowman))return;
+  try{const p={id:9001,name:'Showman Ref',num:null,img:null,gl:false,back:false,box:false,team:{color:'#f4f4f4',accent:'#111111',dir:1,name:'REF'},x:100,y:5,vx:0,vy:0,fa:0,vis:0,turn:0,acc01:0},m=SK.makeShowman(p);R.sc.add(m.g);m.inner.rotation.y=Math.PI/2;
+   f=R.ref={p,m,c:{puckW:{x:0,y:.22,z:0},opp:{d:99,s:0},vis:false,speed:0,vf:0,vlat:0,hasPuck:false,key:false,faceoff:false,celeb:false,charge:0},dir:0,pt:0,np:0,ce:null,arm:m.byName.upperarm_r}}catch(e){R.ref=false;return}}
+ if(!f)return;const m=f.m,p=f.p,c=f.c;
+ if(G.rp){m.g.visible=false;return}
+ m.g.visible=true;dt=Math.min(dt,.05);
+ const np=H1.pen.length+A1.pen.length,ce=G.cele&&G.cele.t>0?G.cele:null;if((ce&&ce!==f.ce)||np>f.np)f.pt=1.8;f.ce=ce;f.np=np;if(f.pt>0)f.pt-=dt;
+ const fo=G.fo&&!G.fo.dropped,stop=G.pause>0||!!ce||G.over||f.pt>0;
+ f.dir+=(clamp(puck.vx*.05,-1,1)-f.dir)*Math.min(1,dt*.8);
+ const tx=clamp(fo?G.fo.x:puck.x-f.dir*(puck.y<14?22:16),34,166),dx=tx-p.x,dy=4.5-p.y,d=Math.hypot(dx,dy),sd=(stop||d<1.5)?0:Math.min(30,d*1.6),k=Math.min(1,dt*(sd?3:6));
+ p.vx+=((d>0?dx/d:0)*sd-p.vx)*k;p.vy+=((d>0?dy/d:0)*sd-p.vy)*k;p.x+=p.vx*dt;p.y+=p.vy*dt;
+ const sp=Math.hypot(p.vx,p.vy),ta=sp>3?Math.atan2(p.vy,p.vx):(stop||fo)?(p.x>100?0:Math.PI):Math.atan2(puck.y-p.y,puck.x-p.x);
+ p.fa=lerpA(p.fa,ta,Math.min(1,dt*6));const ch=Math.cos(p.fa),sn=Math.sin(p.fa);
+ c.speed=sp;c.vf=p.vx*ch+p.vy*sn;c.vlat=p.vx*sn-p.vy*ch;c.puckW.x=puck.x-W/2;c.puckW.z=puck.y-H/2;
+ m.g.position.set(p.x-W/2,0,p.y-H/2);m.g.rotation.y=-p.fa;
+ ANIM.apply(m,p,c,dt);
+ if(f.pt>0&&f.arm){const a=Math.min(1,f.pt*4,(1.8-f.pt)*6);REF_Q.setFromAxisAngle(REF_AX,a*REF_ARM);f.arm.quaternion.premultiply(REF_Q)}}
+let REF_ARM=-2.3;
 function draw3D(dt){const R=R3,all=[];gfxFrame(R);if(R.sp){const S=R.sp;let any=false;for(let j=0;j<S.n;j++){if(S.life[j]>0){S.life[j]-=dt;S.v[j*3+1]-=22*dt;S.pa[j*3]+=S.v[j*3]*dt;S.pa[j*3+1]=Math.max(.05,S.pa[j*3+1]+S.v[j*3+1]*dt);S.pa[j*3+2]+=S.v[j*3+2]*dt;S.v[j*3]*=.96;S.v[j*3+2]*=.96;any=true;if(S.life[j]<=0)S.pa[j*3+1]=-50}}if(any||S.dirty){S.g.attributes.position.needsUpdate=true;S.dirty=any}}{const np=performance.now();if(R.pt){R.pe=(R.pe||16)*.96+Math.min(80,np-R.pt)*.04}R.pt=np;if((R.pf=(R.pf||0)+1)%90===0&&R.pe){const nx=GFX_NEXT[R.tier];if(nx&&!R.qLock&&R.pf>300&&R.pe>25){if((R.pbad=(R.pbad||0)+1)>=2){gfxApply(nx);R.pe=16;R.pbad=0;R.pl=0;R.r.setPixelRatio(Math.min(devicePixelRatio||1,MOBILE?1.25:2));R.r.setSize(innerWidth,innerHeight,false);R.gfxDown=(R.gfxDown||0)+1}}else R.pbad=0;const lv=R.pe>36?2:R.pe>25?1:(R.pe<19?0:(R.pl||0));if(lv!==R.pl){R.pl=lv;const base=Math.min(devicePixelRatio||1,MOBILE?1.25:2),pr=lv===2?.75:lv===1?Math.min(base,1):base;R.r.setPixelRatio(pr);R.r.setSize(innerWidth,innerHeight,false);if(R.crowdPts)R.crowdPts.visible=lv===0}}}if(R.capMat&&R.capFor!==H1){R.capMat.color.set(H1.color);R.capFor=H1}if(shakeT>0)shakeT-=dt;for(const t of[H1,A1]){if(!t.pull)all.push(t.goalie);for(const s of SL)if(t.seats[s])all.push(t.seats[s])}
  if(G.rp&&G.rp.cur&&G.rp.cur.length){all.length=0;for(const q of G.rp.cur)all.push(q)}
  for(const[p,m]of R.meshes)m.g.visible=false;
@@ -201,6 +222,7 @@ function draw3D(dt){const R=R3,all=[];gfxFrame(R);if(R.sp){const S=R.sp;let any=
    const ps=(p.celeb>0)?SK.celebPose(m,performance.now()/1000):SK.skatePose(m,m.rph,sp01,m.lean,m.acc,p.back);if(p.celeb>0)p.celeb-=dt;SK.apply(m,ps)}}
   if(!p.gl&&!MOBILE&&sp>9&&R.iceCtx){const m2=m;if(m2.lx!==undefined){R.iceCtx.strokeStyle='rgba(120,150,175,.22)';R.iceCtx.lineWidth=2.2;R.iceCtx.beginPath();R.iceCtx.moveTo(m2.lx*10,m2.ly*10);R.iceCtx.lineTo(p.x*10,p.y*10);R.iceCtx.stroke();R.iceDirty=true}m2.lx=p.x;m2.ly=p.y}else{m.lx=undefined}
   if(p===ctl){const tt=performance.now()/1000;R.ring.visible=true;R.ring.position.x=p.x-W/2;R.ring.position.z=p.y-H/2;R.ring.scale.setScalar(1+.12*Math.sin(tt*6));R.arrow.visible=true;R.arrow.position.set(p.x-W/2,15.2+Math.sin(tt*5)*.6,p.y-H/2);R.arrow.rotation.y=tt*2}}
+ refDraw(R,dt);
  if(!ctl){R.ring.visible=false;R.arrow.visible=false}
   {if(!R.ptg){R.ptg=new THREE.Mesh(new THREE.RingGeometry(2.4,3.2,28),new THREE.MeshBasicMaterial({color:0x7dffb0,side:THREE.DoubleSide,transparent:true,opacity:.9,depthWrite:false}));R.ptg.rotation.x=-Math.PI/2;R.ptg.position.y=.07;R.ring.parent.add(R.ptg)}
    let tg=null;if(ctl&&puck.owner===ctl&&!G.over&&G.pause<=0){const ci=curIn();tg=passTarget(ctl,ci[0],ci[1])}
