@@ -32,3 +32,11 @@ Balance: goals per shot 0.18 (target 0.14 to 0.21); measure_flow goals per game 
 - Goalie windup anticipation works only offline; online clients see the puck approach only.
 - Graphics: ice markings still pale, no tone mapping, reflections swim during fast camera moves.
 - measure_flow goals per game rose; the cause (new AI plays, goalie, puck) was not isolated.
+
+## Addendum: animation batch (2026-11-13)
+Merged branches p7-celeb, p7-hits, p7-shots, p7-saves into mega-pass-7. Animation harness 838 of 838, 0 fails; server tests pass (test_p5 not rerun); in-game run of 4,200 steps with draws, no script errors.
+- Celebrations (anim_celebrate.js): 10 scorer, 6 teammate, 3 scored-on poses, win pose, goalie after goal against. Picked by hash of scorer and goal count. Online hook and replay of celebrations not exercised; win pose offline only.
+- Hits and fights (anim_hits.js): 8 hit classes, 5 foul reactions, 7 new fall types, getting-up styles, dazed state, fights with linesmen and box walk. Many variants only numerically checked (not viewed): hook, hold, slash, lift, interference, bump, shoulder, net shove, crumple, bounce, slump, stagger. Glass rattle is the victim only.
+- Shots and passes (anim_shots.js): 21 variants (snap, backhand, volley, saucer, slap-pass, one-hand, drop, board, receptions, dekes, spin-o-rama, diving poke). Between-the-legs and skate kick only approximate; saucer is puck spin only.
+- Goalie (anim_goalie.js): stack, split, VH, butterfly slide, glove squeeze, paddle, scramble, poke, cover, dead-time idles, glove pump, screen peek, play the puck. Goal-against and cover events are not emitted by the real game, bench trip is test-only, poke is a pose.
+- Not played by a person, not tested on a phone. Goals per shot in measure_goalie runs: 0.175 to 0.216 (target 0.15 to 0.25, noisy).

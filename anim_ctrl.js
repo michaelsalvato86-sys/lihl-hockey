@@ -45,17 +45,18 @@ function at(out, f, s, h, iceY) { out.copy(X.O).addScaledVector(X.Fb, f).addScal
 
 ANIM.apply = function (m, p, c, dt) {
   const an = m.an || ANIM.make(m, p), S = an.s, V = an.v, YL = ANIM.YL;
-  if (SK.mobile() && !c.key) { an.lodAcc = (an.lodAcc || 0) + dt; an.lodSkip = !an.lodSkip; if (an.lodSkip && an.state) return; dt = an.lodAcc; an.lodAcc = 0; }
+  if (SK.mobile() && !c.key) { an.lodAcc = (an.lodAcc || 0) + dt; an.lodSkip = !an.lodSkip; if (an.lodSkip && an.state) { if (an.cel) CEL.visual(m, p, an); return; } dt = an.lodAcc; an.lodAcc = 0; }
   dt = Math.min(dt, 0.05);
+  if (window.CEL) CEL.tick(m, p, c, an, dt);   // celebration / dejection state (anim_celebrate.js)
   // ---------- 0. events ----------
   if (p.ae && p.ae.id !== an.evId) {
-    an.evId = p.ae.id; const k = p.ae.k, d = p.ae.d || {}, sp0 = c.speed;
+    an.evId = p.ae.id; const k = p.ae.k, d = p.ae.d || {}, sp0 = c.speed; if (ANIM.shots) ANIM.shots.on(an, p, c, k, d, V);
     if (k === 'shot') an.otT = 0;
     if (k === 'checked' || k === 'fall') an.boardT = d.board ? 0.8 : an.boardT;
     if (k === 'recv') an.recvT = 0.9; else if (k === 'otwind') { an.otT = 0.95; an.otEta = d.eta || 0.4; an.otAge = 0; }
     else if (k === 'shotwind' || k === 'passwind' || k === 'actcancel') { /* wind-up is driven from p.act below */ }
     else if (k === 'gain') { an.cush = 0.35; an.cq = ({ difficult: 1.6, bobble: 2.2, deflect: 2.4, miss: 2.8 })[d.q] || 1; an.recvT = 0; an.gainT = 0; } else if (k === 'fall') {
-      const hv = _hv(p.id | 0, evId0(p)), kind = d.kind || (d.board ? 'board' : an.boardT > 0 ? 'board' : sp0 < 7 ? (hv > 0.5 ? 'knees' : 'stumble') : d.from === 'behind' ? 'fwd' : d.from === 'front' ? (hv > 0.4 ? 'back' : 'side') : hv < 0.3 ? 'side' : hv < 0.5 ? 'stumble' : hv < 0.75 ? 'fwd' : 'side');
+      const hv = _hv(p.id | 0, evId0(p)), kind = d.kind || (window.HITS && HITS.fallKind(p, d, sp0, hv, an)) || (d.board ? 'board' : an.boardT > 0 ? 'board' : sp0 < 7 ? (hv > 0.5 ? 'knees' : 'stumble') : d.from === 'behind' ? 'fwd' : d.from === 'front' ? (hv > 0.4 ? 'back' : 'side') : hv < 0.3 ? 'side' : hv < 0.5 ? 'stumble' : hv < 0.75 ? 'fwd' : 'side');
       an.fall = { t: 0, side: d.side || 1, kind, cfg: FALLS[kind] || FALLS.side }; if (!d.kind) an.fall.pw = d.power; an.spK = (d.power === undefined ? 0.6 : d.power) * 8; an.spKy = (d.side || 1) * 6;
     }
     else {
@@ -82,6 +83,7 @@ ANIM.apply = function (m, p, c, dt) {
   if (an.ev && an.ev.k === 'otmiss') S.ot = kf(an.ev.t, [[0, 1], [0.15, 0]]); else _sm(S, 'ot', an.otT > 0 && !an.ev && !c.hasPuck ? 1 : 0, an.otT > 0 ? 12 : 16, dt);
   _sm(an, 'otH', _cl(Math.atan2(an.psv || 0, Math.max(an.pfv || 0, 0.5)), -0.8, 0.8), 8, dt);
   const ek = an.ev ? an.ev.k : '', u = an.ev ? an.ev.t : 0, ed = an.ev ? an.ev.d : null;
+  const SX = ANIM.shots ? ANIM.shots.fx(m, an, dt, c, p, V, ek, u) : null;   // anim_shots.js: stick skills / shot, pass, reception variants (null = idle)
 
   // ---------- 1. motion terms ----------
   // A4: decel from vf smoothed over ~40 ms, and the stop must hold for 35 ms (2+ frames) (online snapshot jitter cannot trigger it)
@@ -116,7 +118,7 @@ ANIM.apply = function (m, p, c, dt) {
   _sm(S, 'faceoff', c.faceoff ? 1 : 0, 7, dt);
   _sm(S, 'recv', an.recvT > 0 && !c.hasPuck ? 1 : 0, 9, dt);
   const sprintT = (s01 > 0.62 && !c.hasPuck && !ek && !an.recvT && !c.faceoff) ? 1 : 0;
-  const freeT = Math.max(sprintT, ek === 'poke' && !an.ev.sub ? kf(u, [[0, 0], [0.08, 1], [0.36, 1], [0.45, 0]]) : 0);
+  const freeT = Math.max(sprintT, SX ? SX.free : 0, ek === 'poke' && !an.ev.sub ? kf(u, [[0, 0], [0.08, 1], [0.36, 1], [0.45, 0]]) : 0);
   _sm(S, 'free', freeT, 7, dt);
   const act = p.act && (p.act.k === 'shot' || p.act.k === 'pass') ? p.act : null;
   if (act) { const au = _cl(1 - act.t / Math.max(act.T, 0.01), 0, 1); if (!an.actOn) { an.actOn = true; an.holdCh = S.charge; } const sw = au < 0.3 ? 0 : _es((au - 0.3) / 0.7), base = act.k === 'pass' ? 0.3 : Math.max(an.holdCh, 0.55); _sm(S, 'charge', base * (1 - sw), 40, dt); }
@@ -201,7 +203,8 @@ ANIM.apply = function (m, p, c, dt) {
   } else if (ek === 'draw') {
     eBf = -0.55 * kf(u, [[0, 0], [0.12, 1], [0.3, 0.4], [0.5, 0]]); eYaw = sgn * 0.3 * kf(u, [[0, 0], [0.12, 1], [0.5, 0]]); eHandPull = 0.2 * kf(u, [[0, 0], [0.12, 1], [0.5, 0]]);
   }
-  if (ek) { const ein = (ek === 'check' || ek === 'checked' || ek === 'hitmiss') ? _es(u / 0.035) : _es((u - evx.t0) / 0.07 + (evx.t0 ? 0.15 : 0)); eYaw *= ein; eBf *= ein; eBs *= ein; eBh *= ein; eHh *= ein; eCr *= ein; ePitch *= ein; eHead *= ein; eHandPull *= ein; eWeight *= ein; eRoll *= ein; eStance *= ein; }
+  if (ek) { const ein = (ek === 'check' || ek === 'checked' || ek === 'hitmiss') ? _es(u / 0.07) : _es((u - evx.t0) / 0.07 + (evx.t0 ? 0.15 : 0)); eYaw *= ein; eBf *= ein; eBs *= ein; eBh *= ein; eHh *= ein; eCr *= ein; ePitch *= ein; eHead *= ein; eHandPull *= ein; eWeight *= ein; eRoll *= ein; eStance *= ein; }
+  if (SX) { eYaw += SX.yaw; eBf += SX.bf * (1 - cw); eBs += SX.bs * (1 - cw); eBh += SX.bh * (1 - cw); eHh += SX.hh; eCr += SX.cr; ePitch += SX.pitch; eHead += SX.head; eHandPull += SX.hp; eWeight += SX.wt; eRoll += SX.roll; eStance += SX.stance; }
   if (ek !== 'checked' && ek !== 'hitmiss' && !an.fall) _sm(S, 'flail', 0, 8, dt);
   // charging a shot (human) or preloading a one-timer while the pass arrives: visible windup before the release
   const ch = Math.max(S.charge, S.pre);
@@ -228,6 +231,7 @@ ANIM.apply = function (m, p, c, dt) {
   if (S.lunge > 0.01) { const os = c.opp && c.opp.s > 0 ? 1 : -1; eCr += 0.12 * S.lunge; ePitch += 0.16 * S.lunge; eYaw += os * 0.25 * S.lunge; eBh += 0.2 * S.lunge; eHandPull += 0.08 * S.lunge; }
   // fall layer extras: legs buckle, then a visible getting-up phase (hands to ice, knees, push up)
   if (an.fall) { const cf = an.fall.cfg, ft = an.fall.t * 1.7 / cf.dur, am = cf.amp; eCr += 0.5 * am * kf(ft, [[0, 0], [0.25, 0.3], [0.9, 0.3], [1.2, 1], [1.6, 0.3], [1.7, 0]]) + 0.6 * cf.sag * kf(ft, [[0, 0], [0.3, 1], [1.2, 1], [1.7, 0]]); ePitch += 0.45 * am * kf(ft, [[0, 0], [0.9, 0], [1.2, 1], [1.7, 0]]); _sm(S, 'flail', am * kf(ft, [[0, 0.3], [0.1, 1], [0.9, 0.6], [1.2, 0.9], [1.7, 0]]), 14, dt); }
+  { const _H = window.HITS && HITS.layer(an, p, c, dt, ek, evx, sgn); if (_H) { eYaw += _H.yaw; eBf += _H.bf; eBs += _H.bs; eBh += _H.bh; eHh += _H.hh; eCr += _H.cr; eStance += _H.st; ePitch += _H.pitch; eRoll += _H.roll; eHead += _H.head; eHandPull += _H.hp; eWeight += _H.wt; } }   // anim_hits.js
   // secondary motion (hit ring-down) and protection / pickup posture
   ePitch += 0.9 * an.spX; eRoll += 0.8 * an.spY; eHead -= 0.5 * an.spX;
   { const os2 = c.opp && c.opp.s > 0 ? 1 : -1; eRoll -= os2 * 0.14 * S.prot; ePitch += 0.1 * S.prot; }
@@ -291,10 +295,13 @@ ANIM.apply = function (m, p, c, dt) {
   // stumble: one skate catches and kicks up behind, the other steps ahead to catch the balance
   if (an.fall && an.fall.kind === 'stumble') { const st = kf(an.fall.t, [[0, 0], [0.12, 1], [0.5, 1], [0.85, 0]]), tr = an.fall.side > 0 ? 'l' : 'r', fr = tr === 'l' ? 'r' : 'l'; an.stum = st;
     pose['thigh_' + tr].p += 0.7 * st; pose['calf_' + tr].p += 1.0 * st; pose['thigh_' + fr].p -= 0.3 * st; pose['calf_' + fr].p += 0.2 * st; }
-  m.root.rotation.z = fallA; m.root.rotation.x = fallP;
+  if (SX && SX.kick) ANIM.shots.legs(pose, SX);
+  if (window.HITS) { const _P = HITS.pose(an, m, pose, dt); if (_P) { fallA += _P.roll; fallP += _P.pitch; } }   // anim_hits.js
+  m.root.rotation.z = fallA; m.root.rotation.x = fallP; m.root.rotation.y = SX ? SX.spin : 0;
+  if (an.cel) CEL.body(m, p, c, an, pose, V.topR ? 'r' : 'l', V.topR ? 'l' : 'r');
 
   // ---------- 5. pass 1: legs/torso into the skeleton, ground contact, read shoulders ----------
-  SK.setPose(m, pose); SK.ground2(m); m.g.updateMatrixWorld(true);
+  SK.setPose(m, pose); SK.ground2(m); if (an.cel) CEL.ground(m, an); m.g.updateMatrixWorld(true);
   { // ---- legs IK: add push-off / recovery swing / backward placement / turn loading, plant the feet when (nearly) still, keep the blades on the ice ----
     const ice0 = -m.root.position.y, Fq = X.Fb.copy(SK.F).applyAxisAngle(SK.U, pose.pelvis.y || 0), Lq = X.Sb.copy(SK.Ld).applyAxisAngle(SK.U, pose.pelvis.y || 0);
     const slow = 1 - _es((sp - 2.5) / 3.5); _sm(S, 'plant', slow * (an.fall ? 0 : 1) * (1 - S.pivot), slow > S.plant ? 12 : 30, dt);
@@ -316,10 +323,10 @@ ANIM.apply = function (m, p, c, dt) {
       d.addScaledVector(SK.Ld, -S.wsh);   // keep the foot under its pre-shift line
       { // planted-foot lock beyond standing still: the last slow part of a stop (blades dug in) and the ground foot of a slow pivot
         const stopL = S.stop * (1 - _es((sp - 3) / 3.5)), pLift = Math.max(0, Math.sin(an.pivPh + (sd === 'l' ? 0 : Math.PI))) * S.pivot, pivL = S.pivot * (1 - _es((sp - 1.8) / 1)) * (1 - _es(pLift * 3));
-        d.pw = ANIM.noLock ? S.plant : Math.max(S.plant, stopL, pivL); }
+        d.pw = ANIM.noLock ? S.plant : Math.max(S.plant, stopL, pivL); if (an.cel && an.cel.noPlant) d.pw *= 1 - an.cel.noPlant; }
     }
     AR.legs(m, an, pose, an.legD, ice0);
-    SK.setPose(m, pose); SK.ground2(m); m.g.updateMatrixWorld(true);
+    SK.setPose(m, pose); SK.ground2(m); if (an.cel) CEL.ground(m, an); m.g.updateMatrixWorld(true);
   }
   const iceY = -m.root.position.y;
   AR.pos(m, 'pelvis', X.O); X.O.y = iceY;
@@ -367,11 +374,14 @@ ANIM.apply = function (m, p, c, dt) {
     const k = Math.max(S.free, S.flail); X.Tb.lerp(X.pole, k);
     if (S.flail > 0.01) { at(X.pole, 0.1, -0.75 * sgn, 1.0 + 0.2 * Math.sin(an.tHand * 2), iceY); X.Tb.lerp(X.pole, S.flail); }
   }
-  if (c.celeb) {
+  if (SX && SX.hand) { at(X.pole, SX.hand.f, SX.hand.s, SX.hand.h, iceY); X.Tb.lerp(X.pole, SX.hand.w); }
+  if (an.cel) CEL.stick(m, p, c, an, X, iceY, topSide, botSide, at);
+  else if (c.celeb) {
     const lt0 = V.topR ? -1 : 1, wob = Math.sin(performance.now() / 110) * 0.05;
     at(X.Tt, 0.02, 0.15 * lt0, 1.62 + wob, iceY); at(X.Tb, 0.02, -0.15 * lt0, 1.62 - wob, iceY);
     X.tmp.copy(X.Tb).sub(X.Tt).normalize(); X.Hl.copy(X.Tt).addScaledVector(X.tmp, 1.25); X.bd.copy(X.tmp);
   }
+  if (window.HITS) HITS.hands(an, m, X, iceY, V.topR ? 'r' : 'l', V.topR ? 'l' : 'r', dt);   // anim_hits.js
   // ---------- 7. arm IK, second pass ----------
   const lb = botSide === 'l' ? 1 : -1, lt = topSide === 'l' ? 1 : -1;
   X.pole.set(0, 0, 0).addScaledVector(X.Sb, lt * 0.8).addScaledVector(SK.U, -0.55).addScaledVector(X.Fb, -0.2);
@@ -381,10 +391,11 @@ ANIM.apply = function (m, p, c, dt) {
   AR.arm(m, topSide, X.Ttw, X.pole, pose);
   X.pole.set(0, 0, 0).addScaledVector(X.Sb, lb * 0.8).addScaledVector(SK.U, -0.55).addScaledVector(X.Fb, -0.2);
   AR.arm(m, botSide, X.Tbw, X.pole, pose);
+  if (an.cel) CEL.arms(m, p, c, an, pose, X);
   // celebration: arms overhead (classic skating celebration), stick held low in the top hand
   if (!SK.mobile() && AR.cal) { const kc = 0.85 * (1 - S.free * 0.0); AR.curl(pose, topSide, kc); AR.curl(pose, botSide, kc * (1 - 0.6 * Math.max(S.free, S.flail))); }
   SK.setPose(m, pose);
-  AR.placeStick(m, X.Tt, X.Hl, X.bd);
+  if (!(window.HITS && HITS.place(an, m, X))) AR.placeStick(m, X.Tt, X.Hl, X.bd);
   if (!SK.mobile() && !AR.cal) { AR.cal = {}; m.g.updateMatrixWorld(true); AR.cal[topSide] = AR.calibrate(m, topSide, X.Tt, X.sh); AR.cal[botSide] = AR.calibrate(m, botSide, X.Tb, X.sh); }
   m.stick.shaft.visible = m.stick.blade.visible = !m.wrench;
   // visual puck: sits on the blade while carried (render-only; the simulated puck is untouched)
@@ -395,9 +406,11 @@ ANIM.apply = function (m, p, c, dt) {
     X.pu.copy(X.Hl).addScaledVector(X.bd, rl); X.tmp.set(-X.bd.z, 0, X.bd.x); X.pu.addScaledVector(X.tmp, pl); X.pu.y = iceY + 0.02; an.heelOk = true; if (!an.heelW) an.heelW = V3(); an.heelW.copy(X.pu); m.root.localToWorld(an.heelW); } else an.heelOk = false;
 
   // ---------- 8. state label (for tests and debugging) ----------
-  an.state = c.celeb ? 'celebrating' : S.pivot > 0.5 ? 'pivoting' : an.fall ? 'falling' : ek === 'otmiss' ? 'one_timer_miss' : (S.ot > 0.5 && !ek) ? 'one_timer_ready' : ek === 'checked' ? 'getting_checked' : ek === 'check' ? 'body_check' : ek === 'hitwind' ? 'hit_windup' : ek === 'hitmiss' ? 'hit_miss' : ek === 'shot' ? (bkE > 0.5 ? 'shot_backhand' : 'shot_' + (ed.kind || 'wrist')) : ek === 'pass' ? 'passing' : ek === 'poke' ? (evx.sub ? 'stick_lift' : 'poke_check') : ek === 'draw' ? 'faceoff_draw'
+  an.state = an.cel ? CEL.label(an.cel) : c.celeb ? 'celebrating' : S.pivot > 0.5 ? 'pivoting' : an.fall ? 'falling' : ek === 'otmiss' ? 'one_timer_miss' : (S.ot > 0.5 && !ek) ? 'one_timer_ready' : ek === 'checked' ? 'getting_checked' : ek === 'check' ? 'body_check' : ek === 'hitwind' ? 'hit_windup' : ek === 'hitmiss' ? 'hit_miss' : ek === 'shot' ? (bkE > 0.5 ? 'shot_backhand' : 'shot_' + (ed.kind || 'wrist')) : ek === 'pass' ? 'passing' : ek === 'poke' ? (evx.sub ? 'stick_lift' : 'poke_check') : ek === 'draw' ? 'faceoff_draw'
     : c.faceoff ? 'faceoff_stance' : S.stop > 0.5 ? 'stopping' : S.recv > 0.5 ? 'receiving_pass' : S.charge > 0.1 ? 'preparing_shot' : S.shuf > 0.5 ? 'side_shuffle' : S.brace > 0.5 ? 'bracing' : p.back ? 'backward_skating' : S.carry > 0.6 ? (S.prot > 0.5 ? 'protecting_puck' : 'stickhandling')
       : xo > 0.4 ? 'crossover_turn' : Math.abs(turn) > 1.2 ? (turn > 0 ? 'turning_right' : 'turning_left') : sp < 1 ? 'ready' : S.acc > 0.5 ? 'accelerating' : s01 > 0.8 ? 'sprint_skating' : S.acc < 0.15 && s01 > 0.3 ? 'gliding' : 'skating';
+  if (SX && SX.label) an.state = SX.label;
+  if (an.cel) CEL.visual(m, p, an);
   if (ANIM.debug) { m.g.updateMatrixWorld(true); an.metrics = ANIM.measure(m, X.Tt, X.Tb, topSide, botSide, iceY); }
 };
 
@@ -409,5 +422,6 @@ ANIM.measure = function (m, Tt, Tb, topSide, botSide, iceY) {
   return { gripHeight: Tt.y - iceY, fingerTop: fl(topSide), fingerBot: fl(botSide), topHandToGrip: a.distanceTo(Tt), botHandToGrip: b.distanceTo(Tb), topHandOffShaft: off(a, Tt), botHandOffShaft: off(b, Tt), bladeHeight: st.heel.y - iceY, handsApart: a.distanceTo(b) };
 };
 
+ANIM.X = X; ANIM.at = at;
 window.ANIM = ANIM;
 })();

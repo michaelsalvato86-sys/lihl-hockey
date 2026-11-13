@@ -141,7 +141,7 @@
     else if (e.e === 'ae') { const q = pid2p(e.p); if (q) { q.ae = { id: (G.aeid = (G.aeid || 0) + 1), k: e.k, d: e.d || {} }; if (e.k === 'shotwind') { const T = (e.d && e.d.t) || .2; q.act = { k: 'shot', t: T, T }; } else if (e.k === 'passwind') { const T = (e.d && e.d.t) || .12; q.act = { k: 'pass', t: T, T }; } else if (e.k === 'actcancel' || e.k === 'shot' || e.k === 'pass') q.act = null; if (window.ANN && !NET.inRp) ANN.ev(q, e.k, e.d || {}); } }
     else if (e.e === 'bn') showBanner(e.im || null, e.a, e.b, e.secs, e.col || null);
     else if (e.e === 'goal') {
-      const t = e.tm === 0 ? H1 : A1, p = pid2p(e.p); G.cele = { p: p, t: 2.6 }; if (p) { p.celeb = 2.6; for (const m of onIce(t)) if (m !== p) m.celeb = 2.4; } G.gfx = { d: t.dir > 0 ? -1 : 1, t: 3.2 }; G.excite = 1; shakeT = .7;
+      const t = e.tm === 0 ? H1 : A1, p = pid2p(e.p); G.cele = { p: p, t: 2.6 }; if (p) { p.celeb = 2.6; for (const m of onIce(t)) if (m !== p) m.celeb = 2.4; } if (window.CEL) CEL.onGoal(t, p, onIce, G.score ? G.score[0] + G.score[1] : 0); G.gfx = { d: t.dir > 0 ? -1 : 1, t: 3.2 }; G.excite = 1; shakeT = .7;
       const f = $('flash'); f.style.background = t.color; f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); if (window.ANN && ANN.mode !== 'off') ANN.goal(p, t); else AU.speak('Goal! ' + (p ? p.name : t.name));
     }
   }

@@ -2,7 +2,7 @@
 <style>html,body{margin:0;background:#0b1118;overflow:hidden;font-family:monospace;color:#9fb}canvas{display:block}#hud{position:fixed;left:8px;top:6px;font-size:12px;white-space:pre}</style></head><body>
 <div id="hud"></div>
 <script src="three.min.js"></script><script src="lib/GLTFLoader.js"></script><script src="lib/SkeletonUtils.js"></script>
-<script src="skater3d.js"></script><script src="skater_pose.js"></script><script src="anim_rig.js"></script><script src="anim_ctrl.js"></script><script src="anim_goalie.js"></script>
+<script src="skater3d.js"></script><script src="skater_pose.js"></script><script src="anim_rig.js"></script><script src="anim_ctrl.js"></script><script src="anim_goalie.js"></script><script src="anim_hits.js"></script><script src="anim_celebrate.js"></script><script src="anim_shots.js"></script><script src="anim_shots_test.js"></script>
 <script>
 const qs=new URLSearchParams(location.search);
 function accOf(p){return p.team.accent}
@@ -85,17 +85,27 @@ window.GS={
  g_ready:(t,p)=>{p.y=0},
  g_lateral:(t,p)=>{p.y=Math.sin(t*2.2)*9},
  g_tpush:(t,p)=>{p.y=Math.min(9,t*30)},
- g_butterfly:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind:'butterfly',side:'l',dy:.5,h:0,rc:.55}}},
- g_glove:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind:'glove',side:'l',dy:2,h:2}}},
- g_blocker:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind:'blocker',side:'r',dy:-2,h:1}}},
- g_pad:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind:'pad',side:'l',dy:3.6,h:0,rc:.55}}},
- g_stick:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind:'stick',side:'r',dy:-3,h:0}}},
+ g_butterfly:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind:'butterfly',v:'',side:'l',dy:.5,h:0,rc:.55}}},
+ g_glove:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind:'glove',v:'',side:'l',dy:2,h:2}}},
+ g_blocker:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind:'blocker',v:'',side:'r',dy:-2,h:1}}},
+ g_pad:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind:'pad',v:'',side:'l',dy:3.6,h:0,rc:.55}}},
+ g_stick:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind:'stick',v:'',side:'r',dy:-3,h:0}}},
  g_wind:(t,p,c,pk)=>{p.y=0;p.windT=t<.5?.4:0;pk.x=-6;pk.y=40},
  g_rvh:(t,p,c,pk)=>{p.y=0;pk.x=8;pk.y=3},
- g_rebound:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind:'pad',side:'l',dy:3,h:0,rc:.55}};if(t>=.3&&p.ae.id===1)p.ae={id:2,k:'save',d:{kind:'glove',side:'l',dy:2,h:1.6,rc:.2}}},
+ g_rebound:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind:'pad',v:'',side:'l',dy:3,h:0,rc:.55}};if(t>=.3&&p.ae.id===1)p.ae={id:2,k:'save',d:{kind:'glove',v:'',side:'l',dy:2,h:1.6,rc:.2}}},
  g_cover:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'cover',d:{}}},
- g_goal:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'goalagainst',d:{}}}
+ g_goal:(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:'goalagainst',d:{v:'slump'}}}
 };
+// pass 7 saves: goalie variants (explicit v so the pose is deterministic); GV[name]=[event kind, data, expected state]
+window.GV={
+ stack:['save',{kind:'pad',v:'stack',side:'l',dy:3.8,h:0,rc:.55},'goalie_stack_pads'],split:['save',{kind:'pad',v:'split',side:'r',dy:-3.8,h:0,rc:.55},'goalie_split_save'],
+ vh:['save',{kind:'pad',v:'vh',side:'l',dy:2.4,h:0,rc:.55},'goalie_post_slide_vh'],bslide:['save',{kind:'butterfly',v:'bslide',side:'l',dy:1,h:0,rc:.55},'goalie_butterfly_slide'],
+ paddle:['save',{kind:'stick',v:'paddle',side:'r',dy:-1.2,h:.05},'goalie_paddle_down'],squeeze:['save',{kind:'glove',v:'squeeze',side:'l',dy:1.5,h:1.2,rc:.2},'goalie_glove_squeeze'],
+ scramble:['save',{kind:'butterfly',v:'scramble',side:'l',dy:.8,h:0,rc:.55},'goalie_scramble'],poke:['poke',{side:'l'},'goalie_poke_check'],cover:['cover',{},'goalie_cover'],
+ adjust:['idle',{v:'adjust'},'goalie_adjust_mask'],sip:['idle',{v:'sip'},'goalie_water_bottle'],stretch:['idle',{v:'stretch',side:'l'},'goalie_stretch'],shake:['idle',{v:'shake'},'goalie_shake_out'],
+ tap:['idle',{v:'tap'},'goalie_tap_pads'],bang:['goalagainst',{v:'bang',side:'l'},'goalie_bang_post'],gatap:['goalagainst',{v:'tap'},'goalie_tap_pads'],pump:['pump',{},'goalie_glove_pump'],
+ peek:['peek',{},'goalie_peek'],play:['play',{side:'l'},'goalie_play_puck'],pull:['pull',{dx:-6,dz:30,dur:1.8},'goalie_skate_bench'],return_:['return',{dx:-6,dz:30,dur:1.8},'goalie_skate_return']};
+for(const n in GV){const q=GV[n];GS['v_'+n]=(t,p)=>{p.y=0;if(t<.02&&!p.ae)p.ae={id:1,k:q[0],d:Object.assign({},q[1])}}}
 AT.sc=sc_;
 // min knee flexion (rad, 0 = straight) per leg over a scenario, and pelvis lateral travel (root space, m)
 AT.limbStat=function(fn,secs,t0){const v=[new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3()],dt=1/60,mn=[9,9],R={pelMin:9,pelMax:-9,pelY:[9,-9]};AT.spawn(false);ANIM.debug=true;t0=t0===undefined?.4:t0;
@@ -112,6 +122,7 @@ AT.plantStat=function(fn,secs){AT.spawn(false);ANIM.debug=true;const dt=1/60,v=n
  return R};
 AT.goalieScenarios=Object.keys(GS);
 AT.scenarios=Object.keys(sc_);
+if(window.CEL&&CEL.scen)Object.assign(sc_,CEL.scen());
 // run a scenario for `secs` at 60 fps; record states and metrics; leave the final pose rendered
 AT.run=function(name,secs,opts){
   opts=opts||{};AT.spawn(!!opts.goalie);ANIM.debug=true;const fn=(opts.goalie&&GS[name])||sc_[name];const dt=1/60,rec={states:[],maxHandOff:0,maxBotOff:0,minBlade:9,maxBlade:-9,maxSnap:0,frames:0,seq:[]};
@@ -224,17 +235,19 @@ AT.assertAll=function(){
   }
   AT.legChecks(chk);
   AT.animChecks(chk);
+  if(window.ANIM_SHOTS_TEST)ANIM_SHOTS_TEST(AT,chk);
+  if(window.CEL&&CEL.checks)CEL.checks(AT,sc_,chk);
   for(const n of AT.goalieScenarios){const r=AT.run(n,1.4,{goalie:true}),seq=r.seq.map(s=>s.replace(/^[0-9.]+:/,''));const miss=(AT.gExpect[n]||[]).filter(e=>!seq.includes(e));chk(n+' state',miss.length===0,'missing '+miss.join(',')+' got '+seq.join('>'));chk(n+' no stick snap',r.maxSnap<0.6,r.maxSnap.toFixed(2))}
 
   { // goalie animation checks (pass 7 goalie anim)
-    const sig=(kind,side,h,t,dy)=>{AT.spawn(true);ANIM.debug=true;const fn=(tt,p)=>{p.y=0;if(tt<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind,side,dy:dy==null?2:dy,h,rc:.55}}};const dt=1/60;let e;for(let x=0;x<=t+1e-6;x+=dt)AT.step(fn,x,dt);const m=AT.m,v=new THREE.Vector3(),o=[];for(const n of ['foot_l','foot_r','hand_l','hand_r','Head','pelvis','calf_l','calf_r','lowerarm_l','lowerarm_r']){m.byName[n].getWorldPosition(v);m.root.worldToLocal(v);o.push(v.x,v.y,v.z)}return {o,hand:{l:(()=>{m.byName.hand_l.getWorldPosition(v);m.root.worldToLocal(v);return v.y})(),r:(()=>{m.byName.hand_r.getWorldPosition(v);m.root.worldToLocal(v);return v.y})(),ice:-m.root.position.y},met:m.an.metrics}};
+    const sig=(kind,side,h,t,dy)=>{AT.spawn(true);ANIM.debug=true;const fn=(tt,p)=>{p.y=0;if(tt<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind,v:'',side,dy:dy==null?2:dy,h,rc:.55}}};const dt=1/60;let e;for(let x=0;x<=t+1e-6;x+=dt)AT.step(fn,x,dt);const m=AT.m,v=new THREE.Vector3(),o=[];for(const n of ['foot_l','foot_r','hand_l','hand_r','Head','pelvis','calf_l','calf_r','lowerarm_l','lowerarm_r']){m.byName[n].getWorldPosition(v);m.root.worldToLocal(v);o.push(v.x,v.y,v.z)}return {o,hand:{l:(()=>{m.byName.hand_l.getWorldPosition(v);m.root.worldToLocal(v);return v.y})(),r:(()=>{m.byName.hand_r.getWorldPosition(v);m.root.worldToLocal(v);return v.y})(),ice:-m.root.position.y},met:m.an.metrics}};
     const K=[['butterfly','l',0],['pad','l',0],['glove','l',1.6],['blocker','r',1],['stick','r',0]],S=K.map(k=>sig(k[0],k[1],k[2],.3)),dist=(a,b)=>a.o.reduce((q,x,i)=>q+Math.abs(x-b.o[i]),0);let minD=9;let pr='';
     for(let i=0;i<5;i++)for(let j=i+1;j<5;j++){const dd=dist(S[i],S[j]);if(dd<minD){minD=dd;pr=K[i][0]+'/'+K[j][0]}}chk('goalie pose differs per save kind (min pair L1 m)',minD>0.5,minD.toFixed(2)+' '+pr);
     // reach: hand height tracks puck height (h 0.6..2) for glove and blocker
     for(const [kd,sd,key] of [['glove','l','gloveY'],['blocker','r','blockerY']])for(const h of [0.8,1.4,2]){const R=sig(kd,sd,h,.3),tgt=0.15+Math.min(1,h/2)*1.45;chk('goalie '+kd+' reach height h='+h+' (IK target, ft above ice)',Math.abs(R.met[key]-tgt)<(kd==='glove'?0.06:0.17),R.met[key].toFixed(2)+' vs '+tgt.toFixed(2));const hh=R.hand[kd==='glove'?'l':'r']-R.hand.ice;chk('goalie '+kd+' hand bone height h='+h,Math.abs(hh-tgt)<0.25,hh.toFixed(2)+' vs '+tgt.toFixed(2))}
     { const lo=sig('glove','l',0.8,.3).hand.l,hi=sig('glove','l',2,.3).hand.l;chk('goalie glove rises with puck height',hi-lo>0.4,(hi-lo).toFixed(2)) }
     // recovery duration of butterfly / pad matches sim g.recov (time from full to <5% )
-    for(const kd of ['butterfly','pad'])for(const rc of [.3,.55,.8]){AT.spawn(true);ANIM.debug=true;const fn=(tt,p)=>{p.y=0;if(tt<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind:kd,side:'l',dy:1,h:0,rc}}},dt=1/60,key=kd==='butterfly'?'bf':'pd';let tFull=-1,tEnd=-1;for(let x=0;x<=2.5;x+=dt){AT.step(fn,x,dt);const l=AT.m.an.metrics.lv[key];if(l>0.98)tFull=x;if(tFull>=0&&tEnd<0&&l<0.02)tEnd=x}
+    for(const kd of ['butterfly','pad'])for(const rc of [.3,.55,.8]){AT.spawn(true);ANIM.debug=true;const fn=(tt,p)=>{p.y=0;if(tt<.02&&!p.ae)p.ae={id:1,k:'save',d:{kind:kd,v:'',side:'l',dy:1,h:0,rc}}},dt=1/60,key=kd==='butterfly'?'bf':'pd';let tFull=-1,tEnd=-1;for(let x=0;x<=2.5;x+=dt){AT.step(fn,x,dt);const l=AT.m.an.metrics.lv[key];if(l>0.98)tFull=x;if(tFull>=0&&tEnd<0&&l<0.02)tEnd=x}
       chk('goalie '+kd+' rise lasts g.recov='+rc,tEnd>0&&(tEnd-tFull)>0.75*rc-0.03&&(tEnd-tFull)<rc+0.05,'span '+(tEnd-tFull).toFixed(2)+' of '+rc)}
     // anticipation: windup raises the set level and crouches; ready stays calm
     { const R=AT.run('g_wind',.5,{goalie:true});chk('goalie anticipates wind-up (set level)',AT.m.an.metrics.lv.ant>0.9,AT.m.an.metrics.lv.ant.toFixed(2));const Q=AT.run('g_ready',.5,{goalie:true});chk('goalie ready not set',AT.m.an.metrics.lv.ant<0.05,AT.m.an.metrics.lv.ant.toFixed(2));
@@ -243,6 +256,29 @@ AT.assertAll=function(){
     for(const n of ['g_butterfly','g_pad','g_glove','g_blocker','g_stick','g_rebound','g_wind','g_cover']){AT.spawn(true);ANIM.debug=true;const dt=1/60,names=['pelvis','spine_01','spine_03','Head','thigh_l','calf_l','thigh_r','calf_r','upperarm_l','lowerarm_l','upperarm_r','lowerarm_r'],prev={},cur=new THREE.Quaternion(),rq=new THREE.Quaternion();let mx=0,w='';
       for(let t=0;t<=2.2;t+=dt){AT.step(GS[n],t,dt);AT.m.inner.updateMatrixWorld(true);if(t>.05)for(const nm of names){AT.m.byName[nm].getWorldQuaternion(cur);AT.m.root.getWorldQuaternion(rq);cur.premultiply(rq.invert());if(prev[nm]){const dg=2*Math.acos(Math.min(1,Math.abs(prev[nm].dot(cur))))*180/Math.PI;if(dg>mx){mx=dg;w=nm+'@'+t.toFixed(2)}}(prev[nm]||(prev[nm]=new THREE.Quaternion())).copy(cur)}}
       chk(n+' max joint deg/frame',mx<AT.gPopMax,mx.toFixed(1)+' '+w);AT.gPop=AT.gPop||{};AT.gPop[n]=mx.toFixed(1)}
+  }
+  { // pass 7 goalie variants: state, pose distinct, above ice, per-frame joint limit, recovery to ready
+    const names=['pelvis','spine_01','spine_03','Head','thigh_l','calf_l','thigh_r','calf_r','upperarm_l','lowerarm_l','upperarm_r','lowerarm_r','foot_l','foot_r','hand_l','hand_r'],cur=new THREE.Quaternion(),rq=new THREE.Quaternion(),wp=new THREE.Vector3(),sigs={};
+    for(const n in GV){AT.spawn(true);ANIM.debug=true;const dt=1/60,prev={},st=new Set();let mx=0,w='',minY=9,lowest='',best=null,bd=-1,sig0=null;
+      for(let t=0;t<=3.2;t+=dt){AT.step(GS['v_'+n],t,dt);AT.m.inner.updateMatrixWorld(true);st.add(AT.m.an.state);const sg=[];
+        for(const nm of names){AT.m.byName[nm].getWorldQuaternion(cur);AT.m.root.getWorldQuaternion(rq);cur.premultiply(rq.invert());if(t>.05&&prev[nm]){const dg=2*Math.acos(Math.min(1,Math.abs(prev[nm].dot(cur))))*180/Math.PI;if(dg>mx){mx=dg;w=nm+'@'+t.toFixed(2)}}(prev[nm]||(prev[nm]=new THREE.Quaternion())).copy(cur);
+          AT.m.byName[nm].getWorldPosition(wp);const wy=wp.y-0;AT.m.root.worldToLocal(wp);sg.push(wp.x,wp.y,wp.z);const hy=wy;if(hy<minY){minY=hy;lowest=nm}}
+        if(!sig0)sig0=sg;const dd=sg.reduce((q,x,i)=>q+Math.abs(x-sig0[i]),0);if(dd>bd){bd=dd;best=sg}}
+      sigs[n]=best;const q=GV[n];chk('goalie variant '+n+' state',st.has(q[2]),'got '+[...st].join(','));
+      chk('goalie variant '+n+' max joint deg/frame',mx<AT.gPopMax,mx.toFixed(1)+' '+w);
+      chk('goalie variant '+n+' joints not through ice (world y of 16 joints)',minY>-.05,'min '+minY.toFixed(2)+' '+lowest);
+      const lvs=AT.m.an.metrics.lv,sum=Object.keys(lvs).filter(k=>k!=='ant'&&k!=='rvh').reduce((a,k)=>a+lvs[k],0);chk('goalie variant '+n+' recovers to ready',sum<.05&&AT.m.an.state==='goalie_ready','lv sum '+sum.toFixed(2)+' '+AT.m.an.state);
+      AT.gPop=AT.gPop||{};AT.gPop['v_'+n]=mx.toFixed(1)}
+    const ks=Object.keys(sigs);let mn=99,pr='';for(let i=0;i<ks.length;i++)for(let j=i+1;j<ks.length;j++){if(ks[j]==='return_')continue;const dd=sigs[ks[i]].reduce((q,x,k)=>q+Math.abs(x-sigs[ks[j]][k]),0);if(dd<mn){mn=dd;pr=ks[i]+'/'+ks[j]}}
+    chk('goalie variants: peak pose differs pairwise (min L1 m)',mn>.4,mn.toFixed(2)+' '+pr);
+    const dv=(k,dd,id)=>GOAL.derive(k,dd,id);const seen=new Set();for(let id=1;id<80;id++){seen.add(dv('pad',{dy:4,h:0},id));seen.add(dv('butterfly',{dy:1,h:0},id));seen.add(dv('glove',{dy:1,h:1},id));seen.add(dv('pad',{dy:2.5,h:0},id))}
+    chk('goalie derive yields stack, split, vh, bslide, squeeze, scramble from event data',['stack','split','vh','bslide','squeeze','scramble'].every(x=>seen.has(x)),[...seen].join(','));
+    chk('goalie derive deterministic per event id',dv('pad',{dy:4,h:0},5)===dv('pad',{dy:4,h:0},5)&&dv('blocker',{dy:1,h:1},5)==='','');
+    { AT.spawn(true);ANIM.debug=true;let xm=0;for(let t=0;t<=1.7;t+=1/60){AT.step(GS.v_pull,t,1/60);xm=Math.max(xm,Math.hypot(AT.m.g.position.x,AT.m.g.position.z))}chk('goalie bench trip travels (ft)',xm>20,xm.toFixed(1));
+      AT.spawn(true);ANIM.debug=true;const fn=(t,p,c,pk)=>{p.y=0;c.gw={stop:true,scr:false};pk.x=1.5;pk.y=0};for(let t=0;t<=1.5;t+=1/60)AT.step(fn,t,1/60);chk('goalie covers the puck on a whistle',AT.m.an.state==='goalie_cover'&&AT.m.an.metrics.lv.cov>.9,AT.m.an.state+' '+AT.m.an.metrics.lv.cov.toFixed(2));
+      AT.spawn(true);ANIM.debug=true;const f2=(t,p,c,pk)=>{p.y=0;c.gw={stop:true,scr:false};pk.x=-60;pk.y=30};const sset=new Set();for(let t=0;t<=14;t+=1/60){AT.step(f2,t,1/60);sset.add(AT.m.an.state)}chk('goalie fidgets in a long stoppage (>=3 idles)',['goalie_adjust_mask','goalie_water_bottle','goalie_stretch','goalie_shake_out','goalie_tap_pads'].filter(x=>sset.has(x)).length>=3,[...sset].join(','));
+      AT.spawn(true);ANIM.debug=true;const f3=(t,p,c,pk)=>{p.y=0;c.gw={stop:false,scr:true};pk.x=60;pk.y=0};for(let t=0;t<=1.5;t+=1/60)AT.step(f3,t,1/60);chk('goalie peeks over a screen',AT.m.an.state==='goalie_peek',AT.m.an.state);
+      AT.spawn(true);ANIM.debug=true;const f4=(t,p,c,pk)=>{p.y=0;c.gw={stop:false,scr:false};pk.x=4;pk.y=-8};for(let t=0;t<=1.5;t+=1/60)AT.step(f4,t,1/60);chk('goalie plays the puck behind the net',AT.m.an.state==='goalie_play_puck',AT.m.an.state) }
   }
   return {fails,total:out.length,failed:out.filter(l=>l.startsWith('FAIL'))};
 };
@@ -261,4 +297,4 @@ AT.view=function(v){
 // frame at time t of a scenario (re-simulates from 0 so the result is exact)
 AT.frame=function(name,t,view,opts){AT.run(name,t,opts);AT.view(view||'close');document.getElementById('hud').textContent=name+' t='+t.toFixed(2)+'s  state='+AT.m.an.state;return AT.m.an.state};
 SK.load(()=>{if(SK.failed){document.title='FAILED';return}AT.spawn(false);AT.step(sc_.stationary,0,1/60);AT.view('close');document.title='ready'});
-</script></body></html>
+</script><script src="anim_hits_test.js"></script></body></html>

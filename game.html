@@ -266,8 +266,9 @@ body[data-ph=off] #bh,body[data-ph=def] #bs,body[data-ph=def] #bp{opacity:.28;tr
 
 <script src="three.min.js"></script>
 <script src="lib/CopyShader.js"></script><script src="lib/LuminosityHighPassShader.js"></script><script src="lib/EffectComposer.js"></script><script src="lib/RenderPass.js"></script><script src="lib/ShaderPass.js"></script><script src="lib/MaskPass.js"></script><script src="lib/UnrealBloomPass.js"></script>
-<script src="lib/GLTFLoader.js"></script><script src="lib/SkeletonUtils.js"></script><script src="skater3d.js"></script><script src="costumes.js"></script><script src="skater_pose.js"></script><script src="anim_rig.js"></script><script src="anim_ctrl.js"></script><script src="anim_goalie.js"></script><script src="r3d.js"></script>
+<script src="lib/GLTFLoader.js"></script><script src="lib/SkeletonUtils.js"></script><script src="skater3d.js"></script><script src="costumes.js"></script><script src="skater_pose.js"></script><script src="anim_rig.js"></script><script src="anim_ctrl.js"></script><script src="anim_goalie.js"></script><script src="anim_celebrate.js"></script><script src="anim_shots.js"></script><script src="r3d.js"></script>
 <script src="audio.js"></script><script src="announcer.js"></script>
+<script src="anim_hits.js"></script>
 <script>
 const ROSTER=null;//ROSTER
 const SL=['C','LW','RW','LD','RD','X'],W=200,H=85,GX=11,NY=[37.5,47.5],MY=42.5;
@@ -348,7 +349,7 @@ function tryFightInj(h,v,pw,brd){G.hits[h.team===H1?0:1]++;pst(h).h++;
  // fight: after a big hit, the victim may drop the gloves (chance grows with the hitter's check rating and the hit power)
  if(pw>.45&&(G.nfights||0)<3&&!h.box&&!v.box&&!h.inj&&!v.inj&&ht.pen.length<2&&vt.pen.length<2&&Math.random()<.015+.05*h.chk*pw){
   G.nfights=(G.nfights||0)+1;const fx=v.x<66?31:v.x>134?169:100,fy=v.y<MY?22:63;stopPlay(fx,fy,4.6,'FIGHT',h.name.split(' ').pop()+' vs '+v.name.split(' ').pop());
-  G.fight={a:h,b:v,t:4.2,ph:0,hits:0,sc:0};const mx=(h.x+v.x)/2,my=(h.y+v.y)/2;h.x=mx-2.5;v.x=mx+2.5;h.y=v.y=my;h.fa=0;v.fa=Math.PI;h.vx=h.vy=v.vx=v.vy=0}
+  G.fight={a:h,b:v,t:4.2,ph:0,hits:0,sc:0};const mx=(h.x+v.x)/2,my=(h.y+v.y)/2;h.x=mx-2;v.x=mx+2;h.y=v.y=my;h.fa=0;v.fa=Math.PI;h.vx=h.vy=v.vx=v.vy=0}
 }
 function tickFight(dt){const f=G.fight;if(!f)return;f.t-=dt;f.ph-=dt;const a=f.a,b=f.b;a.vx=a.vy=b.vx=b.vy=0;
  if(f.t>.8&&f.ph<=0){f.ph=.42;f.hits++;const aw=Math.random()<.5+.5*(a.chk-b.chk);const w=aw?a:b,l=aw?b:a;f.sc+=aw?1:-1;AE(w,'check',{a:Math.atan2(l.y-w.y,l.x-w.x),board:false,power:.45});AE(l,'checked',{power:.35,board:false,dir:Math.atan2(l.y-w.y,l.x-w.x),side:aw?1:-1,from:'front'});shakeT=.15;AU.sfx('hit')}
@@ -370,7 +371,7 @@ function tickReplay(dt){const r=G.rp;r.t+=dt*.6;const f=r.t/.05,i=Math.floor(f);
   p.x=L(1);p.y=L(2);p.vx=e[3];p.vy=e[4];p.fa=e[5]+wr(q[5]-e[5])*a;p.stp=L(7);p.edge=L(8);p.ph=((e[9]+wr(q[9]-e[9])*a)%6.2832+6.2832)%6.2832;p.spray=!!e[10];p.xo=!!e[11];p.turn=L(12);p.acc01=L(13);p.back=!!e[14];p.celeb=e[16];if(e[17]!==null)p.st=e[17];p.on=true;
   const ac=e[15];if(!ac)p.act=null;else if(p.act&&p.act.k===ac.k){p.act.t=ac.t;p.act.T=ac.T}else p.act={k:ac.k,t:ac.t,T:ac.T}}}
 function endReplay(){const r=G.rp;G.rp=null;document.body.classList.remove('replay');for(const s of r.save){Object.assign(s[0],s[1])}puck.x=r.ps[0];puck.y=r.ps[1];puck.vx=r.ps[2];puck.vy=r.ps[3];puck.z=puck.vz=0;puck.owner=r.pw;G.rec=[];G.pause=.05}
-function callPenalty(t,p,why){if(t.pen.length>=2||!p||p.box)return;G.pims[t===H1?0:1]++;p.box=true;p.on=false;if(puck.owner===p)puck.owner=null;const pdur=clamp(Math.round((G.plen||180)*.33/15)*15,30,120);t.pen.push({p,t:pdur,why});t.needUnit=true;if(window.ANN)ANN.penalty(p,why);showBanner(p.img,`PENALTY ${t.abbr}`,`${p.name} - ${why} - ${fm(pdur)}`,1.6)}
+function callPenalty(t,p,why){if(t.pen.length>=2||!p||p.box)return;if(window.HITS)HITS.pen(t,p,why);G.pims[t===H1?0:1]++;p.box=true;p.on=false;if(puck.owner===p)puck.owner=null;const pdur=clamp(Math.round((G.plen||180)*.33/15)*15,30,120);t.pen.push({p,t:pdur,why});t.needUnit=true;if(window.ANN)ANN.penalty(p,why);showBanner(p.img,`PENALTY ${t.abbr}`,`${p.name} - ${why} - ${fm(pdur)}`,1.6)}
 // ---------- faceoff ----------
 function faceoff(){G.fo={x:W/2,y:MY,set:false};G.pause=.01}
 function stopPlay(x,y,secs,why,sub){G.fo={x,y,set:false};G.pause=secs;puck.owner=null;puck.vx=puck.vy=puck.z=puck.vz=0;puck.shot=null;puck.target=null;puck.rel=null;if(G.ev)G.ev[why]=(G.ev[why]||0)+1;if(why){showBanner(null,why,sub||'',secs,null);AU.sfx('whistle')}}
@@ -433,7 +434,7 @@ function puckNet(t,ax,ay){const d=t.dir,gx=t.ownGX,x0=d>0?gx-PK.NETD:gx,x1=d>0?g
 function shoot(p,ix,iy,hum,pw){pw=pw||.8;pst(p).s++;AU.sfx('shot');if(G.shots)G.shots[p.team===H1?0:1]++;G.shs=G.shs||{};G.shs[p.slot]=(G.shs[p.slot]||0)+1;const t=p.team,dg=hyp(t.oppGX-p.x,MY-p.y);let ang;
  const toG=Math.atan2(MY-p.y,t.oppGX-p.x),im=hyp(ix,iy);
  {const gk=t.opp.goalie,farY=clamp(MY-(gk.y-MY)*.7+((gk.y>=MY)?-1.6:1.6),MY-2.9,MY+2.9),ay=hum?(im>.3&&(ix*t.dir)>-.3?.7*(MY+clamp(iy,-1,1)*4.2)+.3*farY:farY):MY+rnd(-4,4);ang=Math.atan2(ay-p.y,t.oppGX-p.x)}
- const kd0=pw>.85?'slap':pw<.6?'snap':'wrist',km=kd0==='snap'?{e:.78,s:.9}:kd0==='slap'?{e:1.25,s:1.1}:{e:1,s:1},bh=Math.cos(p.fa-toG)<-.15?{e:1.25,s:.78}:{e:1,s:1};ang+=(Math.random()-.5)*((1-p.shot)*.5+dg/260)*(1.25-.5*(1-pw))*(hum?.42:dkf(p.team,'shot'))*(1+(1-(p.st===undefined?1:p.st))*.5)*km.e*bh.e;const sp=(80+70*p.shot)*(.62+.45*pw)*km.s*bh.s;AE(p,'shot',{kind:pw>.85?'slap':(p.recvAt!==undefined&&p.recvAt-G.clock>=0&&p.recvAt-G.clock<.7)?'onetimer':pw<.6?'snap':'wrist',a:ang});
+ const kd0=pw>.85?'slap':pw<.6?'snap':'wrist',km=kd0==='snap'?{e:.78,s:.9}:kd0==='slap'?{e:1.25,s:1.1}:{e:1,s:1},bh=Math.cos(p.fa-toG)<-.15?{e:1.25,s:.78}:{e:1,s:1};ang+=(Math.random()-.5)*((1-p.shot)*.5+dg/260)*(1.25-.5*(1-pw))*(hum?.42:dkf(p.team,'shot'))*(1+(1-(p.st===undefined?1:p.st))*.5)*km.e*bh.e;const sp=(80+70*p.shot)*(.62+.45*pw)*km.s*bh.s;AE(p,'shot',{kind:pw>.85?'slap':(p.recvAt!==undefined&&p.recvAt-G.clock>=0&&p.recvAt-G.clock<.7)?'onetimer':pw<.6?'snap':'wrist',a:ang,pw:+pw.toFixed(2),z:+(puck.z||0).toFixed(1)});
  puck.sid=(puck.sid||0)+1;puck.owner=null;puck.vx=Math.cos(ang)*sp;puck.vy=Math.sin(ang)*sp;puck.x=p.x+Math.cos(ang)*4.2;puck.y=p.y+Math.sin(ang)*4.2;puck.shot=p;puck.last=p;puck.cool=.35;p.aiT=.5;puck.rel={team:t,x:p.x};puck.sd=dg;puck.sy=p.y;puck.ss=sp;puck.slap=pw>.85;puck.tip=false;puck.z=0;puck.vz=0;puck.bn=0;
  {const lf=bh.s<1?rnd(2.5,7):pw>.85?(Math.random()<.45?rnd(2,8.5):rnd(0,2)):pw<.6?(Math.random()<.2?rnd(1.5,4):0):(Math.random()<.2?rnd(1.5,5):rnd(0,1.2));if(lf>0)puckLift(lf,sp,dg,3.95);else puck.spin=sp/12}
  {const dx=Math.cos(ang),dy=Math.sin(ang);let done=false;
@@ -449,7 +450,7 @@ function passTarget(p,ix,iy){const t=p.team,im=hyp(ix,iy),has=im>.3,fa=p.fa||0,a
   const s=dot*(has?3:1.6)-d/220-lane*.9+(d<14?-.6:0);if(s>bs){bs=s;best=m}}
  return best}
 function pass(p,ix,iy){const t=p.team;let best=passTarget(p,ix,iy);
- if(!best)return false;const d0=hyp(best.x-p.x,best.y-p.y)||1,sp=clamp(80+d0*1.5,90,155)*(.92+.18*p.pass);let lx=best.x,ly=best.y;for(let k=0;k<3;k++){const dd=hyp(lx-p.x,ly-p.y),tt=dd/sp;lx=clamp(best.x+best.vx*tt*.95,8,W-8);ly=clamp(best.y+best.vy*tt*.95,3,H-3)}let a=Math.atan2(ly-p.y,lx-p.x)+(Math.random()-.5)*(1-p.pass)*.1;G.passFx={x1:p.x,y1:p.y,x2:best.x,y2:best.y,t:.4};AU.sfx('pass');AE(p,'pass',{a:a,len:Math.round(d0)});AE(best,'recv',{});
+ if(!best)return false;const d0=hyp(best.x-p.x,best.y-p.y)||1,sp=clamp(80+d0*1.5,90,155)*(.92+.18*p.pass);let lx=best.x,ly=best.y;for(let k=0;k<3;k++){const dd=hyp(lx-p.x,ly-p.y),tt=dd/sp;lx=clamp(best.x+best.vx*tt*.95,8,W-8);ly=clamp(best.y+best.vy*tt*.95,3,H-3)}let a=Math.atan2(ly-p.y,lx-p.x)+(Math.random()-.5)*(1-p.pass)*.1;G.passFx={x1:p.x,y1:p.y,x2:best.x,y2:best.y,t:.4};AU.sfx('pass');AE(p,'pass',{a:a,len:Math.round(d0),sp:Math.round(sp)});AE(best,'recv',{});
  puck.owner=null;puck.vx=Math.cos(a)*sp;puck.vy=Math.sin(a)*sp;puck.x=p.x+Math.cos(a)*1.6;puck.y=p.y+Math.sin(a)*1.6;puck.target=best;puck.targetT=1.4;puck.last=p;puck.cool=.3;puck.shot=null;puck.rel={team:t,x:p.x};G.passes[t===H1?0:1]++;G.lp={from:p,to:best,c:G.clock,per:G.period};return true}
 // ---------- AI ----------
 function go(p,tx,ty,k=1){const dx=tx-p.x,dy=ty-p.y,d=hyp(dx,dy);if(d<1.5){p.dvx=p.dvy=0;return}const m=Math.min(1,d/6)*k;p.dvx=dx/d*m;p.dvy=dy/d*m}
@@ -504,10 +505,10 @@ function summaryHTML(){const L=[],fm2=s=>Math.floor(s/60)+':'+String(Math.floor(
  const st=Object.values(G.pst||{}).map(p=>({p,v:p.g*3+p.s*.25+p.sv*.12+p.h*.15})).sort((a,b)=>b.v-a.v).slice(0,3);
  if(st.length){L.push('<div class="sg"><b>THREE STARS</b>');st.forEach((x,i)=>{const p=x.p;L.push('<div>'+'★'.repeat(3-i)+' '+p.name+' ('+ab[p.t]+') '+(p.goalie?p.sv+' saves':p.g+' G, '+p.s+' SOG, '+p.h+' hits')+'</div>')});L.push('</div>')}
  L.push('</div>');return L.join('')}
-function finish(){G.over=true;const[a,b]=G.score;$('et').textContent=a===b?'TIE':(a>b?A1:H1).abbr===(a>b?H1:A1).abbr?'':'FINAL';
+function finish(){G.over=true;const[a,b]=G.score;try{if(window.CEL&&a!==b)CEL.onEnd(a>b?H1:A1,a>b?A1:H1,onIce,G.ot)}catch(e){}$('et').textContent=a===b?'TIE':(a>b?A1:H1).abbr===(a>b?H1:A1).abbr?'':'FINAL';
  $('et').textContent=a===b?'FINAL (TIE)':'FINAL';$('es').textContent=`${H1.abbr} ${b>=0?G.score[0]:0} - ${G.score[1]} ${A1.abbr}`;try{if(window.onGameEnd&&!G.net)window.onGameEnd(G)}catch(e){}try{let se=$('esum');if(!se){se=document.createElement('div');se.id='esum';se.className='sumw';$('es').after(se)}se.innerHTML=summaryHTML()}catch(e){}$('end').style.display='flex'}
 function goal(t,shooter){if(G.over)return;const idx=t===H1?0:1;G.score[idx]++;if(G.net&&!G.ot)G.rbPend=1;if(!G.net&&G.rec&&G.rec.length>20&&!G.ot){G.rpPend=G.rec.slice(-100);G.rpGX=t.opp.ownGX}let ast=null;if(shooter&&G.lp&&G.lp.to===shooter&&G.lp.from!==shooter&&G.lp.per===G.period&&G.lp.c-G.clock<5&&G.lp.c-G.clock>=0){ast=G.lp.from;pst(ast).a=(pst(ast).a||0)+1}if(G.goals)G.goals.push({t:idx,name:shooter?shooter.name:t.name,num:shooter?shooter.num:null,per:G.period,clk:G.clock,ot:!!G.ot,a:ast?ast.name:''});if(shooter)pst(shooter).g++;AE(t.opp.goalie,'goalagainst');const sc=t.opp;if(sc.pen.length){const e=sc.pen.shift();e.p.box=false;sc.needUnit=true}
- showBanner(shooter&&shooter.img,'GOAL',shooter?`${shooter.num!=null?'#'+shooter.num+' ':''}${shooter.name} \u00b7 ${t.name}`:t.name,2.6,t.color);shakeT=.7;G.cele={p:shooter,t:2.6};if(shooter){shooter.celeb=2.6;for(const m of onIce(t))if(m!==shooter){m.celeb=2.4;m.cgo=shooter}}G.gfx={d:t.dir>0?-1:1,t:3.2};G.excite=1;AU.sfx('horn');AU.crowd(1);if(window.ANN&&ANN.mode!=='off')ANN.goal(shooter,t);else AU.speak('Goal! '+(shooter?shooter.name:t.name));{const f=$('flash');f.style.background=t.color;f.classList.remove('go');void f.offsetWidth;f.classList.add('go')}G.pause=2.6;G.fo={x:W/2,y:MY,set:false};puck.owner=null;puck.vx=puck.vy=puck.z=puck.vz=0;
+ showBanner(shooter&&shooter.img,'GOAL',shooter?`${shooter.num!=null?'#'+shooter.num+' ':''}${shooter.name} \u00b7 ${t.name}`:t.name,2.6,t.color);shakeT=.7;G.cele={p:shooter,t:2.6};if(shooter){shooter.celeb=2.6;for(const m of onIce(t))if(m!==shooter){m.celeb=2.4;m.cgo=shooter}}if(window.CEL)CEL.onGoal(t,shooter,onIce,G.score[0]+G.score[1]);G.gfx={d:t.dir>0?-1:1,t:3.2};G.excite=1;AU.sfx('horn');AU.crowd(1);if(window.ANN&&ANN.mode!=='off')ANN.goal(shooter,t);else AU.speak('Goal! '+(shooter?shooter.name:t.name));{const f=$('flash');f.style.background=t.color;f.classList.remove('go');void f.offsetWidth;f.classList.add('go')}G.pause=2.6;G.fo={x:W/2,y:MY,set:false};puck.owner=null;puck.vx=puck.vy=puck.z=puck.vz=0;
  if(G.ot){G.over=true;setTimeout(finish,1800)}}
 function keepIn(o,pad,bounce){const R=12,cx_=clamp(o.x,R,W-R),cy_=clamp(o.y,R,H-R),dx=o.x-cx_,dy=o.y-cy_,d=hyp(dx,dy);if(d>R-pad&&d>.001){const k=(R-pad)/d;o.x=cx_+dx*k;o.y=cy_+dy*k;if(bounce){const nx=dx/d,ny=dy/d,vn=o.vx*nx+o.vy*ny;if(vn>0){o.vx-=1.7*vn*nx;o.vy-=1.7*vn*ny}}}}
 function wrapA(a){return((a+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI}
@@ -651,8 +652,8 @@ function step(dt){
    let ang=Math.atan2(puck.y-bd.y,puck.x-bd.x)-bd.fa;while(ang>Math.PI)ang-=2*Math.PI;while(ang<-Math.PI)ang+=2*Math.PI;
    const q=sp0/170+(Math.abs(ang)>1.7?.3:0)+(bd.stun>0?.35:0),pc=clamp(.97-q*.5+(bd.pass-.5)*.28+(bd.isCtl?.06:0),.3,.98);let out='clean';
    if(!ot&&Math.random()>pc){const r=Math.random();out=r<.42?'bobble':r<.62?'difficult':r<.82?'deflect':'miss'}
-   if(out==='miss'||out==='deflect'){const a0=Math.atan2(puck.vy,puck.vx)+(out==='deflect'?rnd(-.9,.9):rnd(-.12,.12)),s1=sp0*(out==='deflect'?.6:.92);puck.vx=Math.cos(a0)*s1;puck.vy=Math.sin(a0)*s1;puck.last=bd;puck.cool=out==='miss'?.4:.28;puck.target=null;AE(bd,'gain',{q:out});noteT=.8;noteTxt=out==='miss'?'MISSED THE PASS':'DEFLECTED'}
-   else{AE(bd,'gain',{q:out});bd.gainT=G.clock;puck.owner=bd;puck.target=null;puck.shot=null;puck.last=bd;
+   if(out==='miss'||out==='deflect'){const a0=Math.atan2(puck.vy,puck.vx)+(out==='deflect'?rnd(-.9,.9):rnd(-.12,.12)),s1=sp0*(out==='deflect'?.6:.92);puck.vx=Math.cos(a0)*s1;puck.vy=Math.sin(a0)*s1;puck.last=bd;puck.cool=out==='miss'?.4:.28;puck.target=null;AE(bd,'gain',{q:out,z:+(puck.z||0).toFixed(1),sp:Math.round(sp0)});noteT=.8;noteTxt=out==='miss'?'MISSED THE PASS':'DEFLECTED'}
+   else{AE(bd,'gain',{q:out,z:+(puck.z||0).toFixed(1),sp:Math.round(sp0)});bd.gainT=G.clock;puck.owner=bd;puck.target=null;puck.shot=null;puck.last=bd;
     if(out==='bobble'){puck.owner=null;puck.vx=bd.vx*.5+rnd(-16,16);puck.vy=bd.vy*.5+rnd(-16,16);puck.cool=.3;noteT=.8;noteTxt='BOBBLED'}
     else if(out==='difficult'){bd.stun=Math.max(bd.stun,.28)}
     if(ot&&puck.owner===bd){const q2=bd.oneI||{nx:0,ny:0,pw:.7},age=G.clock-(bd.oneP||G.clock);bd.oneT=0;const early=age>.62,tight=age<.34;if(!early&&Math.random()<clamp(.9-(sp0-100)/190,.4,.93)){shoot(bd,q2.nx,q2.ny,!q2.ai,q2.pw);const m=tight?1.15:1.05;puck.vx*=m;puck.vy*=m;noteT=1;noteTxt='ONE-TIMER!'}else{noteT=1;noteTxt='ONE-TIMER MISSED'}}}}}
